@@ -46,7 +46,6 @@ public class DesktopModel
     {
         this.installation = installation;
         this.serverConfigurator = new DesktopConfigurator( installation );
-
         serverConfigurator.setDatabaseDirectory( installation.getDatabaseDirectory() );
     }
 
