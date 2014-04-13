@@ -77,6 +77,7 @@ public class DesktopModel
     {
         verifyGraphDirectory(databaseDirectory);
         serverConfigurator.setDatabaseDirectory( databaseDirectory );
+        installation.setDatabaseDirectory( databaseDirectory );
     }
 
 
