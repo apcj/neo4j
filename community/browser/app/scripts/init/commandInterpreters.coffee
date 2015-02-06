@@ -153,6 +153,14 @@ angular.module('neo4jApp')
       ]
 
     FrameProvider.interpreters.push
+      type: 'sketch'
+      templateUrl: 'views/frame-sketch.html'
+      matches: "#{cmdchar}sketch"
+      exec: [() ->
+        () ->
+      ]
+
+    FrameProvider.interpreters.push
       type: 'config'
       templateUrl: 'views/frame-config.html'
       matches: ["#{cmdchar}config"]

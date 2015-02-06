@@ -1,0 +1,23 @@
+div(ng-controller='SketchCtrl', fullscreen)
+  .outer
+    include partials/frame-common-actions
+    .inner
+      .view-result
+        .view-result-graph
+          .graph-holder.result
+            include partials/legend
+            .graph-contents
+              svg.graph(neo-graph
+              graph-data='sketchGraph'
+              on-item-click='onItemClick($item, "graphItem")'
+              on-item-mouse-over='onItemHover($item, "graphItem")'
+              on-item-mouse-out='onItemHover()'
+              on-node-drag-toggle='onNodeDragToggle($item)'
+              on-canvas-clicked='onItemClick()'
+              ng-controller='D3GraphCtrl'
+              style="pointer-events:fill;"
+              ng-class="{'one-legend-row': hasLabels || hasTypes, 'two-legend-rows': hasLabels && hasTypes}")
+            .status-bar(ng-show='isActive("graph")')
+              .cell
+                .status
+                  include partials/inspector
