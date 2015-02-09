@@ -33,6 +33,7 @@ do ->
       .attr
         cx: 0
         cy: 0
+      .call(viz.force.drag)
 
       circles
       .attr
@@ -78,6 +79,51 @@ do ->
       circles
       .attr
         r: (node) -> node.radius + 4
+
+      circles.exit().remove()
+
+    onTick: noop
+  )
+
+  newNode = undefined
+  nodeHalo = new neo.Renderer(
+    onGraphChange: (selection, viz) ->
+      drag = viz.force.drawDrag
+      .on("dragstart.halo", (d) ->
+        console.log "dragstart.halo"
+        newId = (collection) ->
+              (d3.max(collection, (d) -> d.id) + 1) or 0
+        newNode = new neo.models.Node(newId(viz.graph.nodes()), [], {})
+        newNode.x = d.x
+        newNode.y = d.y
+        viz.graph.addNodes([newNode])
+        viz.graph.addRelationships([new neo.models.Relationship(newId(viz.graph.relationships()), d, newNode, 'LINK', {})])
+        viz.update()
+      )
+      .on("drag.halo", (d) ->
+        newNode.x = d3.event.x
+        newNode.y = d3.event.y
+        viz.render()
+      )
+      .on("dragend.halo", (d) ->
+        newNode = undefined
+      )
+
+      circles = selection.selectAll('circle.halo').data((node) -> [node])
+      circles.enter()
+      .append('circle')
+      .classed('halo', true)
+      .attr
+          cx: 0
+          cy: 0
+          fill: 'yellow'
+          stroke: 'blue'
+          'stroke-width': '16px'
+      .call(drag)
+
+      circles
+      .attr
+          r: (node) -> node.radius + 32
 
       circles.exit().remove()
 
@@ -149,6 +195,7 @@ do ->
         .attr('d', (d) -> d.arrow.overlay(band))
   )
 
+  neo.renderers.node.push(nodeHalo)
   neo.renderers.node.push(nodeOutline)
   neo.renderers.node.push(nodeCaption)
   neo.renderers.node.push(nodeRing)

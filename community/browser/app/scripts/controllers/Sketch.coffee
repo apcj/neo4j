@@ -21,10 +21,42 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 'use strict'
 
 angular.module('neo4jApp.controllers')
-  .controller 'SketchCtrl', ['$rootScope', '$scope', ($rootScope, $scope) ->
+  .controller 'SketchCtrl', ['$rootScope', '$scope', '$element', 'GraphStyle', 'Editor', ($rootScope, $scope, $element, GraphStyle, Editor) ->
+
+    measureSize = ->
+      width: $element.width()
+      height: $element.height()
 
     $scope.sketchGraph = do ->
       graph = new neo.models.Graph()
-      graph.addNodes([new neo.models.Node(0, [], {})])
+      node = new neo.models.Node(0, [], {})
+      node.x = 100
+      node.y = 100
+      graph.addNodes([node])
       graph
-  ]
+
+    emitCode = (graph) ->
+      cypher = ''
+      for node in graph.nodes()
+        cypher += "CREATE (n#{node.id})\n"
+      for rel in graph.relationships()
+        cypher += "CREATE (n#{rel.source.id})-[:#{rel.type}]->(n#{rel.target.id})\n"
+      Editor.setContent(cypher)
+
+    @render = (graph) ->
+      graphView = new neo.graphView($element[0], measureSize, graph, GraphStyle)
+      graphView
+      .on('nodeDblClicked', (clickedNode) ->
+        newId = (collection) ->
+          (d3.max(collection, (d) -> d.id) + 1) or 0
+        newNode = new neo.models.Node(newId(graph.nodes()), [], {})
+        newNode.x = 100
+        newNode.y = 100
+        graph.addNodes([newNode])
+        graph.addRelationships([new neo.models.Relationship(newId(graph.relationships()), clickedNode, newNode, 'LINK', {})])
+        graphView.update()
+        emitCode(graph)
+      )
+      graphView.update()
+      emitCode(graph)
+]

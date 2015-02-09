@@ -21,22 +21,23 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 'use strict'
 
 neo.utils.clickHandler = ->
+  dist = (a, b) ->
+    Math.sqrt Math.pow(a[0] - b[0], 2), Math.pow(a[1] - b[1], 2)
+  down = undefined
+  tolerance = 5
+  last = undefined
+  wait = null
+
   cc = (selection) ->
 
     # euclidean distance
-    dist = (a, b) ->
-      Math.sqrt Math.pow(a[0] - b[0], 2), Math.pow(a[1] - b[1], 2)
-    down = undefined
-    tolerance = 5
-    last = undefined
-    wait = null
-    selection.on "mousedown", ->
+    selection.on "mousedown.clickHandler", ->
       d3.event.target.__data__.fixed = yes
       down = d3.mouse(document.body)
       last = +new Date()
       d3.event.stopPropagation()
 
-    selection.on "mouseup", ->
+    selection.on "mouseup.clickHandler", ->
       if dist(down, d3.mouse(document.body)) > tolerance
         return
       else

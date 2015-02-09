@@ -1,4 +1,4 @@
-div(ng-controller='SketchCtrl', fullscreen)
+div(fullscreen)
   .outer
     include partials/frame-common-actions
     .inner
@@ -14,10 +14,10 @@ div(ng-controller='SketchCtrl', fullscreen)
               on-item-mouse-out='onItemHover()'
               on-node-drag-toggle='onNodeDragToggle($item)'
               on-canvas-clicked='onItemClick()'
-              ng-controller='D3GraphCtrl'
+              ng-controller='SketchCtrl'
               style="pointer-events:fill;"
               ng-class="{'one-legend-row': hasLabels || hasTypes, 'two-legend-rows': hasLabels && hasTypes}")
-            .status-bar(ng-show='isActive("graph")')
+            .status-bar
               .cell
                 .status
                   include partials/inspector

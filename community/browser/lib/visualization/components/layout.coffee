@@ -48,6 +48,8 @@ neo.layout = do ->
         currentStats = newStatsBucket()
         latestStats
 
+      layoutActive = true
+
       accelerateLayout = ->
         maxStepsPerTick = 100
         maxAnimationFramesPerSecond = 60
@@ -63,12 +65,13 @@ neo.layout = do ->
         d3force.tick = ->
           startTick = now()
           step = maxStepsPerTick
-          while step-- and now() - startTick < maxComputeTime
+          while layoutActive and step-- and now() - startTick < maxComputeTime
             startCalcs = now()
             currentStats.layoutSteps++
 
             neo.collision.avoidOverlap d3force.nodes()
 
+            console.log 'tick'
             if d3Tick()
               maxStepsPerTick = 2
               return true
@@ -96,9 +99,52 @@ neo.layout = do ->
         .nodes(nodes)
         .links(relationships)
         .size(size)
-        .start()
 
-      forceLayout.drag = d3force.drag
+        if layoutActive
+          console.log 'starting'
+          d3force.start()
+
+      moveDrag = d3.behavior.drag()
+      .origin((d) -> d)
+      .on("dragstart.force", (d) ->
+        console.log "dragstart.force"
+        d.fixed |= 2
+      )
+      .on("drag.force", (d) ->
+        console.log "drag.force"
+        d.px = d3.event.x
+        d.py = d3.event.y
+        d3force.resume()
+      )
+      .on("dragend.force", (d) -> d.fixed &= ~6)
+
+      forceLayout.drag = moveDrag
+
+      forceLayout.mouseOver = (selection) ->
+        selection
+        .on("mouseover.force", (d) ->
+          d.fixed |= 4
+          d.px = d.x
+          d.py = d.y
+        )
+        .on("mouseout.force", (d) ->
+          d.fixed &= ~4
+        )
+
+      drawDrag = d3.behavior.drag()
+      .origin((d) -> d)
+      .on("dragstart.draw", (d) ->
+        console.log 'dragstart.draw'
+        layoutActive = false
+        d3force.stop()
+      )
+      .on("dragend.draw", (d) ->
+        layoutActive = true
+        d3force.start()
+      )
+
+      forceLayout.drawDrag = drawDrag
+
       forceLayout
 
     _force

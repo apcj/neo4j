@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 neo.viz = (el, measureSize, graph, layout, style) ->
   viz =
     style: style
+    graph: graph
 
   root = d3.select(el)
   base_group = root.append('g').attr("transform", "translate(0,0)")
@@ -134,7 +135,7 @@ neo.viz = (el, measureSize, graph, layout, style) ->
 
     nodeGroups = container.selectAll('g.node')
     .attr('transform', (d) ->
-          "translate(#{ d.x },#{ d.y })")
+      "translate(#{ d.x },#{ d.y })")
 
     for renderer in neo.renderers.node
       nodeGroups.call(renderer.onTick, viz)
@@ -150,10 +151,14 @@ neo.viz = (el, measureSize, graph, layout, style) ->
 
     currentStats.lastFrame = now()
 
+  viz.render = render
+
   force = layout.init(render)
-    
+
+  viz.force = force
+
   #Add custom drag event listeners
-  force.drag().on('dragstart.node', (d) -> 
+  force.drag.on('dragstart.node', (d) ->
     onNodeDragToggle(d)
   ).on('dragend.node', () ->
     onNodeDragToggle()
@@ -199,10 +204,11 @@ neo.viz = (el, measureSize, graph, layout, style) ->
 
     nodeGroups.enter().append("g")
     .attr("class", "node")
-    .call(force.drag)
+#    .call(force.drag)
+    .call(force.mouseOver)
     .call(clickHandler)
-    .on('mouseover', onNodeMouseOver)
-    .on('mouseout', onNodeMouseOut)
+    .on('mouseover.neo', onNodeMouseOver)
+    .on('mouseout.neo', onNodeMouseOut)
 
     nodeGroups
     .classed("selected", (node) -> node.selected)
@@ -213,6 +219,7 @@ neo.viz = (el, measureSize, graph, layout, style) ->
     nodeGroups.exit().remove();
 
     force.update(graph, [layoutDimension, layoutDimension])
+#    render()
 
     viz.resize()
     viz.trigger('updated')
