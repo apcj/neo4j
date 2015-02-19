@@ -83,6 +83,10 @@ angular.module('neo4jApp.controllers')
           isNode: true
         $scope.styleForItem(item)
 
+      $scope.nodeCaption = (node) ->
+        template = graphStyle.forNode(node).get("caption")
+        graphStyle.interpolate(template, node)
+
       $scope.sizeLessThan = (a, b) ->
         a = if a then a.replace('px', '') else 0
         b = if b then b.replace('px', '') else 0
