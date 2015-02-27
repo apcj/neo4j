@@ -29,12 +29,14 @@ import javax.servlet.http.HttpServletRequest;
 import org.neo4j.cypher.CypherException;
 import org.neo4j.cypher.InvalidSemanticsException;
 import org.neo4j.graphdb.Result;
+import org.neo4j.helpers.Clock;
 import org.neo4j.kernel.DeadlockDetectedException;
 import org.neo4j.kernel.api.exceptions.KernelException;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.api.exceptions.TransactionFailureException;
 import org.neo4j.kernel.impl.query.QueryExecutionEngine;
 import org.neo4j.kernel.impl.query.QueryExecutionKernelException;
+import org.neo4j.kernel.impl.query.QuerySession;
 import org.neo4j.kernel.impl.util.StringLogger;
 import org.neo4j.server.rest.transactional.error.InternalBeginTransactionError;
 import org.neo4j.server.rest.transactional.error.Neo4jError;
@@ -70,19 +72,21 @@ public class TransactionHandle implements TransactionTerminationHandle
     private final TransactionRegistry registry;
     private final TransactionUriScheme uriScheme;
     private final StringLogger log;
+    private final Clock clock;
     private final long id;
     private final QuerySessionProvider sessionFactory;
     private TransitionalTxManagementKernelTransaction context;
 
     public TransactionHandle( TransitionalPeriodTransactionMessContainer txManagerFacade, QueryExecutionEngine engine,
                               TransactionRegistry registry, TransactionUriScheme uriScheme, StringLogger log,
-                              QuerySessionProvider sessionFactory )
+                              QuerySessionProvider sessionFactory, Clock clock )
     {
         this.txManagerFacade = txManagerFacade;
         this.engine = engine;
         this.registry = registry;
         this.uriScheme = uriScheme;
         this.log = log;
+        this.clock = clock;
         this.id = registry.begin( this );
         this.sessionFactory = sessionFactory;
     }
@@ -323,8 +327,9 @@ public class TransactionHandle implements TransactionTerminationHandle
                 Statement statement = statements.next();
                 try
                 {
-                    Result result = engine.executeQuery( statement.statement(), statement.parameters(),
-                            sessionFactory.create( request ) );
+                    QuerySession querySession = sessionFactory.create( request );
+                    StatementResult result = new StatementResult( clock.currentTimeMillis(),
+                            engine.executeQuery( statement.statement(), statement.parameters(), querySession ) );
                     output.statementResult( result, statement.includeStats(), statement.resultDataContents() );
                 }
                 catch ( KernelException | CypherException e )
@@ -372,8 +377,10 @@ public class TransactionHandle implements TransactionTerminationHandle
                                                            "PERIODIC COMMIT statement in the same transaction" ) );
                 }
 
-                Result result = engine.executeQuery( statement.statement(), statement.parameters(), sessionFactory
-                        .create(request) );
+                QuerySession querySession = sessionFactory
+                        .create( request );
+                StatementResult result = new StatementResult(clock.currentTimeMillis(),
+                        engine.executeQuery( statement.statement(), statement.parameters(), querySession ));
                 ensureActiveTransaction();
                 output.statementResult( result, statement.includeStats(), statement.resultDataContents() );
                 closeContextAndCollectErrors(errors);

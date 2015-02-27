@@ -94,7 +94,7 @@ public class ExecutionResultSerializer
      * Will get called at most once per statement. Throws IOException so that upstream executor can decide whether
      * to execute further statements.
      */
-    public void statementResult( Result result, boolean includeStats, ResultDataContent... resultDataContents )
+    public void statementResult( StatementResult statementResult, boolean includeStats, ResultDataContent... resultDataContents )
             throws IOException
     {
         try
@@ -103,16 +103,16 @@ public class ExecutionResultSerializer
             out.writeStartObject();
             try
             {
-                Iterable<String> columns = result.columns();
+                Iterable<String> columns = statementResult.result().columns();
                 writeColumns( columns );
-                writeRows( columns, result, configureWriters( resultDataContents ) );
+                writeRows( columns, statementResult.result(), configureWriters( resultDataContents ) );
                 if ( includeStats )
                 {
-                    writeStats( result.getQueryStatistics() );
+                    writeStats( statementResult.result().getQueryStatistics() );
                 }
-                if ( result.getQueryExecutionType().requestedExecutionPlanDescription() )
+                if ( statementResult.result().getQueryExecutionType().requestedExecutionPlanDescription() )
                 {
-                    writeRootPlanDescription( result.getExecutionPlanDescription() );
+                    writeRootPlanDescription( statementResult.result().getExecutionPlanDescription() );
                 }
             }
             finally

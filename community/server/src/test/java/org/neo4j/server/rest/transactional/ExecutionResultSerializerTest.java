@@ -164,6 +164,28 @@ public class ExecutionResultSerializerTest
     }
 
     @Test
+    public void shouldSerializeResponseWithExecutionTime() throws Exception
+    {
+        fail();
+        // given
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        ExecutionResultSerializer serializer = new ExecutionResultSerializer( output, null, DEV_NULL );
+
+        Result executionResult = mockExecutionResult( map()  );
+
+        // when
+        serializer.statementResult( executionResult, true );
+        serializer.finish();
+
+        // then
+        String result = output.toString( "UTF-8" );
+        assertThat(result, containsString( "\"stats\":{\"contains_updates\":false," +
+                "\"nodes_created\":0,\"nodes_deleted\":0,\"properties_set\":0,\"relationships_created\":0," +
+                "\"relationship_deleted\":0,\"labels_added\":0,\"labels_removed\":0,\"indexes_added\":0," +
+                "\"indexes_removed\":0,\"constraints_added\":0,\"constraints_removed\":0}" ) );
+    }
+
+    @Test
     public void shouldSerializeResponseWithCommitUriAndResultsAndErrors() throws Exception
     {
         // given

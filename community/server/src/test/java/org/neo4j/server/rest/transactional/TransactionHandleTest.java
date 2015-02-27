@@ -35,6 +35,7 @@ import org.mockito.stubbing.Answer;
 
 import org.neo4j.cypher.SyntaxException;
 import org.neo4j.graphdb.Result;
+import org.neo4j.helpers.FakeClock;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.impl.query.QueryEngineProvider;
 import org.neo4j.kernel.impl.query.QueryExecutionEngine;
@@ -81,7 +82,7 @@ public class TransactionHandleTest
         TransactionRegistry registry = mock( TransactionRegistry.class );
         when( registry.begin( any( TransactionHandle.class ) ) ).thenReturn( 1337l );
         TransactionHandle handle = new TransactionHandle( kernel, executionEngine,
-                registry, uriScheme, StringLogger.DEV_NULL, querySessionProvider);
+                registry, uriScheme, StringLogger.DEV_NULL, querySessionProvider, new FakeClock());
         ExecutionResultSerializer output = mock( ExecutionResultSerializer.class );
 
         // when

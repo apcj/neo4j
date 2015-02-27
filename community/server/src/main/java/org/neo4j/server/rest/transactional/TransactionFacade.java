@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 
+import org.neo4j.helpers.Clock;
 import org.neo4j.kernel.impl.query.QueryExecutionEngine;
 import org.neo4j.kernel.impl.util.StringLogger;
 import org.neo4j.server.rest.transactional.error.TransactionLifecycleException;
@@ -67,7 +68,8 @@ public class TransactionFacade
 
     public TransactionHandle newTransactionHandle( TransactionUriScheme uriScheme ) throws TransactionLifecycleException
     {
-        return new TransactionHandle( kernel, engine, registry, uriScheme, log, QuerySessionProvider.provider );
+        return new TransactionHandle( kernel, engine, registry, uriScheme, log, QuerySessionProvider.provider,
+                Clock.SYSTEM_CLOCK );
     }
 
     public TransactionHandle findTransactionHandle( long txId ) throws TransactionLifecycleException
