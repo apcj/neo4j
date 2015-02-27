@@ -45,6 +45,7 @@ import org.neo4j.graphdb.ExecutionPlanDescription;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.QueryExecutionType;
+import org.neo4j.graphdb.QueryStatistics;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Result;
 import org.neo4j.helpers.collection.MapUtil;
@@ -56,7 +57,10 @@ import org.neo4j.test.mocking.GraphMock;
 import org.neo4j.test.mocking.Link;
 
 import static java.util.Arrays.asList;
+
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
@@ -136,6 +140,27 @@ public class ExecutionResultSerializerTest
         String result = output.toString( "UTF-8" );
         assertEquals( "{\"results\":[{\"columns\":[\"column1\",\"column2\"]," +
                       "\"data\":[{\"row\":[\"value1\",\"value2\"]}]}],\"errors\":[]}", result );
+    }
+
+    @Test
+    public void shouldSerializeResponseWithStatistics() throws Exception
+    {
+        // given
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        ExecutionResultSerializer serializer = new ExecutionResultSerializer( output, null, DEV_NULL );
+
+        Result executionResult = mockExecutionResult( map()  );
+
+        // when
+        serializer.statementResult( executionResult, true );
+        serializer.finish();
+
+        // then
+        String result = output.toString( "UTF-8" );
+        assertThat(result, containsString( "\"stats\":{\"contains_updates\":false," +
+                "\"nodes_created\":0,\"nodes_deleted\":0,\"properties_set\":0,\"relationships_created\":0," +
+                "\"relationship_deleted\":0,\"labels_added\":0,\"labels_removed\":0,\"indexes_added\":0," +
+                "\"indexes_removed\":0,\"constraints_added\":0,\"constraints_removed\":0}" ) );
     }
 
     @Test
@@ -838,6 +863,8 @@ public class ExecutionResultSerializerTest
         {
             when( executionResult.getExecutionPlanDescription() ).thenReturn( planDescription );
         }
+
+        when( executionResult.getQueryStatistics() ).thenReturn( mock( QueryStatistics.class ) );
 
         return executionResult;
     }
