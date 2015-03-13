@@ -26,6 +26,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.IOException;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
@@ -39,6 +40,7 @@ import javax.swing.JTextField;
 import org.neo4j.desktop.runtime.DatabaseActions;
 
 import static java.lang.String.format;
+import static javax.swing.JOptionPane.ERROR_MESSAGE;
 import static javax.swing.SwingUtilities.invokeLater;
 
 import static org.neo4j.desktop.ui.Components.createPanel;
@@ -53,6 +55,7 @@ import static org.neo4j.desktop.ui.Components.withTitledBorder;
 import static org.neo4j.desktop.ui.DatabaseStatus.STARTED;
 import static org.neo4j.desktop.ui.DatabaseStatus.STOPPED;
 import static org.neo4j.desktop.ui.Graphics.loadImage;
+import static org.neo4j.desktop.ui.ScrollableOptionPane.showWrappedMessageDialog;
 
 /**
  * The main window of the Neo4j Desktop. Able to start/stop a database as well as providing access to some
@@ -66,6 +69,7 @@ public class MainWindow
     private final DatabaseActions databaseActions;
     private final JButton browseButton;
     private final JButton settingsButton;
+    private final JButton commandPromptButton;
     private final JButton startButton;
     private final JButton stopButton;
     private final CardLayout statusPanelLayout;
@@ -93,9 +97,10 @@ public class MainWindow
         this.startButton = createStartButton();
         this.stopButton = createStopButton();
         this.settingsButton = createSettingsButton();
+        this.commandPromptButton = createCommandPromptButton();
 
-        JPanel root =
-                createRootPanel( directoryDisplay, browseButton, statusPanel, startButton, stopButton, settingsButton );
+        JPanel root = createRootPanel( directoryDisplay, browseButton, statusPanel,
+                startButton, stopButton, settingsButton, commandPromptButton );
 
         frame.add( root );
         frame.pack();
@@ -105,11 +110,11 @@ public class MainWindow
     }
 
     private JPanel createRootPanel( JTextField directoryDisplay, JButton browseButton, Component statusPanel,
-                                    JButton startButton, JButton stopButton, JButton settingsButton )
+            JButton startButton, JButton stopButton, JButton settingsButton, JButton commandPromptButton )
     {
-        return withSpacingBorder( withBoxLayout( BoxLayout.Y_AXIS,
-            createPanel( createLogoPanel(), createSelectionPanel( directoryDisplay, browseButton ), statusPanel,
-                         createVerticalSpacing(), createActionPanel( startButton, stopButton, settingsButton ) ) ) );
+        return withSpacingBorder( withBoxLayout( BoxLayout.Y_AXIS, createPanel( createLogoPanel(),
+                createSelectionPanel( directoryDisplay, browseButton ), statusPanel, createVerticalSpacing(),
+                createActionPanel( startButton, stopButton, settingsButton, commandPromptButton ) ) ) );
     }
 
     public void display()
@@ -125,10 +130,31 @@ public class MainWindow
                 new JLabel( format( "Neo4j %s", model.getNeo4jVersion() ) ) ) );
     }
 
-    private JPanel createActionPanel( JButton startButton, JButton stopButton, JButton settingsButton )
+    private JPanel createActionPanel( JButton startButton, JButton stopButton,
+                                      JButton settingsButton, JButton commandPromptButton )
     {
         return withBoxLayout( BoxLayout.LINE_AXIS,
-            createPanel( settingsButton, Box.createHorizontalGlue(), stopButton, startButton ) );
+            createPanel( settingsButton, commandPromptButton, Box.createHorizontalGlue(), stopButton, startButton ) );
+    }
+
+    private JButton createCommandPromptButton()
+    {
+        return Components.createTextButton( ellipsis( "Command Prompt" ), new ActionListener()
+        {
+            @Override
+            public void actionPerformed( ActionEvent e )
+            {
+                try
+                {
+                    model.launchCommandPrompt();
+                }
+                catch ( IOException exception )
+                {
+                    String message = "Could not launch command prompt: " + exception.getMessage();
+                    showWrappedMessageDialog( frame, message, "Error", ERROR_MESSAGE );
+                }
+            }
+        } );
     }
 
     private JButton createSettingsButton()

@@ -62,4 +62,10 @@ class UnixEnvironment extends PortableEnvironment
 
         throw new UnsupportedOperationException( "Cannot open directory: " + directory );
     }
+
+    @Override
+    public void openCommandPrompt( File binDirectory, File jreBinDirectory ) throws IOException
+    {
+        throw new UnsupportedOperationException();
+    }
 }

@@ -17,22 +17,16 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.desktop.config;
-
-import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
 
-/**
- * Interacts with the environment in a way that abstracts away the specifics of the current operating system.
- */
-public interface Environment
+import static java.lang.Runtime.getRuntime;
+
+public class Launch
 {
-    void openBrowser( String url ) throws IOException, URISyntaxException;
-
-    void editFile( File file ) throws IOException;
-
-    void openDirectory( File directory ) throws IOException;
-
-    void openCommandPrompt( File binDirectory, File jreBinDirectory ) throws IOException;
+    public static void main( String[] args ) throws IOException
+    {
+        System.out.println("HELLO!!");
+        String[] cmdarray = { "cmd", "/C", "start cmd /K \"set PATH=%PATH%;\"C:\\Program Files\\Neo4j Community\\jre\\bin\" && set REPO=C:\\Program Files\\Neo4j Community\\bin && echo HELLO from Neo4j!!\"" };
+        getRuntime().exec( cmdarray );
+    }
 }
