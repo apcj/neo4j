@@ -33,13 +33,11 @@ import static org.neo4j.desktop.ui.DatabaseStatus.STOPPED;
 
 class StartDatabaseActionListener implements ActionListener
 {
-    private MainWindow mainWindow;
     private final DesktopModel model;
     private final DatabaseActions databaseActions;
 
-    public StartDatabaseActionListener( MainWindow mainWindow, DesktopModel model, DatabaseActions databaseActions )
+    public StartDatabaseActionListener( DesktopModel model, DatabaseActions databaseActions )
     {
-        this.mainWindow = mainWindow;
         this.model = model;
         this.databaseActions = databaseActions;
     }
@@ -47,7 +45,7 @@ class StartDatabaseActionListener implements ActionListener
     @Override
     public void actionPerformed( ActionEvent event )
     {
-        mainWindow.updateStatus( STARTING );
+        model.setDatabaseStatus( STARTING );
 
         invokeLater( new Runnable()
         {
@@ -59,7 +57,7 @@ class StartDatabaseActionListener implements ActionListener
                     model.prepareGraphDirectoryForStart();
 
                     databaseActions.start();
-                    mainWindow.updateStatus( STARTED );
+                    model.setDatabaseStatus( STARTED );
                 }
                 catch ( UnsuitableDirectoryException | UnableToStartServerException e )
                 {
@@ -70,7 +68,7 @@ class StartDatabaseActionListener implements ActionListener
             private void updateUserWithErrorMessageAndStatus( Exception e )
             {
                 alert( e.getMessage() );
-                mainWindow.updateStatus( STOPPED );
+                model.setDatabaseStatus( STOPPED );
             }
         } );
     }

@@ -41,6 +41,7 @@ public class DesktopModel
     private final DesktopConfigurator serverConfigurator;
     private final List<DesktopModelListener> listeners = new ArrayList<>();
     private final Installation installation;
+    private DatabaseStatus databaseStatus = DatabaseStatus.STOPPED;
 
     public DesktopModel( Installation installation )
     {
@@ -52,10 +53,7 @@ public class DesktopModel
 
     public ConfigurationBuilder getServerConfigurator() {
         serverConfigurator.refresh();
-        for(DesktopModelListener listener : listeners) {
-            listener.desktopModelChanged(this);
-        }
-
+        notifyListeners();
         return serverConfigurator;
     }
 
@@ -163,6 +161,14 @@ public class DesktopModel
         listeners.add( desktopModelListener );
     }
 
+    private void notifyListeners()
+    {
+        for ( DesktopModelListener listener : listeners )
+        {
+            listener.desktopModelChanged( this );
+        }
+    }
+
     public void editFile( File file ) throws IOException
     {
         installation.getEnvironment().editFile( file );
@@ -221,5 +227,16 @@ public class DesktopModel
                 installation.getInstallationBinDirectory(),
                 installation.getInstallationJreBinDirectory(),
                 installation.getDatabaseDirectory().getParentFile() );
+    }
+
+    public DatabaseStatus getDatabaseStatus()
+    {
+        return databaseStatus;
+    }
+
+    public void setDatabaseStatus( DatabaseStatus databaseStatus )
+    {
+        this.databaseStatus = databaseStatus;
+        notifyListeners();
     }
 }

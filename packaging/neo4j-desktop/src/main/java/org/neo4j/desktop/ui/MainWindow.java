@@ -19,15 +19,10 @@
  */
 package org.neo4j.desktop.ui;
 
-import java.awt.CardLayout;
 import java.awt.Component;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.io.IOException;
-import java.net.URISyntaxException;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
@@ -41,7 +36,6 @@ import javax.swing.JTextField;
 import org.neo4j.desktop.runtime.DatabaseActions;
 
 import static java.lang.String.format;
-import static javax.swing.JOptionPane.ERROR_MESSAGE;
 import static javax.swing.SwingUtilities.invokeLater;
 
 import static org.neo4j.desktop.ui.Components.createPanel;
@@ -50,19 +44,17 @@ import static org.neo4j.desktop.ui.Components.createVerticalSpacing;
 import static org.neo4j.desktop.ui.Components.ellipsis;
 import static org.neo4j.desktop.ui.Components.withBoxLayout;
 import static org.neo4j.desktop.ui.Components.withFlowLayout;
-import static org.neo4j.desktop.ui.Components.withLayout;
 import static org.neo4j.desktop.ui.Components.withSpacingBorder;
 import static org.neo4j.desktop.ui.Components.withTitledBorder;
 import static org.neo4j.desktop.ui.DatabaseStatus.STARTED;
 import static org.neo4j.desktop.ui.DatabaseStatus.STOPPED;
 import static org.neo4j.desktop.ui.Graphics.loadImage;
-import static org.neo4j.desktop.ui.ScrollableOptionPane.showWrappedMessageDialog;
 
 /**
  * The main window of the Neo4j Desktop. Able to start/stop a database as well as providing access to some
  * advanced configuration options, such as heap size and database properties.
  */
-public class MainWindow
+public class MainWindow implements DesktopModelListener
 {
     private final DesktopModel model;
 
@@ -70,16 +62,11 @@ public class MainWindow
     private final DatabaseActions databaseActions;
     private final JButton browseButton;
     private final JButton settingsButton;
-    private final JButton commandPromptButton;
     private final JButton startButton;
     private final JButton stopButton;
-    private final CardLayout statusPanelLayout;
-    private final JPanel statusPanel;
     private final JTextField directoryDisplay;
     private final SystemOutDebugWindow debugWindow;
     private final SysTray sysTray;
-
-    private DatabaseStatus databaseStatus;
 
     public MainWindow( final DatabaseActions databaseActions, DesktopModel model )
     {
@@ -93,29 +80,28 @@ public class MainWindow
 
         this.directoryDisplay = createUnmodifiableTextField( model.getDatabaseDirectory().getAbsolutePath() );
         this.browseButton = createBrowseButton();
-        this.statusPanelLayout = new CardLayout();
-        this.statusPanel = createStatusPanel( statusPanelLayout );
         this.startButton = createStartButton();
         this.stopButton = createStopButton();
         this.settingsButton = createSettingsButton();
-        this.commandPromptButton = createCommandPromptButton();
+        JPanel statusPanel = DatabaseStatusPanel.createStatusPanel( model, debugWindow );
 
-        JPanel root = createRootPanel( directoryDisplay, browseButton, statusPanel,
-                startButton, stopButton, settingsButton, commandPromptButton );
+        JPanel root =
+                createRootPanel( directoryDisplay, browseButton, statusPanel, startButton, stopButton, settingsButton );
 
         frame.add( root );
         frame.pack();
         frame.setResizable( false );
 
-        updateStatus( STOPPED );
+        desktopModelChanged( model );
+        model.register( this );
     }
 
     private JPanel createRootPanel( JTextField directoryDisplay, JButton browseButton, Component statusPanel,
-            JButton startButton, JButton stopButton, JButton settingsButton, JButton commandPromptButton )
+                                    JButton startButton, JButton stopButton, JButton settingsButton )
     {
-        return withSpacingBorder( withBoxLayout( BoxLayout.Y_AXIS, createPanel( createLogoPanel(),
-                createSelectionPanel( directoryDisplay, browseButton ), statusPanel, createVerticalSpacing(),
-                createActionPanel( startButton, stopButton, settingsButton, commandPromptButton ) ) ) );
+        return withSpacingBorder( withBoxLayout( BoxLayout.Y_AXIS,
+                createPanel( createLogoPanel(), createSelectionPanel( directoryDisplay, browseButton ), statusPanel,
+                        createVerticalSpacing(), createActionPanel( startButton, stopButton, settingsButton ) ) ) );
     }
 
     public void display()
@@ -131,31 +117,10 @@ public class MainWindow
                 new JLabel( format( "Neo4j %s", model.getNeo4jVersion() ) ) ) );
     }
 
-    private JPanel createActionPanel( JButton startButton, JButton stopButton,
-                                      JButton settingsButton, JButton commandPromptButton )
+    private JPanel createActionPanel( JButton startButton, JButton stopButton, JButton settingsButton )
     {
         return withBoxLayout( BoxLayout.LINE_AXIS,
-            createPanel( settingsButton, commandPromptButton, Box.createHorizontalGlue(), stopButton, startButton ) );
-    }
-
-    private JButton createCommandPromptButton()
-    {
-        return Components.createTextButton( ellipsis( "Command Prompt" ), new ActionListener()
-        {
-            @Override
-            public void actionPerformed( ActionEvent e )
-            {
-                try
-                {
-                    model.launchCommandPrompt();
-                }
-                catch ( IOException | URISyntaxException exception )
-                {
-                    String message = "Could not launch command prompt: " + exception.getMessage();
-                    showWrappedMessageDialog( frame, message, "Error", ERROR_MESSAGE );
-                }
-            }
-        } );
+                createPanel( settingsButton, Box.createHorizontalGlue(), stopButton, startButton ) );
     }
 
     private JButton createSettingsButton()
@@ -175,40 +140,15 @@ public class MainWindow
     private JPanel createSelectionPanel( JTextField directoryDisplay, JButton selectButton )
     {
         return withTitledBorder( "Database location", withBoxLayout( BoxLayout.LINE_AXIS,
-            createPanel( directoryDisplay, selectButton ) ) );
+                createPanel( directoryDisplay, selectButton ) ) );
     }
 
     protected void shutdown()
     {
         databaseActions.shutdown();
-        if ( debugWindow != null )
-        {
-            debugWindow.dispose();
-        }
+        debugWindow.dispose();
         frame.dispose();
         System.exit( 0 );
-    }
-
-    private JPanel createStatusPanel( CardLayout statusPanelLayout )
-    {
-        JPanel panel = withLayout( statusPanelLayout, withTitledBorder( "Status", createPanel() ) );
-        for ( DatabaseStatus status : DatabaseStatus.values() )
-        {
-            panel.add( status.name(), status.display( model ) );
-        }
-
-        panel.addMouseListener( new MouseAdapter()
-        {
-            @Override
-            public void mouseClicked( MouseEvent e )
-            {
-                if ( MouseEvent.BUTTON1 == e.getButton() && e.isAltDown() )
-                {
-                    debugWindow.show();
-                }
-            }
-        } );
-        return panel;
     }
 
     private JButton createBrowseButton()
@@ -219,7 +159,7 @@ public class MainWindow
 
     private JButton createStartButton()
     {
-        return Components.createTextButton( "Start", new StartDatabaseActionListener( this, model, databaseActions ) );
+        return Components.createTextButton( "Start", new StartDatabaseActionListener( model, databaseActions ) );
     }
 
     private JButton createStopButton()
@@ -229,7 +169,7 @@ public class MainWindow
             @Override
             public void actionPerformed( ActionEvent e )
             {
-                updateStatus( DatabaseStatus.STOPPING );
+                model.setDatabaseStatus( DatabaseStatus.STOPPING );
 
                 invokeLater( new Runnable()
                 {
@@ -237,21 +177,20 @@ public class MainWindow
                     public void run()
                     {
                         databaseActions.stop();
-                        updateStatus( STOPPED );
+                        model.setDatabaseStatus( STOPPED );
                     }
                 } );
             }
         } );
     }
 
-    public void updateStatus( DatabaseStatus status )
+    public void desktopModelChanged( DesktopModel model )
     {
+        DatabaseStatus status = model.getDatabaseStatus();
         browseButton.setEnabled( STOPPED == status );
         settingsButton.setEnabled( STOPPED == status );
         startButton.setEnabled( STOPPED == status );
         stopButton.setEnabled( STARTED == status );
-        statusPanelLayout.show( statusPanel, status.name() );
-        databaseStatus = status;
         sysTray.changeStatus( status );
     }
 
@@ -272,7 +211,7 @@ public class MainWindow
         @Override
         public void clickCloseButton()
         {
-            if ( databaseStatus == STOPPED )
+            if ( STOPPED == model.getDatabaseStatus() )
             {
                 shutdown();
             }

@@ -50,7 +50,7 @@ class SettingsDialog extends JDialog
         this.model = model;
 
        getContentPane().add( withSpacingBorder( withBoxLayout( BoxLayout.Y_AXIS, createPanel(
-            createEditDatabaseConfigPanel(createEditDatabaseConfigurationButton()),
+            createEditDatabaseConfigPanel( enabledIfDatabaseStopped( createEditDatabaseConfigurationButton() ) ),
             createEditServerConfigPanel( createEditServerConfigurationButton() ),
             createEditVmOptionsPanel( createEditVmOptionsButton() ),
             createExtensionsPanel( createOpenPluginsDirectoryButton() ),
@@ -67,6 +67,12 @@ class SettingsDialog extends JDialog
         ) ) ) );
 
         pack();
+    }
+
+    private JButton enabledIfDatabaseStopped( JButton button )
+    {
+        button.setEnabled( model.getDatabaseStatus() == DatabaseStatus.STOPPED );
+        return button;
     }
 
     private void close()
