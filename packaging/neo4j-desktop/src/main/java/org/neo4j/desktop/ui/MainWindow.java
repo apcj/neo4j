@@ -27,6 +27,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
@@ -148,7 +149,7 @@ public class MainWindow
                 {
                     model.launchCommandPrompt();
                 }
-                catch ( IOException exception )
+                catch ( IOException | URISyntaxException exception )
                 {
                     String message = "Could not launch command prompt: " + exception.getMessage();
                     showWrappedMessageDialog( frame, message, "Error", ERROR_MESSAGE );

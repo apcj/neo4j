@@ -218,6 +218,8 @@ public class DesktopModel
     public void launchCommandPrompt() throws IOException, URISyntaxException
     {
         installation.getEnvironment().openCommandPrompt(
-                installation.getInstallationBinDirectory(), installation.getInstallationJreBinDirectory() );
+                installation.getInstallationBinDirectory(),
+                installation.getInstallationJreBinDirectory(),
+                installation.getDatabaseDirectory().getParentFile() );
     }
 }

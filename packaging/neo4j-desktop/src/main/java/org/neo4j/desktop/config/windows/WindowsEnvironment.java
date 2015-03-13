@@ -23,8 +23,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 
-import org.apache.commons.lang.StringUtils;
-
 import org.neo4j.desktop.config.portable.PortableEnvironment;
 
 import static java.lang.Runtime.getRuntime;
@@ -90,17 +88,25 @@ class WindowsEnvironment extends PortableEnvironment
     }
 
     @Override
-    public void openCommandPrompt( File binDirectory, File jreBinDirectory ) throws IOException
+    public void openCommandPrompt( File binDirectory, File jreBinDirectory, File workingDirectory ) throws IOException
     {
         String[] shellStartupCommands = {
-                format( "set PATH=\"%s\";\"%s\"%%PATH%%", jreBinDirectory, binDirectory ),
+                format( "set PATH=\"%s\";\"%s\";%%PATH%%", jreBinDirectory, binDirectory ),
                 "set REPO=" + binDirectory,
+                "cd /D " + workingDirectory,
                 "echo Neo4j Command Prompt",
-                "echo",
-                "echo This windows is configured with Neo4j scripts on the path.",
-                "echo Just type 'Neo4jShell' to run the Neo4j shell or 'Neo4jImport' to run the import tool."};
-        String[] cmdArray = {"cmd", "/C", format( "start \"Neo4j Command Prompt\" cmd /K \"%s\"",
-                join( shellStartupCommands, " && " ) )};
+                "echo.",
+                "echo This window is configured with Neo4j on the path.",
+                "echo.",
+                "echo Available commands:",
+                "echo * Neo4jShell",
+                "echo * Neo4jImport"
+        };
+        String[] cmdArray = {
+                "cmd",
+                "/C",
+                format( "start \"Neo4j Command Prompt\" cmd /K \"%s\"", join( shellStartupCommands, " && " ) )
+        };
         getRuntime().exec( cmdArray );
     }
 

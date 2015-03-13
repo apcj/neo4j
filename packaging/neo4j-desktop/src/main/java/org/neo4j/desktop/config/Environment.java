@@ -34,5 +34,5 @@ public interface Environment
 
     void openDirectory( File directory ) throws IOException;
 
-    void openCommandPrompt( File binDirectory, File jreBinDirectory ) throws IOException;
+    void openCommandPrompt( File binDirectory, File jreBinDirectory, File workingDirectory ) throws IOException;
 }

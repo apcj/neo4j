@@ -64,7 +64,7 @@ class UnixEnvironment extends PortableEnvironment
     }
 
     @Override
-    public void openCommandPrompt( File binDirectory, File jreBinDirectory ) throws IOException
+    public void openCommandPrompt( File binDirectory, File jreBinDirectory, File workingDirectory ) throws IOException
     {
         throw new UnsupportedOperationException();
     }
