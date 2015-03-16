@@ -66,6 +66,7 @@ class UnixEnvironment extends PortableEnvironment
     @Override
     public void openCommandPrompt( File binDirectory, File jreBinDirectory, File workingDirectory ) throws IOException
     {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException(
+                "Opening a command prompt is not currently supported on this operating system." );
     }
 }

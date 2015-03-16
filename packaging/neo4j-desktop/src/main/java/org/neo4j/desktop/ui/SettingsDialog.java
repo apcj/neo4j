@@ -30,6 +30,7 @@ import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 
+import static org.neo4j.desktop.ui.Components.alert;
 import static org.neo4j.desktop.ui.Components.createPanel;
 import static org.neo4j.desktop.ui.Components.createTextButton;
 import static org.neo4j.desktop.ui.Components.createUnmodifiableTextField;
@@ -50,6 +51,7 @@ class SettingsDialog extends JDialog
         this.model = model;
 
        getContentPane().add( withSpacingBorder( withBoxLayout( BoxLayout.Y_AXIS, createPanel(
+            createCommandPromptPanel(),
             createEditDatabaseConfigPanel( enabledIfDatabaseStopped( createEditDatabaseConfigurationButton() ) ),
             createEditServerConfigPanel( createEditServerConfigurationButton() ),
             createEditVmOptionsPanel( createEditVmOptionsButton() ),
@@ -78,6 +80,27 @@ class SettingsDialog extends JDialog
     private void close()
     {
         setVisible( false );
+    }
+
+    private Component createCommandPromptPanel()
+    {
+        JButton button = Components.createTextButton( ellipsis( "Open Command Prompt" ), new ActionListener()
+        {
+            @Override
+            public void actionPerformed( ActionEvent e )
+            {
+                try
+                {
+                    model.launchCommandPrompt();
+                }
+                catch ( Exception exception )
+                {
+                    exception.printStackTrace();
+                    alert( exception.getMessage() );
+                }
+            }
+        } );
+        return withFlowLayout( withTitledBorder( "Command-line Tools", createPanel( button ) ) );
     }
 
     private Component createEditDatabaseConfigPanel(JButton configurationButton)

@@ -87,9 +87,9 @@ public class DatabaseStatusPanel
                 model.register( new DesktopModelListener()
                 {
                     @Override
-                    public void desktopModelChanged( DesktopModel model11 )
+                    public void desktopModelChanged( DesktopModel changedModel )
                     {
-                        link.setText( "http://localhost:" + model11.getServerPort() + "/" );
+                        link.setText( "http://localhost:" + changedModel.getServerPort() + "/" );
                     }
                 } );
 
