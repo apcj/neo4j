@@ -47,7 +47,7 @@ public class DarwinInstallation extends UnixInstallation
     public File getInstallationJreBinDirectory() throws URISyntaxException
     {
         return new File( getInstallationDirectory().getParentFile().getParentFile(),
-                "PlugIns/jre.bundle/Contents/Home/jre/bin" );
+                "Resources/jre.bundle/Contents/Home/jre/bin" );
     }
 
     @Override
