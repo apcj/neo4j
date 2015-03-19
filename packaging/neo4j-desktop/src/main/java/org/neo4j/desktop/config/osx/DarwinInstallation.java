@@ -20,9 +20,9 @@
 package org.neo4j.desktop.config.osx;
 
 import java.io.File;
-import java.util.prefs.BackingStoreException;
-import java.util.prefs.Preferences;
+import java.net.URISyntaxException;
 
+import org.neo4j.desktop.config.Environment;
 import org.neo4j.desktop.config.unix.UnixInstallation;
 import org.neo4j.desktop.ui.UIControls;
 import org.neo4j.desktop.ui.osx.MacOSXUIControls;
@@ -35,6 +35,19 @@ public class DarwinInstallation extends UnixInstallation
     public DarwinInstallation()
     {
         userHomeDirectory = System.getProperty( "user.home" );
+    }
+
+    @Override
+    public Environment getEnvironment()
+    {
+        return new DarwinEnvironment();
+    }
+
+    @Override
+    public File getInstallationJreBinDirectory() throws URISyntaxException
+    {
+        return new File( getInstallationDirectory().getParentFile().getParentFile(),
+                "PlugIns/jre.bundle/Contents/Home/jre/bin" );
     }
 
     @Override

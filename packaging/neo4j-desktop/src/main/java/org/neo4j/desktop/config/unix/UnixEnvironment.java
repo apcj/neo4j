@@ -25,7 +25,7 @@ import java.net.URISyntaxException;
 
 import org.neo4j.desktop.config.portable.PortableEnvironment;
 
-class UnixEnvironment extends PortableEnvironment
+public class UnixEnvironment extends PortableEnvironment
 {
     @Override
     public void openBrowser( String url ) throws IOException, URISyntaxException
