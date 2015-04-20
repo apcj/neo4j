@@ -60,6 +60,9 @@ public class HaSettings
     @Description( "Hostname and port to bind the HA server." )
     public static final Setting<HostnamePort> ha_server = setting( "ha.server", HOSTNAME_PORT, "0.0.0.0:6001-6011" );
 
+    @Description("Commit transactions with consensus commit, instead of master-slave.")
+    public static final Setting<Boolean> consensus_commit = setting( "ha.consensus_commit", BOOLEAN, Settings.FALSE );
+
     @Description("Whether this instance should only participate as slave in cluster. "
             + "If set to `true`, it will never be elected as master.")
     public static final Setting<Boolean> slave_only = setting( "ha.slave_only", BOOLEAN, Settings.FALSE );

@@ -19,11 +19,13 @@
  */
 package org.neo4j.cluster.protocol.commit;
 
+import java.util.concurrent.Future;
+
 import org.neo4j.kernel.impl.transaction.TransactionRepresentation;
 
 public interface ReplicatedTransactionLog
 {
-    long append( TransactionRepresentation commands );
+    Future<Long> append( TransactionRepresentation commands );
 
     void addLogListener( LogListener listener );
 }

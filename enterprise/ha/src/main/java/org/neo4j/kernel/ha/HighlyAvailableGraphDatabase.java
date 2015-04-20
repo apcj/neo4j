@@ -37,6 +37,8 @@ import org.neo4j.cluster.member.paxos.PaxosClusterMemberEvents;
 import org.neo4j.cluster.protocol.atomicbroadcast.ObjectStreamFactory;
 import org.neo4j.cluster.protocol.cluster.ClusterConfiguration;
 import org.neo4j.cluster.protocol.cluster.ClusterListener;
+import org.neo4j.cluster.protocol.commit.LogListener;
+import org.neo4j.cluster.protocol.commit.ReplicatedTransactionLog;
 import org.neo4j.cluster.protocol.election.ElectionCredentialsProvider;
 import org.neo4j.cluster.protocol.election.NotElectableElectionCredentialsProvider;
 import org.neo4j.com.monitor.RequestMonitor;
@@ -104,6 +106,7 @@ import org.neo4j.kernel.impl.store.NeoStore;
 import org.neo4j.kernel.impl.storemigration.UpgradeConfiguration;
 import org.neo4j.kernel.impl.storemigration.UpgradeNotAllowedByDatabaseModeException;
 import org.neo4j.kernel.impl.transaction.TransactionHeaderInformationFactory;
+import org.neo4j.kernel.impl.transaction.TransactionRepresentation;
 import org.neo4j.kernel.impl.transaction.log.LogicalTransactionStore;
 import org.neo4j.kernel.impl.transaction.state.NeoStoreInjectedTransactionValidator;
 import org.neo4j.kernel.lifecycle.LifeSupport;
@@ -454,6 +457,10 @@ public class HighlyAvailableGraphDatabase extends InternalAbstractGraphDatabase
                 {
                     return defaultCommitProcessFactory.create( logicalTransactionStore, kernelHealth, neoStore,
                             storeApplier, txValidator, indexUpdatesValidator, mode, config );
+                }
+                else if ( config.get( HaSettings.consensus_commit ) )
+                {
+                    return new ReplicatedTransactionCommitProcess( clusterClient );
                 }
                 else
                 {

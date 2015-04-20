@@ -40,8 +40,9 @@ public enum CommitState
                 {
                     switch ( message.getMessageType() )
                     {
-                        case commit:
+                        case append:
                         {
+                            System.out.println( "commit payload = " + message.getPayload() );
                             context.committed( message.<Commands>getPayload() );
 
                             break;
@@ -51,4 +52,14 @@ public enum CommitState
                     return this;
                 }
             },
+    propose
+            {
+                @Override
+                public State<?, ?> handle( CommitContext commitContext, Message<CommitMessage> message,
+                                           MessageHolder outgoing ) throws Throwable
+                {
+                    return start;
+                }
+            }
+
 }

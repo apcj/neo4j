@@ -5,4 +5,9 @@ public class CommitContext
     void committed( Commands transaction ) {
 
     }
+
+    public CommitContext snapshot()
+    {
+        return this;
+    }
 }

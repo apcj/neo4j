@@ -40,6 +40,8 @@ import org.neo4j.cluster.protocol.cluster.Cluster;
 import org.neo4j.cluster.protocol.cluster.ClusterConfiguration;
 import org.neo4j.cluster.protocol.cluster.ClusterMessage;
 import org.neo4j.cluster.protocol.cluster.ClusterState;
+import org.neo4j.cluster.protocol.commit.CommitMessage;
+import org.neo4j.cluster.protocol.commit.CommitState;
 import org.neo4j.cluster.protocol.election.ClusterLeaveReelectionListener;
 import org.neo4j.cluster.protocol.election.Election;
 import org.neo4j.cluster.protocol.election.ElectionCredentialsProvider;
@@ -132,6 +134,8 @@ public class MultiPaxosServerFactory
                                 logging ),
                         new StateMachine( snapshotContext, SnapshotMessage.class, SnapshotState.start, logging ),
                         new StateMachine( context.getClusterContext(), ClusterMessage.class, ClusterState.start,
+                                logging ),
+                        new StateMachine( context.getCommitContext(), CommitMessage.class, CommitState.start,
                                 logging )
                 } );
     }

@@ -19,6 +19,8 @@
  */
 package org.neo4j.kernel.ha;
 
+import java.util.concurrent.ExecutionException;
+
 import org.neo4j.cluster.protocol.commit.ReplicatedTransactionLog;
 import org.neo4j.kernel.api.exceptions.TransactionFailureException;
 import org.neo4j.kernel.impl.api.TransactionCommitProcess;
@@ -38,6 +40,13 @@ public class ReplicatedTransactionCommitProcess implements TransactionCommitProc
     @Override
     public long commit( TransactionRepresentation representation, LockGroup locks, CommitEvent commitEvent ) throws TransactionFailureException
     {
-        return replicatedTransactionLog.append( representation );
+        try
+        {
+            return replicatedTransactionLog.append( representation ).get();
+        }
+        catch ( InterruptedException | ExecutionException e )
+        {
+            throw new TransactionFailureException("Failed to achieve consensus commit.", e );
+        }
     }
 }

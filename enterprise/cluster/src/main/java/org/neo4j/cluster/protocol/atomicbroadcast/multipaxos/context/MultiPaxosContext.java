@@ -31,6 +31,7 @@ import org.neo4j.cluster.protocol.atomicbroadcast.multipaxos.PaxosInstanceStore;
 import org.neo4j.cluster.protocol.atomicbroadcast.multipaxos.ProposerContext;
 import org.neo4j.cluster.protocol.cluster.ClusterConfiguration;
 import org.neo4j.cluster.protocol.cluster.ClusterContext;
+import org.neo4j.cluster.protocol.commit.CommitContext;
 import org.neo4j.cluster.protocol.election.ElectionContext;
 import org.neo4j.cluster.protocol.election.ElectionCredentialsProvider;
 import org.neo4j.cluster.protocol.election.ElectionRole;
@@ -52,6 +53,7 @@ public class MultiPaxosContext
     private final LearnerContextImpl learnerContext;
     private final HeartbeatContextImpl heartbeatContext;
     private final ElectionContextImpl electionContext;
+    private final CommitContext commitContext;
     private final AtomicBroadcastContextImpl atomicBroadcastContext;
     private final CommonContextState commonState;
     private final PaxosInstanceStore paxosInstances;
@@ -74,6 +76,7 @@ public class MultiPaxosContext
         learnerContext = new LearnerContextImpl(me, commonState, logging, timeouts, paxosInstances, instanceStore, objectInputStreamFactory, objectOutputStreamFactory, heartbeatContext );
         clusterContext = new ClusterContextImpl(me, commonState, logging, timeouts, executor, objectOutputStreamFactory, objectInputStreamFactory, learnerContext, heartbeatContext );
         electionContext = new ElectionContextImpl( me, commonState, logging, timeouts, roles, clusterContext, heartbeatContext, electionCredentialsProvider );
+        commitContext = new CommitContext();
         proposerContext = new ProposerContextImpl(me, commonState, logging, timeouts, paxosInstances );
         acceptorContext = new AcceptorContextImpl(me, commonState, logging, timeouts, instanceStore);
         atomicBroadcastContext = new AtomicBroadcastContextImpl(me, commonState, logging, timeouts, executor, heartbeatContext );
@@ -85,7 +88,7 @@ public class MultiPaxosContext
                                LearnerContextImpl learnerContext, HeartbeatContextImpl heartbeatContext,
                                ElectionContextImpl electionContext, AtomicBroadcastContextImpl atomicBroadcastContext,
                                CommonContextState commonState, PaxosInstanceStore paxosInstances,
-                               ClusterContextImpl clusterContext )
+                               ClusterContextImpl clusterContext, CommitContext commitContext )
     {
         this.clusterContext = clusterContext;
         this.proposerContext = proposerContext;
@@ -96,6 +99,7 @@ public class MultiPaxosContext
         this.atomicBroadcastContext = atomicBroadcastContext;
         this.commonState = commonState;
         this.paxosInstances = paxosInstances;
+        this.commitContext = commitContext;
     }
 
     public ClusterContext getClusterContext()
@@ -128,6 +132,11 @@ public class MultiPaxosContext
         return electionContext;
     }
 
+    public CommitContext getCommitContext()
+    {
+        return commitContext;
+    }
+
     public AtomicBroadcastContextImpl getAtomicBroadcastContext()
     {
         return atomicBroadcastContext;
@@ -155,6 +164,7 @@ public class MultiPaxosContext
         ElectionContextImpl snapshotElectionContext =
                 electionContext.snapshot( commonStateSnapshot, logging, timeouts, snapshotClusterContext,
                         snapshotHeartbeatContext, electionCredentialsProvider );
+        CommitContext snapshotCommitContext = commitContext.snapshot();
         ProposerContextImpl snapshotProposerContext =
                 proposerContext.snapshot( commonStateSnapshot, logging, timeouts, paxosInstancesSnapshot );
         AcceptorContextImpl snapshotAcceptorContext =
@@ -166,7 +176,7 @@ public class MultiPaxosContext
 
         return new MultiPaxosContext( snapshotProposerContext, snapshotAcceptorContext, snapshotLearnerContext,
                 snapshotHeartbeatContext, snapshotElectionContext, snapshotAtomicBroadcastContext, commonStateSnapshot,
-                paxosInstancesSnapshot, snapshotClusterContext
+                paxosInstancesSnapshot, snapshotClusterContext, snapshotCommitContext
 
         );
     }

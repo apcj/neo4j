@@ -30,5 +30,5 @@ import org.neo4j.cluster.com.message.MessageType;
 public enum CommitMessage
         implements MessageType
 {
-    commit
+    append, addLogListener
 }
