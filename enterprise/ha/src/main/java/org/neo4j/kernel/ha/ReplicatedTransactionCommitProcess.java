@@ -42,7 +42,7 @@ public class ReplicatedTransactionCommitProcess implements TransactionCommitProc
     {
         try
         {
-            return replicatedTransactionLog.append( representation ).get();
+            return replicatedTransactionLog.tx( representation ).get();
         }
         catch ( InterruptedException | ExecutionException e )
         {

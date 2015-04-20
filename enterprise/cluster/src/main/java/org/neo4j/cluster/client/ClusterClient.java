@@ -56,8 +56,6 @@ import org.neo4j.cluster.protocol.cluster.Cluster;
 import org.neo4j.cluster.protocol.cluster.ClusterConfiguration;
 import org.neo4j.cluster.protocol.cluster.ClusterListener;
 import org.neo4j.cluster.protocol.cluster.ClusterMessage;
-import org.neo4j.cluster.protocol.commit.LogListener;
-import org.neo4j.cluster.protocol.commit.ReplicatedTransactionLog;
 import org.neo4j.cluster.protocol.election.Election;
 import org.neo4j.cluster.protocol.election.ElectionCredentialsProvider;
 import org.neo4j.cluster.protocol.election.ElectionMessage;
@@ -77,7 +75,6 @@ import org.neo4j.helpers.HostnamePort;
 import org.neo4j.helpers.NamedThreadFactory;
 import org.neo4j.helpers.Settings;
 import org.neo4j.kernel.configuration.Config;
-import org.neo4j.kernel.impl.transaction.TransactionRepresentation;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
@@ -87,8 +84,7 @@ import org.neo4j.kernel.monitoring.Monitors;
 import static org.neo4j.helpers.NamedThreadFactory.daemon;
 
 public class ClusterClient extends LifecycleAdapter
-        implements ClusterMonitor, Cluster, AtomicBroadcast, Snapshot, Election, BindingNotifier,
-        ReplicatedTransactionLog
+        implements ClusterMonitor, Cluster, AtomicBroadcast, Snapshot, Election, BindingNotifier
 {
     public static final Setting<Long> clusterJoinTimeout = Settings.setting( "ha.cluster_join_timeout",
             Settings.DURATION, "0s" );
@@ -263,7 +259,6 @@ public class ClusterClient extends LifecycleAdapter
     private final Heartbeat heartbeat;
     private final Snapshot snapshot;
     private final Election election;
-    private final ReplicatedTransactionLog replicatedTransactionLog;
 
     private final ProtocolServer server;
 
@@ -414,7 +409,6 @@ public class ClusterClient extends LifecycleAdapter
         heartbeat = server.newClient( Heartbeat.class );
         snapshot = server.newClient( Snapshot.class );
         election = server.newClient( Election.class );
-        replicatedTransactionLog = server.newClient( ReplicatedTransactionLog.class );
     }
 
     @Override
@@ -534,18 +528,6 @@ public class ClusterClient extends LifecycleAdapter
     public void removeBindingListener( BindingListener listener )
     {
         server.removeBindingListener( listener );
-    }
-
-    @Override
-    public Future<Long> append( TransactionRepresentation commands )
-    {
-        return replicatedTransactionLog.append( commands );
-    }
-
-    @Override
-    public void addLogListener( LogListener listener )
-    {
-        replicatedTransactionLog.addLogListener( listener );
     }
 
     public void dumpDiagnostics( StringBuilder appendTo )

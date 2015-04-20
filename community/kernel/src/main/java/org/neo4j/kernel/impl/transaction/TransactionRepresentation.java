@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.transaction;
 
 import java.io.IOException;
+import java.io.Serializable;
 
 import org.neo4j.helpers.collection.Visitor;
 import org.neo4j.kernel.impl.transaction.command.Command;
@@ -28,7 +29,7 @@ import org.neo4j.kernel.impl.transaction.log.TransactionAppender;
 /**
  * Representation of a transaction that can be written to a {@link TransactionAppender} and read back later.
  */
-public interface TransactionRepresentation
+public interface TransactionRepresentation extends Serializable
 {
     public static final int NO_LOCK_SESSION = -1;
 

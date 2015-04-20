@@ -25,7 +25,6 @@ import org.neo4j.kernel.impl.transaction.TransactionRepresentation;
 
 public interface ReplicatedTransactionLog
 {
-    Future<Long> append( TransactionRepresentation commands );
+    Future<Long> tx( TransactionRepresentation commands );
 
-    void addLogListener( LogListener listener );
 }

@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.transaction.command;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.Collection;
 
 import org.neo4j.kernel.impl.store.record.AbstractBaseRecord;
@@ -47,7 +48,7 @@ import static org.neo4j.kernel.impl.util.IdPrettyPrinter.relationshipType;
  * Command implementations for all the commands that can be performed on a Neo
  * store.
  */
-public abstract class Command
+public abstract class Command implements Serializable
 {
     private int keyHash;
     private long key;
