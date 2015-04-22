@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.util.collection;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -33,7 +34,7 @@ import static java.lang.reflect.Array.newInstance;
  * Like {@link ArrayList}, but has efficient {@link #clear()}, i.e. just setting the cursor to 0.
  * Only adding and clearing works, not removing.
  */
-public class ArrayCollection<T> implements Collection<T>
+public class ArrayCollection<T> implements Collection<T>, Serializable
 {
     private final int initialCapacity;
     private Object[] array;

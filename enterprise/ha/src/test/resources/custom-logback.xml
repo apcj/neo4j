@@ -42,9 +42,7 @@
   </logger>
 
   <root level="debug">
-<!--
     <appender-ref ref="CONSOLE"/>
--->
   </root>
 
   <logger name="org.neo4j.kernel.info.DiagnosticsManager" level="warn">

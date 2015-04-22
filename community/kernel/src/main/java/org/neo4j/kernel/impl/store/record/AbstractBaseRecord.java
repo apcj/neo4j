@@ -19,9 +19,11 @@
  */
 package org.neo4j.kernel.impl.store.record;
 
+import java.io.Serializable;
+
 import org.neo4j.helpers.CloneableInPublic;
 
-public abstract class AbstractBaseRecord implements CloneableInPublic
+public abstract class AbstractBaseRecord implements CloneableInPublic, Serializable
 {
     private boolean inUse = false;
     private boolean created = false;

@@ -950,9 +950,9 @@ public class NeoStoreDataSource implements NeoStoreProvider, Lifecycle, IndexPro
             PersistenceCache persistenceCache, SchemaIndexProviderMap schemaIndexProviderMap )
     {
         final TransactionCommitProcess transactionCommitProcess =
-                commitProcessFactory.create( logicalTransactionStore, kernelHealth, neoStore, storeApplier,
+                life.add( commitProcessFactory.create( logicalTransactionStore, kernelHealth, neoStore, storeApplier,
                         new NeoStoreInjectedTransactionValidator( integrityValidator ), indexUpdatesValidator,
-                        TransactionApplicationMode.INTERNAL, config );
+                        TransactionApplicationMode.INTERNAL, config ) );
 
         /*
          * This is used by legacy indexes and constraint indexes whenever a transaction is to be spawned

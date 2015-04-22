@@ -27,8 +27,9 @@ import org.neo4j.kernel.impl.api.TransactionCommitProcess;
 import org.neo4j.kernel.impl.locking.LockGroup;
 import org.neo4j.kernel.impl.transaction.TransactionRepresentation;
 import org.neo4j.kernel.impl.transaction.tracing.CommitEvent;
+import org.neo4j.kernel.lifecycle.Lifecycle;
 
-public class ReplicatedTransactionCommitProcess implements TransactionCommitProcess
+public class ReplicatedTransactionCommitProcess implements TransactionCommitProcess, Lifecycle
 {
     private final ReplicatedTransactionLog replicatedTransactionLog;
 
@@ -48,5 +49,27 @@ public class ReplicatedTransactionCommitProcess implements TransactionCommitProc
         {
             throw new TransactionFailureException("Failed to achieve consensus commit.", e );
         }
+    }
+
+    @Override
+    public void init() throws Throwable
+    {
+    }
+
+    @Override
+    public void start() throws Throwable
+    {
+        replicatedTransactionLog.start();
+    }
+
+    @Override
+    public void stop() throws Throwable
+    {
+        replicatedTransactionLog.stop();
+    }
+
+    @Override
+    public void shutdown() throws Throwable
+    {
     }
 }

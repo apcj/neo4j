@@ -42,6 +42,12 @@ public class ConsensusCommitIT
         ClusterManager.ManagedCluster cluster = clusterRule.startCluster();
         HighlyAvailableGraphDatabase slave = cluster.getAnySlave();
 
+        Iterable<HighlyAvailableGraphDatabase> members = cluster.getAllMembers();
+        for ( HighlyAvailableGraphDatabase member : members )
+        {
+            System.out.println( "member = " + member );
+        }
+
         try ( Transaction transaction = slave.beginTx() )
         {
             slave.createNode();

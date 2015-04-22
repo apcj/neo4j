@@ -18,13 +18,14 @@ import org.neo4j.cluster.protocol.atomicbroadcast.Payload;
 import org.neo4j.cluster.protocol.commit.ReplicatedTransactionLog;
 import org.neo4j.kernel.impl.transaction.TransactionRepresentation;
 import org.neo4j.kernel.impl.transaction.log.LogicalTransactionStore;
-import org.neo4j.kernel.impl.transaction.tracing.LogAppendEvent;
 
 public class AtomicBroadcastReplicatedTransactionLog implements ReplicatedTransactionLog
 {
     private final AtomicBroadcast atomicBroadcast;
     private final AtomicBroadcastSerializer serializer =
             new AtomicBroadcastSerializer( new ObjectStreamFactory(), new ObjectStreamFactory() );
+    private final UUID logId = UUID.randomUUID();
+    private final AtomicBroadcastListener broadcastListener;
 
     private ConcurrentHashMap<UUID, Exchanger<Long>> pendingTransactions = new ConcurrentHashMap<>();
 
@@ -32,7 +33,7 @@ public class AtomicBroadcastReplicatedTransactionLog implements ReplicatedTransa
                                                     final LogicalTransactionStore logicalTransactionStore )
     {
         this.atomicBroadcast = atomicBroadcast;
-        this.atomicBroadcast.addAtomicBroadcastListener( new AtomicBroadcastListener()
+        broadcastListener = new AtomicBroadcastListener()
         {
             @Override
             public void receive( Payload payload )
@@ -51,15 +52,17 @@ public class AtomicBroadcastReplicatedTransactionLog implements ReplicatedTransa
                 if ( value instanceof CommitMessage )
                 {
                     CommitMessage message = (CommitMessage) value;
+                    System.out.printf( "%s received %s%n", logId, message.txCorrelationId );
                     Exchanger<Long> exchanger = pendingTransactions.get( message.txCorrelationId );
                     if ( exchanger != null )
                     {
                         try
                         {
-                            long txId = logicalTransactionStore.getAppender().append( message.tx, LogAppendEvent.NULL );
-                            exchanger.exchange( txId );
+//                            long txId = logicalTransactionStore.getAppender().append( message.tx,
+// LogAppendEvent.NULL );
+                            exchanger.exchange( 10L );
                         }
-                        catch ( IOException | InterruptedException e )
+                        catch ( InterruptedException e )
                         {
                             // TODO: inform the client somehow
                             throw new RuntimeException( e );
@@ -67,16 +70,19 @@ public class AtomicBroadcastReplicatedTransactionLog implements ReplicatedTransa
                     }
                 }
             }
-        } );
+        };
     }
 
     @Override
     public Future<Long> tx( TransactionRepresentation tx )
     {
         final UUID txCorrelationId = UUID.randomUUID();
+        System.out.println( "broadcast = " + txCorrelationId );
         try
         {
-            atomicBroadcast.broadcast( serializer.broadcast( new CommitMessage( txCorrelationId, tx ) ) );
+            Payload payload = serializer.broadcast( new CommitMessage( txCorrelationId, tx ) );
+//            serializer.receive( payload );
+            atomicBroadcast.broadcast( payload );
         }
         catch ( IOException e )
         {
@@ -118,15 +124,35 @@ public class AtomicBroadcastReplicatedTransactionLog implements ReplicatedTransa
         };
     }
 
+    @Override public void init() throws Throwable
+    {
+
+    }
+
+    @Override public void start() throws Throwable
+    {
+        atomicBroadcast.addAtomicBroadcastListener( broadcastListener );
+    }
+
+    @Override public void stop() throws Throwable
+    {
+        atomicBroadcast.removeAtomicBroadcastListener( broadcastListener );
+    }
+
+    @Override public void shutdown() throws Throwable
+    {
+
+    }
+
     static class CommitMessage implements Serializable
     {
         private final UUID txCorrelationId;
-        private final TransactionRepresentation tx;
+//        private final TransactionRepresentation tx;
 
         CommitMessage( UUID txCorrelationId, TransactionRepresentation tx )
         {
             this.txCorrelationId = txCorrelationId;
-            this.tx = tx;
+//            this.tx = tx;
         }
 
 //        Payload serialise()

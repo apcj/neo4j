@@ -22,8 +22,9 @@ package org.neo4j.cluster.protocol.commit;
 import java.util.concurrent.Future;
 
 import org.neo4j.kernel.impl.transaction.TransactionRepresentation;
+import org.neo4j.kernel.lifecycle.Lifecycle;
 
-public interface ReplicatedTransactionLog
+public interface ReplicatedTransactionLog extends Lifecycle
 {
     Future<Long> tx( TransactionRepresentation commands );
 
