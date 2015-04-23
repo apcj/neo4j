@@ -33,6 +33,8 @@ public class Payload
     private byte[] buf;
     private int len;
 
+    static final long serialVersionUID = 0x8AB29930A2391239L; // TODO: Make a proper one!
+
     /**
      * Externalizable constructor
      */
@@ -60,7 +62,11 @@ public class Payload
     public void writeExternal( ObjectOutput out )
             throws IOException
     {
-        out.write( len );
+        out.write( (len >> 24) & 0xFF );
+        out.write( (len >> 16) & 0xFF );
+        out.write( (len >>  8) & 0xFF );
+        out.write( (len >>  0) & 0xFF );
+
         out.write( buf, 0, len );
     }
 
@@ -68,8 +74,14 @@ public class Payload
     public void readExternal( ObjectInput in )
             throws IOException, ClassNotFoundException
     {
-        len = in.read();
+        len = (in.read() << 24) | (in.read() << 16) | (in.read() << 8) | in.read();
+
         buf = new byte[len];
-        in.read( buf, 0, len );
+
+        int off = 0;
+        do
+        {
+            off += in.read( buf, off, len-off );
+        } while( off < len && off != -1 );
     }
 }

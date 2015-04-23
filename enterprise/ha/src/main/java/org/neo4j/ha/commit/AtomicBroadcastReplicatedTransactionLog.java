@@ -81,7 +81,6 @@ public class AtomicBroadcastReplicatedTransactionLog implements ReplicatedTransa
         try
         {
             Payload payload = serializer.broadcast( new CommitMessage( txCorrelationId, tx ) );
-//            serializer.receive( payload );
             atomicBroadcast.broadcast( payload );
         }
         catch ( IOException e )
@@ -147,12 +146,16 @@ public class AtomicBroadcastReplicatedTransactionLog implements ReplicatedTransa
     static class CommitMessage implements Serializable
     {
         private final UUID txCorrelationId;
-//        private final TransactionRepresentation tx;
+        private final TransactionRepresentation tx;
+        //byte[] data = new byte[994*1024+421]; // doesn't work over network... (netty limit)
+        //byte[] data = new byte[994*1024+420]; // works! // TODO: Avoid 1MiB limit.
+
+        static final long serialVersionUID = 0xBC72837206738BCBL; // TODO
 
         CommitMessage( UUID txCorrelationId, TransactionRepresentation tx )
         {
             this.txCorrelationId = txCorrelationId;
-//            this.tx = tx;
+            this.tx = tx;
         }
 
 //        Payload serialise()

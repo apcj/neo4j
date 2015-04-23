@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.transaction.log;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -27,7 +28,7 @@ import org.neo4j.helpers.collection.Visitor;
 import org.neo4j.kernel.impl.transaction.TransactionRepresentation;
 import org.neo4j.kernel.impl.transaction.command.Command;
 
-public class PhysicalTransactionRepresentation implements TransactionRepresentation
+public class PhysicalTransactionRepresentation implements TransactionRepresentation, Serializable
 {
     private final Collection<Command> commands;
     private byte[] additionalHeader;

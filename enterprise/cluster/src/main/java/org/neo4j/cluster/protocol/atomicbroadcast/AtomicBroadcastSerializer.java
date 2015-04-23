@@ -46,6 +46,7 @@ public class AtomicBroadcastSerializer
         ByteArrayOutputStream bout = new ByteArrayOutputStream(  );
         ObjectOutputStream oout = objectOutputStreamFactory.create(bout);
         oout.writeObject( value );
+        oout.flush();
         oout.close();
         byte[] bytes = bout.toByteArray();
         return new Payload( bytes, bytes.length );

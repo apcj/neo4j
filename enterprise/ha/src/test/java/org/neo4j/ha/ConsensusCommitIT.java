@@ -22,6 +22,7 @@ package org.neo4j.ha;
 import org.junit.Rule;
 import org.junit.Test;
 
+import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.ha.HaSettings;
 import org.neo4j.kernel.ha.HighlyAvailableGraphDatabase;
@@ -40,18 +41,25 @@ public class ConsensusCommitIT
         clusterRule.config( HaSettings.consensus_commit, "true" );
 
         ClusterManager.ManagedCluster cluster = clusterRule.startCluster();
-        HighlyAvailableGraphDatabase slave = cluster.getAnySlave();
+        HighlyAvailableGraphDatabase anySlave = cluster.getAnySlave();
 
-        Iterable<HighlyAvailableGraphDatabase> members = cluster.getAllMembers();
+        long id;
+        try ( Transaction tx = anySlave.beginTx() )
+        {
+            id = anySlave.createNode().getId();
+            tx.success();
+        }
+
+        try ( Transaction tx = anySlave.beginTx() )
+        {
+            Node nodeById = anySlave.getNodeById( id );
+            tx.success();
+        }
+
+        /*Iterable<HighlyAvailableGraphDatabase> members = cluster.getAllMembers();
         for ( HighlyAvailableGraphDatabase member : members )
         {
             System.out.println( "member = " + member );
-        }
-
-        try ( Transaction transaction = slave.beginTx() )
-        {
-            slave.createNode();
-            transaction.success();
-        }
+        }*/
     }
 }

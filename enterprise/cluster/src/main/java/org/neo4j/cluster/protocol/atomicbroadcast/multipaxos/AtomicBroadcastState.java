@@ -138,6 +138,7 @@ public enum AtomicBroadcastState
                                 if ( coordinator != null )
                                 {
                                     URI coordinatorUri = context.getUriForId( coordinator );
+
                                     outgoing.offer( message.copyHeadersTo(
                                             to( ProposerMessage.propose, coordinatorUri, message.getPayload() ) ) );
                                     context.setTimeout( "broadcast-" + message.getHeader( Message.CONVERSATION_ID ),
