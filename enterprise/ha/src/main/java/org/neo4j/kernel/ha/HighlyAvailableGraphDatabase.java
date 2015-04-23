@@ -458,8 +458,10 @@ public class HighlyAvailableGraphDatabase extends InternalAbstractGraphDatabase
                 }
                 else if ( config.get( HaSettings.consensus_commit ) )
                 {
-                    return new ReplicatedTransactionCommitProcess(
-                            new AtomicBroadcastReplicatedTransactionLog( clusterClient, logicalTransactionStore ) );
+                    TransactionCommitProcess inner =
+                            defaultCommitProcessFactory.create( logicalTransactionStore, kernelHealth, neoStore,
+                                    storeApplier, txValidator, indexUpdatesValidator, mode, config );
+                    return new ReplicatedTransactionCommitProcess( clusterClient, inner );
                 }
                 else
                 {

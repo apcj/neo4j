@@ -19,9 +19,17 @@
  */
 package org.neo4j.kernel.ha;
 
-import java.util.concurrent.ExecutionException;
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Exchanger;
 
-import org.neo4j.cluster.protocol.commit.ReplicatedTransactionLog;
+import org.neo4j.cluster.protocol.atomicbroadcast.AtomicBroadcast;
+import org.neo4j.cluster.protocol.atomicbroadcast.AtomicBroadcastListener;
+import org.neo4j.cluster.protocol.atomicbroadcast.AtomicBroadcastSerializer;
+import org.neo4j.cluster.protocol.atomicbroadcast.ObjectStreamFactory;
+import org.neo4j.cluster.protocol.atomicbroadcast.Payload;
 import org.neo4j.kernel.api.exceptions.TransactionFailureException;
 import org.neo4j.kernel.impl.api.TransactionCommitProcess;
 import org.neo4j.kernel.impl.locking.LockGroup;
@@ -31,23 +39,84 @@ import org.neo4j.kernel.lifecycle.Lifecycle;
 
 public class ReplicatedTransactionCommitProcess implements TransactionCommitProcess, Lifecycle
 {
-    private final ReplicatedTransactionLog replicatedTransactionLog;
+    private final AtomicBroadcast atomicBroadcast;
+    private final AtomicBroadcastSerializer serializer =
+            new AtomicBroadcastSerializer( new ObjectStreamFactory(), new ObjectStreamFactory() );
+    private final AtomicBroadcastListener broadcastListener;
+    private final ConcurrentHashMap<UUID, Exchanger<Long>> pendingTransactions = new ConcurrentHashMap<>();
 
-    public ReplicatedTransactionCommitProcess( ReplicatedTransactionLog replicatedTransactionLog )
+    public ReplicatedTransactionCommitProcess( AtomicBroadcast atomicBroadcast, final TransactionCommitProcess inner )
     {
-        this.replicatedTransactionLog = replicatedTransactionLog;
+        this.atomicBroadcast = atomicBroadcast;
+        this.broadcastListener = new AtomicBroadcastListener()
+        {
+            @Override
+            public void receive( Payload payload )
+            {
+                final Object value;
+                try
+                {
+                    value = serializer.receive( payload );
+                }
+                catch ( IOException | ClassNotFoundException e )
+                {
+                    // TODO: inform the client somehow
+                    throw new RuntimeException( e );
+                }
+
+                if ( value instanceof CommitMessage )
+                {
+                    CommitMessage message = (CommitMessage) value;
+                    System.out.printf( "received %s%n", message.txCorrelationId );
+                    Exchanger<Long> exchanger = pendingTransactions.get( message.txCorrelationId );
+                    if ( exchanger != null )
+                    {
+                        try ( LockGroup locks = new LockGroup() )
+                        {
+                            long txId = inner.commit( message.tx, locks, CommitEvent.NULL );
+                            exchanger.exchange( txId );
+                        }
+                        catch ( InterruptedException e )
+                        {
+                            // TODO: inform the client somehow
+                            throw new RuntimeException( e );
+                        }
+                        catch ( TransactionFailureException e )
+                        {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+        };
     }
 
     @Override
     public long commit( TransactionRepresentation representation, LockGroup locks, CommitEvent commitEvent ) throws TransactionFailureException
     {
+        final UUID txCorrelationId = UUID.randomUUID();
+        System.out.println( "broadcast = " + txCorrelationId );
         try
         {
-            return replicatedTransactionLog.tx( representation ).get();
+            Payload payload = serializer.broadcast( new CommitMessage( txCorrelationId, representation ) );
+            atomicBroadcast.broadcast( payload );
         }
-        catch ( InterruptedException | ExecutionException e )
+        catch ( IOException e )
         {
-            throw new TransactionFailureException("Failed to achieve consensus commit.", e );
+            // TODO: inform the client somehow
+            throw new RuntimeException( e );
+        }
+
+        final Exchanger<Long> exchanger = new Exchanger<>();
+        pendingTransactions.put( txCorrelationId, exchanger );
+
+        try
+        {
+            return exchanger.exchange( null );
+        }
+        catch ( InterruptedException e )
+        {
+            throw new RuntimeException( e );
         }
     }
 
@@ -59,17 +128,33 @@ public class ReplicatedTransactionCommitProcess implements TransactionCommitProc
     @Override
     public void start() throws Throwable
     {
-        replicatedTransactionLog.start();
+        atomicBroadcast.addAtomicBroadcastListener( broadcastListener );
     }
 
     @Override
     public void stop() throws Throwable
     {
-        replicatedTransactionLog.stop();
+        atomicBroadcast.removeAtomicBroadcastListener( broadcastListener );
     }
 
     @Override
     public void shutdown() throws Throwable
     {
+    }
+
+    static class CommitMessage implements Serializable
+    {
+        private final UUID txCorrelationId;
+        private final TransactionRepresentation tx;
+        //byte[] data = new byte[994*1024+421]; // doesn't work over network... (netty limit)
+        //byte[] data = new byte[994*1024+420]; // works! // TODO: Avoid 1MiB limit.
+
+        static final long serialVersionUID = 0xBC72837206738BCBL; // TODO
+
+        CommitMessage( UUID txCorrelationId, TransactionRepresentation tx )
+        {
+            this.txCorrelationId = txCorrelationId;
+            this.tx = tx;
+        }
     }
 }

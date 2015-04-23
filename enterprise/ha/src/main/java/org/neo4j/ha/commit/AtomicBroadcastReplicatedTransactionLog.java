@@ -18,6 +18,7 @@ import org.neo4j.cluster.protocol.atomicbroadcast.Payload;
 import org.neo4j.cluster.protocol.commit.ReplicatedTransactionLog;
 import org.neo4j.kernel.impl.transaction.TransactionRepresentation;
 import org.neo4j.kernel.impl.transaction.log.LogicalTransactionStore;
+import org.neo4j.kernel.impl.transaction.tracing.LogAppendEvent;
 
 public class AtomicBroadcastReplicatedTransactionLog implements ReplicatedTransactionLog
 {
@@ -58,14 +59,17 @@ public class AtomicBroadcastReplicatedTransactionLog implements ReplicatedTransa
                     {
                         try
                         {
-//                            long txId = logicalTransactionStore.getAppender().append( message.tx,
-// LogAppendEvent.NULL );
-                            exchanger.exchange( 10L );
+                            long txId = logicalTransactionStore.getAppender().append( message.tx, LogAppendEvent.NULL );
+                            exchanger.exchange( txId );
                         }
                         catch ( InterruptedException e )
                         {
                             // TODO: inform the client somehow
                             throw new RuntimeException( e );
+                        }
+                        catch ( IOException e )
+                        {
+                            e.printStackTrace();
                         }
                     }
                 }
