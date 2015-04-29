@@ -19,9 +19,10 @@
  */
 package org.neo4j.kernel.impl.store.record;
 
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 
-public abstract class AbstractSchemaRule implements SchemaRule
+public abstract class AbstractSchemaRule implements SchemaRule, Serializable
 {
     private final int label;
     private final Kind kind;

@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.store.record;
 
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 
 import org.neo4j.graphdb.Label;
@@ -31,7 +32,7 @@ import static org.neo4j.kernel.impl.util.IoPrimitiveUtils.safeCastLongToInt;
 /**
  * A {@link Label} can have zero or more index rules which will have data specified in the rules indexed.
  */
-public class IndexRule extends AbstractSchemaRule
+public class IndexRule extends AbstractSchemaRule implements Serializable
 {
     private static final long NO_OWNING_CONSTRAINT = -1;
     private final SchemaIndexProvider.Descriptor providerDescriptor;

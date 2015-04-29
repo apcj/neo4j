@@ -168,7 +168,7 @@ public class UpdatePuller implements Runnable, Lifecycle
                 int round = targetTicket.get();
                 if ( currentTicket.get() < round )
                 {
-                    doPullUpdates();
+                    //doPullUpdates();
                     currentTicket.set( round );
                     continue;
                 }

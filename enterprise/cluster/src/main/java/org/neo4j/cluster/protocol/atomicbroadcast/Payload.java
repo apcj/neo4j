@@ -83,5 +83,10 @@ public class Payload
         {
             off += in.read( buf, off, len-off );
         } while( off < len && off != -1 );
+
+        if ( off != len )
+        {
+            // TODO: Throw something...
+        }
     }
 }

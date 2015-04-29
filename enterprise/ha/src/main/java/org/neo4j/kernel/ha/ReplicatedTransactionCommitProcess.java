@@ -44,6 +44,7 @@ public class ReplicatedTransactionCommitProcess implements TransactionCommitProc
             new AtomicBroadcastSerializer( new ObjectStreamFactory(), new ObjectStreamFactory() );
     private final AtomicBroadcastListener broadcastListener;
     private final ConcurrentHashMap<UUID, Exchanger<Long>> pendingTransactions = new ConcurrentHashMap<>();
+    String me = UUID.randomUUID().toString().substring( 0,4 );
 
     public ReplicatedTransactionCommitProcess( AtomicBroadcast atomicBroadcast, final TransactionCommitProcess inner )
     {
@@ -67,23 +68,27 @@ public class ReplicatedTransactionCommitProcess implements TransactionCommitProc
                 if ( value instanceof CommitMessage )
                 {
                     CommitMessage message = (CommitMessage) value;
-                    System.out.printf( "received %s%n", message.txCorrelationId );
+                    System.out.printf( "%s received %s%n", me, message.txCorrelationId );
+
+                    long txId = -1;
+                    try ( LockGroup locks = new LockGroup() )
+                    {
+                        txId = inner.commit( message.tx, locks, CommitEvent.NULL );
+                    }
+                    catch ( TransactionFailureException  e )
+                    {
+                        // TODO: must we panic here?
+                    }
                     Exchanger<Long> exchanger = pendingTransactions.get( message.txCorrelationId );
                     if ( exchanger != null )
                     {
-                        try ( LockGroup locks = new LockGroup() )
+                        try
                         {
-                            long txId = inner.commit( message.tx, locks, CommitEvent.NULL );
                             exchanger.exchange( txId );
                         }
                         catch ( InterruptedException e )
                         {
-                            // TODO: inform the client somehow
-                            throw new RuntimeException( e );
-                        }
-                        catch ( TransactionFailureException e )
-                        {
-                            e.printStackTrace();
+                            e.printStackTrace(); // TODO: What to do about this?
                         }
                     }
                 }
@@ -95,10 +100,11 @@ public class ReplicatedTransactionCommitProcess implements TransactionCommitProc
     public long commit( TransactionRepresentation representation, LockGroup locks, CommitEvent commitEvent ) throws TransactionFailureException
     {
         final UUID txCorrelationId = UUID.randomUUID();
-        System.out.println( "broadcast = " + txCorrelationId );
+        System.out.printf( "%s broadcasting %s%n", me, txCorrelationId );
         try
         {
             Payload payload = serializer.broadcast( new CommitMessage( txCorrelationId, representation ) );
+            //System.out.println(representation);
             atomicBroadcast.broadcast( payload );
         }
         catch ( IOException e )
@@ -144,12 +150,12 @@ public class ReplicatedTransactionCommitProcess implements TransactionCommitProc
 
     static class CommitMessage implements Serializable
     {
+        // TODO: Netty has a 1MiB limit! Not feasible to transport the entire transaction like this. Transactions should not be transported at all through this channel.
+
         private final UUID txCorrelationId;
         private final TransactionRepresentation tx;
-        //byte[] data = new byte[994*1024+421]; // doesn't work over network... (netty limit)
-        //byte[] data = new byte[994*1024+420]; // works! // TODO: Avoid 1MiB limit.
 
-        static final long serialVersionUID = 0xBC72837206738BCBL; // TODO
+        static final long serialVersionUID = 0xBC72837206738BCBL; // TODO: Properly generated one.
 
         CommitMessage( UUID txCorrelationId, TransactionRepresentation tx )
         {

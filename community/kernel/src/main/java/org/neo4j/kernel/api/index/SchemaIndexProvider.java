@@ -21,6 +21,7 @@ package org.neo4j.kernel.api.index;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -258,7 +259,7 @@ public abstract class SchemaIndexProvider extends LifecycleAdapter implements Co
         return IteratorUtil.emptyIterator();
     }
 
-    public static class Descriptor
+    public static class Descriptor implements Serializable
     {
         private final String key;
         private final String version;
