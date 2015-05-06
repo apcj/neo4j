@@ -466,6 +466,15 @@ public class EnterpriseEditionModule
                 {
                     return new ReadOnlyTransactionCommitProcess();
                 }
+                if ( config.get( HaSettings.raft_commit ) )
+                {
+                    TransactionCommitProcess inner = new TransactionRepresentationCommitProcess(
+                            logicalTransactionStore, kernelHealth,
+                            neoStore, storeApplier, indexUpdatesValidator, mode );
+                    int clusterPort = config.get( ClusterSettings.cluster_server ).getPort();
+                    return new RAFTTransactionCommitProcess( inner, config.get( ClusterSettings.server_id ),
+                            clusterPort + 600, clusterPort + 700 );
+                }
                 else
                 {
 

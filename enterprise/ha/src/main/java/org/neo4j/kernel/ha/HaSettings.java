@@ -25,10 +25,12 @@ import org.neo4j.helpers.HostnamePort;
 import org.neo4j.helpers.Settings;
 import org.neo4j.kernel.configuration.ConfigurationMigrator;
 import org.neo4j.kernel.configuration.Migrator;
+import org.neo4j.kernel.configuration.Title;
 
 import static org.neo4j.helpers.Settings.BOOLEAN;
 import static org.neo4j.helpers.Settings.BYTES;
 import static org.neo4j.helpers.Settings.DURATION;
+import static org.neo4j.helpers.Settings.FALSE;
 import static org.neo4j.helpers.Settings.HOSTNAME_PORT;
 import static org.neo4j.helpers.Settings.INTEGER;
 import static org.neo4j.helpers.Settings.min;
@@ -43,6 +45,10 @@ public class HaSettings
 {
     @Migrator
     public static final ConfigurationMigrator migrator = new EnterpriseConfigurationMigrator();
+
+    @Title("RAFT commit")
+    @Description("Use the RAFT commit protocol")
+    public static final Setting<Boolean> raft_commit = setting( "raft_commit", BOOLEAN, FALSE );
 
     @Description( "How long a slave will wait for response from master before giving up." )
     public static final Setting<Long> read_timeout = setting( "ha.read_timeout", DURATION, "20s" );

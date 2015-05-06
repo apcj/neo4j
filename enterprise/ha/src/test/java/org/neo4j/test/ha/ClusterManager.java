@@ -980,6 +980,9 @@ public class ClusterManager
                 }
                 GraphDatabaseBuilder builder =
                         dbFactory.newHighlyAvailableDatabaseBuilder( storeDir.getAbsolutePath() );
+
+                builder.setConfig( HaSettings.raft_commit, "true" );
+
                 builder.setConfig( ClusterSettings.cluster_name, name );
                 builder.setConfig( ClusterSettings.initial_hosts, initialHosts.toString() );
                 builder.setConfig( ClusterSettings.server_id, serverId + "" );
