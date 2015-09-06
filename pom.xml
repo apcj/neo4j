@@ -43,6 +43,22 @@
   <build>
     <plugins>
       <plugin>
+        <groupId>com.buschmais.jqassistant.scm</groupId>
+        <artifactId>jqassistant-maven-plugin</artifactId>
+        <version>1.1.0-SNAPSHOT</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>scan</goal>
+              <goal>analyze</goal>
+            </goals>
+            <configuration>
+              <failOnViolations>true</failOnViolations>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <argLine>${test.runner.jvm.settings}</argLine>
