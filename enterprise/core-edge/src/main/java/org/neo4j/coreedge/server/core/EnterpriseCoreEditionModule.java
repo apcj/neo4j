@@ -143,7 +143,7 @@ public class EnterpriseCoreEditionModule
         LogProvider logProvider = logging.getInternalLogProvider();
 
         CoreDiscoveryService discoveryService =
-                discoveryServiceFactory.coreDiscoveryService( config );
+                discoveryServiceFactory.coreDiscoveryService( config, logProvider );
         life.add( dependencies.satisfyDependency( discoveryService ) );
 
         final CoreReplicatedContentMarshal marshall = new CoreReplicatedContentMarshal();

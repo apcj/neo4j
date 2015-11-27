@@ -20,13 +20,12 @@
 package org.neo4j.coreedge.discovery;
 
 
-import org.neo4j.coreedge.discovery.CoreDiscoveryService;
-import org.neo4j.coreedge.discovery.EdgeDiscoveryService;
 import org.neo4j.kernel.configuration.Config;
+import org.neo4j.logging.LogProvider;
 
 public interface DiscoveryServiceFactory
 {
-    CoreDiscoveryService coreDiscoveryService( Config config );
+    CoreDiscoveryService coreDiscoveryService( Config config, LogProvider logProvider );
 
     EdgeDiscoveryService edgeDiscoveryService( Config config );
 }

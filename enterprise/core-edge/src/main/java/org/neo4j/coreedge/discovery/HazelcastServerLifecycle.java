@@ -44,6 +44,8 @@ import org.neo4j.coreedge.server.ListenSocketAddress;
 import org.neo4j.helpers.Listeners;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
+import org.neo4j.logging.Log;
+import org.neo4j.logging.LogProvider;
 
 public class HazelcastServerLifecycle extends LifecycleAdapter implements CoreDiscoveryService
 {
@@ -52,16 +54,18 @@ public class HazelcastServerLifecycle extends LifecycleAdapter implements CoreDi
     public static final String SERVER_ID = "server_id";
     public static final String RAFT_SERVER = "raft_server";
 
-    private Config config;
+    private final Config config;
+    private final Log log;
     private HazelcastInstance hazelcastInstance;
 
     private List<StartupListener> startupListeners = new ArrayList<>();
     private List<MembershipListener> membershipListeners = new ArrayList<>();
     private Map<MembershipListener, String> membershipRegistrationId = new ConcurrentHashMap<>();
 
-    public HazelcastServerLifecycle( Config config )
+    public HazelcastServerLifecycle( Config config, LogProvider logProvider )
     {
         this.config = config;
+        this.log = logProvider.getLog( getClass() );
     }
 
     @Override
@@ -99,6 +103,7 @@ public class HazelcastServerLifecycle extends LifecycleAdapter implements CoreDi
     public void start() throws Throwable
     {
         hazelcastInstance = createHazelcastInstance();
+        log.info( "Joined hazelcast cluster with members %s", hazelcastInstance.getCluster().getMembers() );
 
         Listeners.notifyListeners( startupListeners, listener -> listener.hazelcastStarted( hazelcastInstance ) );
 
