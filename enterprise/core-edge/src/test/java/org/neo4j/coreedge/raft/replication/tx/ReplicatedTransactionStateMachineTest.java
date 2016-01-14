@@ -28,7 +28,7 @@ import org.neo4j.coreedge.raft.replication.session.GlobalSession;
 import org.neo4j.coreedge.raft.replication.session.LocalOperationId;
 import org.neo4j.coreedge.server.AdvertisedSocketAddress;
 import org.neo4j.coreedge.server.CoreMember;
-import org.neo4j.coreedge.server.core.CurrentReplicatedLockState;
+import org.neo4j.coreedge.server.core.CurrentLockToken;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.api.exceptions.TransactionFailureException;
 import org.neo4j.kernel.impl.api.TransactionCommitProcess;
@@ -139,9 +139,9 @@ public class ReplicatedTransactionStateMachineTest
         return physicalTx;
     }
 
-    public CurrentReplicatedLockState lockState( int lockSessionId )
+    public CurrentLockToken lockState( int lockSessionId )
     {
-        CurrentReplicatedLockState lockState = mock( CurrentReplicatedLockState.class );
+        CurrentLockToken lockState = mock( CurrentLockToken.class );
         when( lockState.currentLockSession() ).thenReturn( new StubLockSession( lockSessionId ) );
         return lockState;
     }

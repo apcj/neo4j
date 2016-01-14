@@ -26,10 +26,7 @@ import org.neo4j.coreedge.raft.replication.ReplicatedContent;
 import org.neo4j.coreedge.raft.replication.Replicator;
 import org.neo4j.coreedge.raft.replication.session.GlobalSession;
 import org.neo4j.coreedge.raft.replication.session.GlobalSessionTracker;
-import org.neo4j.coreedge.server.core.CurrentReplicatedLockState;
-import org.neo4j.graphdb.TransientFailureException;
-import org.neo4j.graphdb.TransientTransactionFailureException;
-import org.neo4j.kernel.api.exceptions.Status;
+import org.neo4j.coreedge.server.core.CurrentLockToken;
 import org.neo4j.kernel.api.exceptions.TransactionFailureException;
 import org.neo4j.kernel.impl.api.TransactionCommitProcess;
 import org.neo4j.kernel.impl.api.TransactionToApply;
@@ -44,14 +41,14 @@ public class ReplicatedTransactionStateMachine implements Replicator.ReplicatedC
 {
     private final GlobalSessionTracker sessionTracker;
     private final GlobalSession myGlobalSession;
-    private final CurrentReplicatedLockState currentReplicatedLockState;
+    private final CurrentLockToken currentReplicatedLockState;
     private final TransactionCommitProcess commitProcess;
     private final CommittingTransactions transactionFutures;
     private long lastCommittedIndex = -1;
 
     public ReplicatedTransactionStateMachine( TransactionCommitProcess commitProcess,
                                               GlobalSession myGlobalSession,
-                                              CurrentReplicatedLockState currentReplicatedLockState,
+                                              CurrentLockToken currentReplicatedLockState,
                                               CommittingTransactions transactionFutures )
     {
         this.commitProcess = commitProcess;

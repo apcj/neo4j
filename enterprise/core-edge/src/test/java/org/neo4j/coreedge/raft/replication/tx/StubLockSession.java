@@ -19,9 +19,9 @@
  */
 package org.neo4j.coreedge.raft.replication.tx;
 
-import org.neo4j.coreedge.server.core.CurrentReplicatedLockState;
+import org.neo4j.coreedge.server.core.CurrentLockToken;
 
-class StubLockSession implements CurrentReplicatedLockState.LockSession
+class StubLockSession implements CurrentLockToken.LockSession
 {
     private final int id;
 

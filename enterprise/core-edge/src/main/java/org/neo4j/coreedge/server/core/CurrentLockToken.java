@@ -19,14 +19,7 @@
  */
 package org.neo4j.coreedge.server.core;
 
-public interface CurrentReplicatedLockState
+public interface CurrentLockToken<MEMBER>
 {
-    LockSession currentLockSession();
-
-    interface LockSession
-    {
-        int id();
-
-        boolean isMine();
-    }
+    LockToken<MEMBER> currentToken();
 }

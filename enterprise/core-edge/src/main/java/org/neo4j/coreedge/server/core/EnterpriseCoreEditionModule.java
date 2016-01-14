@@ -223,10 +223,10 @@ public class EnterpriseCoreEditionModule
 
         LocalSessionPool localSessionPool = new LocalSessionPool( myself );
 
-        ReplicatedLockStateMachine<CoreMember> replicatedLockStateMachine = new ReplicatedLockStateMachine<>( myself,
+        LockTokenTokenMachine<CoreMember> replicatedLockTokenStateMachine = new LockTokenTokenMachine<>(
                 replicator );
 
-        commitProcessFactory = createCommitProcessFactory( replicator, localSessionPool, replicatedLockStateMachine,
+        commitProcessFactory = createCommitProcessFactory( replicator, localSessionPool, replicatedLockTokenStateMachine,
                 dependencies, logging );
 
         final IdAllocationState idAllocationState;
@@ -300,7 +300,7 @@ public class EnterpriseCoreEditionModule
         channelInitializer.setOwner( coreToCoreClient );
 
         lockManager = dependencies.satisfyDependency( createLockManager( config, logging, replicator, myself,
-                replicatedLockStateMachine ) );
+                replicatedLockTokenStateMachine ) );
 
         CatchupServer catchupServer = new CatchupServer( logProvider,
                 new StoreIdSupplier( platformModule ),
@@ -344,7 +344,7 @@ public class EnterpriseCoreEditionModule
 
     public static CommitProcessFactory createCommitProcessFactory( final Replicator replicator,
                                                                    final LocalSessionPool localSessionPool,
-                                                                   final CurrentReplicatedLockState
+                                                                   final CurrentLockToken
                                                                            currentReplicatedLockState,
                                                                    final Dependencies dependencies,
                                                                    final LogService logging )
@@ -460,12 +460,12 @@ public class EnterpriseCoreEditionModule
     }
 
     protected Locks createLockManager( final Config config, final LogService logging, final Replicator replicator,
-                                       CoreMember myself, ReplicatedLockStateMachine<CoreMember>
-                                               replicatedLockStateMachine )
+                                       CoreMember myself, LockTokenTokenMachine<CoreMember>
+                                               replicatedLockTokenStateMachine )
     {
         Locks local = CommunityEditionModule.createLockManager( config, logging );
 
-        return new LeaderOnlyLockManager<>( myself, replicator, local, replicatedLockStateMachine );
+        return new LeaderOnlyLockManager<>( myself, replicator, local, replicatedLockTokenStateMachine );
     }
 
     protected TransactionHeaderInformationFactory createHeaderInformationFactory()

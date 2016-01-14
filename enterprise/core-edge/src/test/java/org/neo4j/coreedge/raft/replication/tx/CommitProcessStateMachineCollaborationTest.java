@@ -31,7 +31,7 @@ import org.neo4j.coreedge.raft.replication.session.LocalOperationId;
 import org.neo4j.coreedge.raft.replication.session.LocalSessionPool;
 import org.neo4j.coreedge.server.AdvertisedSocketAddress;
 import org.neo4j.coreedge.server.CoreMember;
-import org.neo4j.coreedge.server.core.CurrentReplicatedLockState;
+import org.neo4j.coreedge.server.core.CurrentLockToken;
 import org.neo4j.kernel.api.exceptions.TransactionFailureException;
 import org.neo4j.kernel.impl.api.TransactionCommitProcess;
 import org.neo4j.kernel.impl.api.TransactionToApply;
@@ -66,7 +66,7 @@ public class CommitProcessStateMachineCollaborationTest
         TransactionCommitProcess localCommitProcess = mock( TransactionCommitProcess.class );
 
         LocalSessionPool sessionPool = new LocalSessionPool( coreMember );
-        CurrentReplicatedLockState lockState = lockState( 0 );
+        CurrentLockToken lockState = lockState( 0 );
         final ReplicatedTransactionStateMachine stateMachine = new ReplicatedTransactionStateMachine(
                 localCommitProcess, sessionPool.getGlobalSession(), lockState, txFutures );
 
@@ -95,7 +95,7 @@ public class CommitProcessStateMachineCollaborationTest
         TransactionCommitProcess localCommitProcess = mock( TransactionCommitProcess.class );
 
         LocalSessionPool sessionPool = new LocalSessionPool( coreMember );
-        CurrentReplicatedLockState lockState = lockState( 1 );
+        CurrentLockToken lockState = lockState( 1 );
 
         final ReplicatedTransactionStateMachine stateMachine = new ReplicatedTransactionStateMachine(
                 localCommitProcess, sessionPool.getGlobalSession(), lockState, txFutures );
@@ -116,9 +116,9 @@ public class CommitProcessStateMachineCollaborationTest
         }
     }
 
-    public CurrentReplicatedLockState lockState( int lockSessionId )
+    public CurrentLockToken lockState( int lockSessionId )
     {
-        CurrentReplicatedLockState lockState = mock( CurrentReplicatedLockState.class );
+        CurrentLockToken lockState = mock( CurrentLockToken.class );
         when( lockState.currentLockSession() ).thenReturn( new StubLockSession( lockSessionId ) );
         return lockState;
     }

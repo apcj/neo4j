@@ -22,21 +22,21 @@ package org.neo4j.coreedge.raft.net;
 import io.netty.buffer.ByteBuf;
 
 import org.neo4j.coreedge.server.CoreMember;
-import org.neo4j.coreedge.server.core.ReplicatedLockRequest;
+import org.neo4j.coreedge.server.core.LockToken;
 
 public class ReplicatedLockRequestSerializer
 {
-    public static void serialize( ReplicatedLockRequest<CoreMember> content, ByteBuf buffer )
+    public static void serialize( LockToken<CoreMember> content, ByteBuf buffer )
     {
         buffer.writeInt( content.requestedLockSessionId() );
         new CoreMember.CoreMemberMarshal().marshal( content.owner(), buffer );
     }
 
-    public static ReplicatedLockRequest<CoreMember> deserialize( ByteBuf buffer )
+    public static LockToken<CoreMember> deserialize( ByteBuf buffer )
     {
         int requestedLockSessionId = buffer.readInt();
         CoreMember owner = new CoreMember.CoreMemberMarshal().unmarshal( buffer );
 
-        return new ReplicatedLockRequest<>( owner, requestedLockSessionId );
+        return new LockToken<>( owner, requestedLockSessionId );
     }
 }

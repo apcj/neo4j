@@ -36,7 +36,7 @@ import org.neo4j.coreedge.raft.replication.token.ReplicatedTokenRequestSerialize
 import org.neo4j.coreedge.raft.replication.tx.ReplicatedTransaction;
 import org.neo4j.coreedge.raft.replication.tx.ReplicatedTransactionSerializer;
 import org.neo4j.coreedge.server.CoreMember;
-import org.neo4j.coreedge.server.core.ReplicatedLockRequest;
+import org.neo4j.coreedge.server.core.LockToken;
 
 public class CoreReplicatedContentMarshal implements ReplicatedContentMarshal<ByteBuf>
 {
@@ -80,10 +80,10 @@ public class CoreReplicatedContentMarshal implements ReplicatedContentMarshal<By
         {
             buffer.writeByte( NEW_LEADER_BARRIER_TYPE );
         }
-        else if( content instanceof ReplicatedLockRequest )
+        else if( content instanceof LockToken )
         {
             buffer.writeByte( LOCK_REQUEST );
-            ReplicatedLockRequestSerializer.serialize( (ReplicatedLockRequest<CoreMember>) content, buffer );
+            ReplicatedLockRequestSerializer.serialize( (LockToken<CoreMember>) content, buffer );
         }
         else
         {

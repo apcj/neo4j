@@ -30,30 +30,30 @@ import static org.junit.Assert.assertTrue;
 
 import static org.neo4j.coreedge.server.RaftTestMember.member;
 
-public class ReplicatedLockStateMachineTest
+public class ReplicatedLockTokenStateMachineTest
 {
     @Test
     public void shouldKeepTrackOfGlobalLockSession() throws Exception
     {
         // given
         StubReplicator replicator = new StubReplicator();
-        CurrentReplicatedLockState stateMachine = new ReplicatedLockStateMachine<>( member( 0 ), replicator );
+        CurrentLockToken stateMachine = new LockTokenTokenMachine<>( replicator );
 
         // when
-        replicator.replicate( new ReplicatedLockRequest<>( member( 1 ), 0 ) );
-        replicator.replicate( new ReplicatedLockRequest<>( member( 2 ), 1 ) );
+        replicator.replicate( new LockToken<>( member( 1 ), 0 ) );
+        replicator.replicate( new LockToken<>( member( 2 ), 1 ) );
 
         // then
         assertEquals( 1, stateMachine.currentLockSession().id() );
 
         // when
-        replicator.replicate( new ReplicatedLockRequest<>( member( 3 ), 0 ) );
+        replicator.replicate( new LockToken<>( member( 3 ), 0 ) );
 
         // then
         assertEquals( 1, stateMachine.currentLockSession().id() );
 
         // when
-        replicator.replicate( new ReplicatedLockRequest<>( member( 4 ), 2 ) );
+        replicator.replicate( new LockToken<>( member( 4 ), 2 ) );
 
         // then
         assertEquals( 2, stateMachine.currentLockSession().id() );
@@ -65,37 +65,37 @@ public class ReplicatedLockStateMachineTest
         // given
         StubReplicator replicator = new StubReplicator();
         RaftTestMember me = member( 0 );
-        CurrentReplicatedLockState stateMachine = new ReplicatedLockStateMachine<>( me, replicator );
+        CurrentLockToken stateMachine = new LockTokenTokenMachine<>( replicator );
 
         // when
-        replicator.replicate( new ReplicatedLockRequest<>( member( 1 ), 0 ) );
-        replicator.replicate( new ReplicatedLockRequest<>( member( 2 ), 1 ) );
+        replicator.replicate( new LockToken<>( member( 1 ), 0 ) );
+        replicator.replicate( new LockToken<>( member( 2 ), 1 ) );
 
         // then
         assertFalse( stateMachine.currentLockSession().isMine() );
 
         // when
-        replicator.replicate( new ReplicatedLockRequest<>( me, 0 ) );
+        replicator.replicate( new LockToken<>( me, 0 ) );
 
         // then
         assertFalse( stateMachine.currentLockSession().isMine() );
 
         // when
-        replicator.replicate( new ReplicatedLockRequest<>( me, 2 ) );
+        replicator.replicate( new LockToken<>( me, 2 ) );
 
         // then
         assertTrue( stateMachine.currentLockSession().isMine() );
         assertEquals( 2, stateMachine.currentLockSession().id() );
 
         // when
-        replicator.replicate( new ReplicatedLockRequest<>( member( 1 ), 2 ) );
+        replicator.replicate( new LockToken<>( member( 1 ), 2 ) );
 
         // then
         assertTrue( stateMachine.currentLockSession().isMine() );
         assertEquals( 2, stateMachine.currentLockSession().id() );
 
         // when
-        replicator.replicate( new ReplicatedLockRequest<>( member( 1 ), 3 ) );
+        replicator.replicate( new LockToken<>( member( 1 ), 3 ) );
 
         // then
         assertFalse( stateMachine.currentLockSession().isMine() );
@@ -107,13 +107,13 @@ public class ReplicatedLockStateMachineTest
     {
         // given
         StubReplicator replicator = new StubReplicator();
-        ReplicatedLockStateMachine stateMachine = new ReplicatedLockStateMachine<>( member( 0 ), replicator );
+        LockTokenTokenMachine stateMachine = new LockTokenTokenMachine<>( replicator );
 
         // then
         assertEquals(1, stateMachine.nextId());
 
         // when
-        replicator.replicate( new ReplicatedLockRequest<>( member( 1 ), 3 ) );
+        replicator.replicate( new LockToken<>( member( 1 ), 3 ) );
 
         // then
         assertEquals( 4, stateMachine.nextId() );

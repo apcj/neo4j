@@ -25,15 +25,15 @@ import org.neo4j.coreedge.raft.replication.ReplicatedContent;
 
 import static java.lang.String.format;
 
-public class ReplicatedLockRequest<MEMBER> implements ReplicatedContent
+public class LockToken<MEMBER> implements ReplicatedContent
 {
     final MEMBER owner;
-    final int requestedLockSessionId;
+    final int id;
 
-    public ReplicatedLockRequest( MEMBER owner, int requestedLockSessionId )
+    public LockToken( MEMBER owner, int id )
     {
         this.owner = owner;
-        this.requestedLockSessionId = requestedLockSessionId;
+        this.id = id;
     }
 
     public MEMBER owner()
@@ -43,7 +43,7 @@ public class ReplicatedLockRequest<MEMBER> implements ReplicatedContent
 
     public int requestedLockSessionId()
     {
-        return requestedLockSessionId;
+        return id;
     }
 
     @Override
@@ -53,20 +53,20 @@ public class ReplicatedLockRequest<MEMBER> implements ReplicatedContent
         { return true; }
         if ( o == null || getClass() != o.getClass() )
         { return false; }
-        ReplicatedLockRequest that = (ReplicatedLockRequest) o;
-        return requestedLockSessionId == that.requestedLockSessionId &&
+        LockToken that = (LockToken) o;
+        return id == that.id &&
                Objects.equals( owner, that.owner );
     }
 
     @Override
     public int hashCode()
     {
-        return Objects.hash( owner, requestedLockSessionId );
+        return Objects.hash( owner, id );
     }
 
     @Override
     public String toString()
     {
-        return format( "ReplicatedLockRequest{owner=%s, requestedLockSessionId=%d}", owner, requestedLockSessionId );
+        return format( "ReplicatedLockRequest{owner=%s, requestedLockSessionId=%d}", owner, id );
     }
 }
