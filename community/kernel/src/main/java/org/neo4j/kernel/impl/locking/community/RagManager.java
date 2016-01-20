@@ -80,7 +80,7 @@ public class RagManager
         return deadlockCount.longValue();
     }
 
-    synchronized void lockAcquired( Object resource, Object tx )
+    public synchronized void lockAcquired( Object resource, Object tx )
     {
         List<Object> lockingTxList = resourceMap.get( resource );
         if ( lockingTxList != null )
@@ -96,7 +96,7 @@ public class RagManager
         }
     }
 
-    synchronized void lockReleased( Object resource, Object tx )
+    public synchronized void lockReleased( Object resource, Object tx )
     {
         List<Object> lockingTxList = resourceMap.get( resource );
         if ( lockingTxList == null )
@@ -114,7 +114,7 @@ public class RagManager
         }
     }
 
-    synchronized void stopWaitOn( Object resource, Object tx )
+    public synchronized void stopWaitOn( Object resource, Object tx )
     {
         if ( waitingTxMap.remove( tx ) == null )
         {
@@ -123,7 +123,7 @@ public class RagManager
     }
 
     // after invoke the transaction must wait on the resource
-    synchronized void checkWaitOn( Object resource, Object tx )
+    public synchronized void checkWaitOn( Object resource, Object tx )
         throws DeadlockDetectedException
     {
         List<Object> lockingTxList = resourceMap.get( resource );
