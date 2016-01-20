@@ -9,20 +9,16 @@ import org.neo4j.coreedge.raft.replication.Replicator;
 import org.neo4j.kernel.DeadlockDetectedException;
 import org.neo4j.kernel.impl.locking.community.LockResource;
 import org.neo4j.kernel.impl.locking.community.RagManager;
-import org.neo4j.logging.Log;
-import org.neo4j.logging.LogProvider;
 
 public class DistributedLockStateMachine implements Replicator.ReplicatedContentListener
 {
     private final Map<LockResource, ResourceLockState> resourceStates = new HashMap<>();
     private final RagManager ragManager = new RagManager();
     private final CompletableLockRequests lockRequests;
-    private final Log log;
 
-    public DistributedLockStateMachine( CompletableLockRequests lockRequests, LogProvider logProvider )
+    public DistributedLockStateMachine( CompletableLockRequests lockRequests )
     {
         this.lockRequests = lockRequests;
-        this.log = logProvider.getLog( getClass() );
     }
 
     @Override
@@ -53,6 +49,7 @@ public class DistributedLockStateMachine implements Replicator.ReplicatedContent
             lockState = new ResourceLockState();
             resourceStates.put( resource, lockState );
         }
+
         if ( lockState.availableFor( lockRequest.lockType(), session ) )
         {
             if ( !lockState.hasAnyLock( session ) )

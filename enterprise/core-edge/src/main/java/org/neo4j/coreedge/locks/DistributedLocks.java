@@ -2,7 +2,6 @@ package org.neo4j.coreedge.locks;
 
 import org.neo4j.coreedge.raft.replication.Replicator;
 import org.neo4j.kernel.impl.locking.Locks;
-import org.neo4j.logging.LogProvider;
 
 public class DistributedLocks implements Locks
 {
@@ -11,10 +10,10 @@ public class DistributedLocks implements Locks
 
     private final Replicator replicator;
 
-    public DistributedLocks( Replicator replicator, LogProvider logProvider )
+    public DistributedLocks( Replicator replicator )
     {
         this.replicator = replicator;
-        stateMachine = new DistributedLockStateMachine( pendingLockRequests, logProvider );
+        stateMachine = new DistributedLockStateMachine( pendingLockRequests );
         replicator.subscribe( stateMachine );
     }
 

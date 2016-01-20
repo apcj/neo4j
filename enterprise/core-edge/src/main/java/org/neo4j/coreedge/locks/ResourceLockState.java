@@ -4,65 +4,46 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * The state of locks for a give lockable resource, consisting of:
  * <ul>
  * <li>The set of sessions who are currently holding a lock on this resource, together with counts
  * of how many shared and exclusive locks that session holds.
- * If any of these sessions hold an exclusive lock, then this set must have only one member</li>
+ * If any of these sessions hold an exclusive lock, then this set must have only one member.</li>
  * <li>Queue of sessions that are waiting to acquire a lock on the resource.</li>
  * </ul>
  */
 public class ResourceLockState
 {
-    private Map<LockSession, LockHolding> currentHolders = new HashMap<>();
+    private final Map<LockSession, LockHolding> currentHolders = new HashMap<>();
     private final Queue<LockSession> waitingSessions = new LinkedList<>();
 
     public boolean availableFor( LockType lockType, LockSession session )
     {
-        if ( currentHolders.isEmpty() )
-        {
-            return true;
-        }
         if ( lockType == LockType.EXCLUSIVE )
         {
-            return currentHolders.size() == 1 && currentHolders.containsKey( session );
+            return currentHolders.isEmpty() || lockedOnlyBySession( session );
         }
-        for ( LockHolding currentHolder : currentHolders.values() )
+        return !lockedExclusivelyByAnotherSession( session );
+    }
+
+    private boolean lockedOnlyBySession( LockSession session )
+    {
+        return currentHolders.size() == 1 && currentHolders.containsKey( session );
+    }
+
+    private boolean lockedExclusivelyByAnotherSession( LockSession session )
+    {
+        for ( Map.Entry<LockSession, LockHolding> entry : currentHolders.entrySet() )
         {
-            if ( currentHolder.lockType == LockType.EXCLUSIVE )
+            if ( entry.getValue().lockType == LockType.EXCLUSIVE )
             {
-                return false;
+                return !session.equals( entry.getKey() );
             }
         }
-        return true;
-    }
-
-    public void issue( LockSession session, LockType lockType )
-    {
-        LockHolding holding = currentHolders.get( session );
-        if ( holding == null )
-        {
-            holding = new LockHolding( session, lockType );
-            currentHolders.put( session, holding );
-        }
-        holding.increment( lockType );
-    }
-
-    public LockSession poll()
-    {
-        return waitingSessions.poll();
-    }
-
-    public void release( LockSession session, LockType lockType )
-    {
-        LockHolding holding = currentHolders.get( session );
-        holding.decrement( lockType );
-        if ( holding.isFree() )
-        {
-            currentHolders.remove( session );
-        }
+        return false;
     }
 
     public boolean hasAnyLock( LockSession session )
@@ -70,55 +51,57 @@ public class ResourceLockState
         return currentHolders.containsKey( session );
     }
 
-    private static class LockHolding
+    public void issue( LockSession session, LockType lockType )
     {
-        private LockSession lockSession;
-        private LockType lockType;
-        private int sharedCount;
-        private int exclusiveCount;
-
-        public LockHolding( LockSession lockSession, LockType lockType )
+        LockHolding holding = currentHolders.get( session );
+        if ( holding == null )
         {
-            this.lockSession = lockSession;
-            this.lockType = lockType;
+            holding = new LockHolding( lockType );
+            currentHolders.put( session, holding );
         }
+        holding.counter( lockType ).incrementAndGet();
+    }
 
-        public void increment( LockType lockType )
+    public void release( LockSession session, LockType lockType )
+    {
+        LockHolding holding = currentHolders.get( session );
+        holding.counter( lockType ).decrementAndGet();
+        if ( holding.isFree() )
         {
-            switch ( lockType )
-            {
-                case SHARED:
-                    sharedCount++;
-                    break;
-
-                case EXCLUSIVE:
-                    exclusiveCount++;
-                    break;
-            }
-        }
-
-        public void decrement( LockType lockType )
-        {
-            switch ( lockType )
-            {
-                case SHARED:
-                    sharedCount--;
-                    break;
-
-                case EXCLUSIVE:
-                    exclusiveCount--;
-                    break;
-            }
-        }
-
-        public boolean isFree()
-        {
-            return (exclusiveCount == 0) && (sharedCount == 0);
+            currentHolders.remove( session );
         }
     }
 
     public void enqueue( LockSession lockSession )
     {
         waitingSessions.add( lockSession );
+    }
+
+    public LockSession poll()
+    {
+        return waitingSessions.poll();
+    }
+
+    private static class LockHolding
+    {
+        private LockType lockType;
+        private AtomicInteger sharedCount = new AtomicInteger( 0 );
+        private AtomicInteger exclusiveCount = new AtomicInteger( 0 );
+
+        public LockHolding( LockType lockType )
+        {
+            this.lockType = lockType;
+        }
+
+        private AtomicInteger counter( LockType lockType )
+        {
+            return lockType == LockType.EXCLUSIVE ? exclusiveCount : sharedCount;
+        }
+
+        public boolean isFree()
+        {
+            return (exclusiveCount.intValue() == 0) && (sharedCount.intValue() == 0);
+        }
+
     }
 }

@@ -10,7 +10,6 @@ import org.mockito.InOrder;
 import org.neo4j.coreedge.locks.CompletableLockRequests.CompletableLockRequest;
 import org.neo4j.kernel.impl.locking.ResourceTypes;
 import org.neo4j.kernel.impl.locking.community.LockResource;
-import org.neo4j.logging.NullLogProvider;
 
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -35,8 +34,8 @@ public class DistributedLockStateMachineTest
         StubCompletableLockRequests requests = new StubCompletableLockRequests();
         CompletableLockRequest request = requests.register( session );
 
-        DistributedLockStateMachine stateMachine = new DistributedLockStateMachine( requests,
-                NullLogProvider.getInstance() );
+        DistributedLockStateMachine stateMachine = new DistributedLockStateMachine( requests
+        );
 
         // when
         stateMachine.onReplicated( new LockRequest( ACQUIRE, EXCLUSIVE, resource, session ), 0 );
@@ -55,8 +54,8 @@ public class DistributedLockStateMachineTest
         CompletableLockRequest requestA = requests.register( sessionA );
         CompletableLockRequest requestB = requests.register( sessionB );
 
-        DistributedLockStateMachine stateMachine = new DistributedLockStateMachine( requests,
-                NullLogProvider.getInstance() );
+        DistributedLockStateMachine stateMachine = new DistributedLockStateMachine( requests
+        );
 
         // when
         stateMachine.onReplicated( new LockRequest( ACQUIRE, EXCLUSIVE, resource, sessionA ), 0 );
@@ -76,8 +75,8 @@ public class DistributedLockStateMachineTest
         StubCompletableLockRequests requests = new StubCompletableLockRequests();
         CompletableLockRequest requestB = requests.register( sessionB );
 
-        DistributedLockStateMachine stateMachine = new DistributedLockStateMachine( requests,
-                NullLogProvider.getInstance() );
+        DistributedLockStateMachine stateMachine = new DistributedLockStateMachine( requests
+        );
 
         stateMachine.onReplicated( new LockRequest( ACQUIRE, EXCLUSIVE, resource, sessionA ), 0 );
         stateMachine.onReplicated( new LockRequest( ACQUIRE, EXCLUSIVE, resource,
@@ -100,8 +99,8 @@ public class DistributedLockStateMachineTest
         CompletableLockRequest requestA = requests.register( sessionA );
         CompletableLockRequest requestB = requests.register( sessionB );
 
-        DistributedLockStateMachine stateMachine = new DistributedLockStateMachine( requests,
-                NullLogProvider.getInstance() );
+        DistributedLockStateMachine stateMachine = new DistributedLockStateMachine( requests
+        );
 
         // when
         stateMachine.onReplicated( new LockRequest( ACQUIRE, SHARED, resource, sessionA ), 0 );
@@ -122,8 +121,8 @@ public class DistributedLockStateMachineTest
         CompletableLockRequest requestA = requests.register( sessionA );
         CompletableLockRequest requestB = requests.register( sessionB );
 
-        DistributedLockStateMachine stateMachine = new DistributedLockStateMachine( requests,
-                NullLogProvider.getInstance() );
+        DistributedLockStateMachine stateMachine = new DistributedLockStateMachine( requests
+        );
 
         // when
         stateMachine.onReplicated( new LockRequest( ACQUIRE, SHARED, resource, sessionA ), 0 );
@@ -142,12 +141,31 @@ public class DistributedLockStateMachineTest
         StubCompletableLockRequests requests = new StubCompletableLockRequests();
         CompletableLockRequest requestA = requests.register( sessionA );
 
-        DistributedLockStateMachine stateMachine = new DistributedLockStateMachine( requests,
-                NullLogProvider.getInstance() );
+        DistributedLockStateMachine stateMachine = new DistributedLockStateMachine( requests
+        );
 
         // when
         stateMachine.onReplicated( new LockRequest( ACQUIRE, SHARED, resource, sessionA ), 0 );
         stateMachine.onReplicated( new LockRequest( ACQUIRE, EXCLUSIVE, resource, sessionA ), 0 );
+
+        // then
+        verify( requestA, times( 2 ) ).lockAcquired();
+    }
+
+    @Test
+    public void shouldIssueSharedLockWhenSessionAlreadyHoldsExclusiveLock() throws Exception
+    {
+        // given
+        LockSession sessionA = new LockSession();
+        StubCompletableLockRequests requests = new StubCompletableLockRequests();
+        CompletableLockRequest requestA = requests.register( sessionA );
+
+        DistributedLockStateMachine stateMachine = new DistributedLockStateMachine( requests
+        );
+
+        // when
+        stateMachine.onReplicated( new LockRequest( ACQUIRE, EXCLUSIVE, resource, sessionA ), 0 );
+        stateMachine.onReplicated( new LockRequest( ACQUIRE, SHARED, resource, sessionA ), 0 );
 
         // then
         verify( requestA, times( 2 ) ).lockAcquired();
@@ -162,8 +180,8 @@ public class DistributedLockStateMachineTest
         StubCompletableLockRequests requests = new StubCompletableLockRequests();
         CompletableLockRequest requestB = requests.register( sessionB );
 
-        DistributedLockStateMachine stateMachine = new DistributedLockStateMachine( requests,
-                NullLogProvider.getInstance() );
+        DistributedLockStateMachine stateMachine = new DistributedLockStateMachine( requests
+        );
 
         stateMachine.onReplicated( new LockRequest( ACQUIRE, EXCLUSIVE, resource, sessionA ), 0 );
         stateMachine.onReplicated( new LockRequest( ACQUIRE, EXCLUSIVE, resource, sessionA ), 0 );
@@ -185,8 +203,8 @@ public class DistributedLockStateMachineTest
         StubCompletableLockRequests requests = new StubCompletableLockRequests();
         CompletableLockRequest requestB = requests.register( sessionB );
 
-        DistributedLockStateMachine stateMachine = new DistributedLockStateMachine( requests,
-                NullLogProvider.getInstance() );
+        DistributedLockStateMachine stateMachine = new DistributedLockStateMachine( requests
+        );
 
         stateMachine.onReplicated( new LockRequest( ACQUIRE, SHARED, resource, sessionA ), 0 );
         stateMachine.onReplicated( new LockRequest( ACQUIRE, SHARED, resource, sessionA ), 0 );
@@ -213,8 +231,8 @@ public class DistributedLockStateMachineTest
         CompletableLockRequest requestC = requests.register( sessionC );
         CompletableLockRequest requestD = requests.register( sessionD );
 
-        DistributedLockStateMachine stateMachine = new DistributedLockStateMachine( requests,
-                NullLogProvider.getInstance() );
+        DistributedLockStateMachine stateMachine = new DistributedLockStateMachine( requests
+        );
 
         stateMachine.onReplicated( new LockRequest( ACQUIRE, EXCLUSIVE, resource, sessionA ), 0 );
         stateMachine.onReplicated( new LockRequest( ACQUIRE, EXCLUSIVE, resource, sessionB ), 0 );
