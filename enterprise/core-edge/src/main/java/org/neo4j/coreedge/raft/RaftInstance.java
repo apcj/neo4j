@@ -249,7 +249,7 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
         {
             handlingMessage = true;
             RaftMessages.Message<MEMBER> message = (RaftMessages.Message<MEMBER>) incomingMessage;
-            Outcome<MEMBER> outcome = currentRole.role.handle( message, state, log );
+            Outcome<MEMBER> outcome = currentRole.handler.handle( message, state, log );
             outcomeLogger.info( state, message, outcome );
 
             handleOutcome( outcome );
