@@ -70,7 +70,7 @@ public class AppendLogEntry implements LogCommand
     {
         return "AppendLogEntry{" +
                 "index=" + index +
-                ", entry=" + entry +
+                ", entry=" + entry.logString() +
                 '}';
     }
 }

@@ -203,7 +203,7 @@ public abstract class ShipCommand
         public String toString()
         {
             return format( "NewEntry{prevLogIndex=%d, prevLogTerm=%d, newLogEntry=%s}", prevLogIndex, prevLogTerm,
-                    newLogEntry );
+                    newLogEntry.logString() );
         }
     }
 

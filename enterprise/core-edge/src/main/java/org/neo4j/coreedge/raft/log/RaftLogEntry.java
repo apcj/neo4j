@@ -72,9 +72,14 @@ public class RaftLogEntry
         return result;
     }
 
+    public String logString()
+    {
+        return String.format( "RaftLogEntry{term=%d, content=%s}", term, content.logString() );
+    }
+
     @Override
     public String toString()
     {
-        return String.format( "RaftLogEntry{term=%d, content=%s}", term, content.logString() );
+        return String.format( "RaftLogEntry{term=%d, content=%s}", term, content );
     }
 }

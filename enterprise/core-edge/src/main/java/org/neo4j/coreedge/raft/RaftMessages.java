@@ -343,16 +343,22 @@ public interface RaftMessages
             public boolean equals( Object o )
             {
                 if ( this == o )
-                { return true; }
+                {
+                    return true;
+                }
                 if ( o == null || getClass() != o.getClass() )
-                { return false; }
+                {
+                    return false;
+                }
                 if ( !super.equals( o ) )
-                { return false; }
+                {
+                    return false;
+                }
                 Response<?> response = (Response<?>) o;
                 return term == response.term &&
-                       success == response.success &&
-                       matchIndex == response.matchIndex &&
-                       appendIndex == response.appendIndex;
+                        success == response.success &&
+                        matchIndex == response.matchIndex &&
+                        appendIndex == response.appendIndex;
             }
 
             @Override
@@ -364,7 +370,8 @@ public interface RaftMessages
             @Override
             public String toString()
             {
-                return String.format( "AppendEntries.Response from %s {term=%d, success=%s, matchIndex=%d, appendIndex=%d}",
+                return String.format( "AppendEntries.Response from %s {term=%d, success=%s, matchIndex=%d, " +
+                        "appendIndex=%d}",
                         from, term, success, matchIndex, appendIndex );
             }
         }

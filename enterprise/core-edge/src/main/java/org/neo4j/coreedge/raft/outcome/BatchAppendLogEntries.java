@@ -77,6 +77,33 @@ public class BatchAppendLogEntries implements LogCommand
     @Override
     public String toString()
     {
-        return format( "BatchAppendLogEntries{baseIndex=%d, offset=%d, entries=%s}", baseIndex, offset, Arrays.toString( entries ) );
+        return format( "BatchAppendLogEntries{baseIndex=%d, offset=%d, entries=%s}", baseIndex, offset, logMe( entries ) );
     }
+
+            static String logMe( RaftLogEntry[] a )
+        {
+            if ( a == null )
+            {
+                return "null";
+            }
+
+            int iMax = a.length - 1;
+            if ( iMax == -1 )
+            {
+                return "[]";
+            }
+
+            StringBuilder b = new StringBuilder();
+            b.append( '[' );
+            for ( int i = 0; ; i++ )
+            {
+                b.append( a[i].logString() );
+                if ( i == iMax )
+                {
+                    return b.append( ']' ).toString();
+                }
+                b.append( ", " );
+            }
+        }
+
 }
