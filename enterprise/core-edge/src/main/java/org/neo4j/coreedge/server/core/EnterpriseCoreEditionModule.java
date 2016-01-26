@@ -200,31 +200,31 @@ public class EnterpriseCoreEditionModule
 
         MonitoredRaftLog monitoredRaftLog = new MonitoredRaftLog( raftLog, platformModule.monitors );
 
-        final TermState termState = new InMemoryTermState();
-//        try
-//        {
-//            OnDiskTermState onDiskTermState = life.add( new OnDiskTermState( fileSystem,
-//                    new File( clusterStateDirectory, OnDiskTermState.DIRECTORY_NAME ),
-//                    config.get( CoreEdgeClusterSettings.term_state_size ), databaseHealthSupplier ) );
-//            termState = new MonitoredTermState( onDiskTermState, platformModule.monitors );
-//        }
-//        catch ( IOException e )
-//        {
-//            throw new RuntimeException( e );
-//        }
+        TermState termState = new InMemoryTermState();
+        try
+        {
+            OnDiskTermState onDiskTermState = life.add( new OnDiskTermState( fileSystem,
+                    new File( clusterStateDirectory, OnDiskTermState.DIRECTORY_NAME ),
+                    config.get( CoreEdgeClusterSettings.term_state_size ), databaseHealthSupplier ) );
+            termState = new MonitoredTermState( onDiskTermState, platformModule.monitors );
+        }
+        catch ( IOException e )
+        {
+            throw new RuntimeException( e );
+        }
 
-        final VoteState<CoreMember> voteState = new InMemoryVoteState<>();
-//        try
-//        {
-//            voteState = life.add( new OnDiskVoteState<>( fileSystem,
-//                    new File( clusterStateDirectory, OnDiskVoteState.DIRECTORY_NAME ),
-//                    config.get( CoreEdgeClusterSettings.vote_state_size ), databaseHealthSupplier,
-//                    new CoreMemberMarshal() ) );
-//        }
-//        catch ( IOException e )
-//        {
-//            throw new RuntimeException( e );
-//        }
+        VoteState<CoreMember> voteState = new InMemoryVoteState<>();
+        try
+        {
+            voteState = life.add( new OnDiskVoteState<>( fileSystem,
+                    new File( clusterStateDirectory, OnDiskVoteState.DIRECTORY_NAME ),
+                    config.get( CoreEdgeClusterSettings.vote_state_size ), databaseHealthSupplier,
+                    new CoreMemberMarshal() ) );
+        }
+        catch ( IOException e )
+        {
+            throw new RuntimeException( e );
+        }
 
 
         final RaftMembershipState<CoreMember> raftMembershipState = new InMemoryRaftMembershipState<>();

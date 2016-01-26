@@ -70,6 +70,6 @@ public class OnDiskFileLayoutTest
         fs.fileExists( new File( baseClusterStateFile, OnDiskGlobalSessionTrackerState.DIRECTORY_NAME ) );
         fs.fileExists( new File( baseClusterStateFile, OnDiskReplicatedLockTokenState.DIRECTORY_NAME ) );
 
-        assertEquals( 1, fs.listFiles( baseClusterStateFile ).length );
+        assertEquals( 3, fs.listFiles( baseClusterStateFile ).length );
     }
 }
