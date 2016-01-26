@@ -78,6 +78,15 @@ public interface RaftMessages
         {
             return message;
         }
+
+        @Override
+        public String toString()
+        {
+            return "Directed{" +
+                    "to=" + to +
+                    ", message=" + message +
+                    '}';
+        }
     }
 
     interface Vote
@@ -484,7 +493,7 @@ public interface RaftMessages
             @Override
             public String toString()
             {
-                return format( "NewEntry.Request from %s {content=%s}", from, content );
+                return format( "NewEntry.Request from %s {content=%s}", from, content.logString() );
             }
 
             @Override

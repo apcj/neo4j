@@ -75,6 +75,6 @@ public class RaftLogEntry
     @Override
     public String toString()
     {
-        return String.format( "RaftLogEntry{term=%d, content=%s}", term, content );
+        return String.format( "RaftLogEntry{term=%d, content=%s}", term, content.logString() );
     }
 }

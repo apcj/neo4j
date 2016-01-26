@@ -72,4 +72,10 @@ public class ReplicatedInteger implements ReplicatedContent
     {
         return format( "ReplicatedInteger{data=%d}", value );
     }
+
+    @Override
+    public String logString()
+    {
+        return toString();
+    }
 }

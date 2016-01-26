@@ -188,6 +188,26 @@ public class Outcome<MEMBER> implements Serializable
                '}';
     }
 
+
+    public String logString()
+    {
+        return "Outcome{" +
+                "nextRole=" + newRole +
+                ", newTerm=" + term +
+                ", leader=" + leader +
+                ", leaderCommit=" + leaderCommit +
+                ", logCommands=" + logCommands +
+                ", shipCommands=" + shipCommands +
+                ", votedFor=" + votedFor +
+                ", updatedVotesForMe=" + votesForMe +
+                ", lastLogIndexBeforeWeBecameLeader=" + lastLogIndexBeforeWeBecameLeader +
+                ", updatedFollowerStates=" + followerStates +
+                ", renewElectionTimeout=" + renewElectionTimeout +
+                ", outgoingMessages=" + outgoingMessages +
+                '}';
+    }
+
+
     public Role getNewRole()
     {
         return newRole;

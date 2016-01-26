@@ -84,4 +84,10 @@ public class ReplicatedTokenRequest implements ReplicatedContent
         return String.format( "ReplicatedTokenRequest{type='%s', name='%s'}",
                 type, tokenName );
     }
+
+    @Override
+    public String logString()
+    {
+        return toString();
+    }
 }

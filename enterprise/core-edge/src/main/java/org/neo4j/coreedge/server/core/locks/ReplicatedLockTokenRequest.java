@@ -76,4 +76,10 @@ public class ReplicatedLockTokenRequest<MEMBER> implements ReplicatedContent, Lo
     {
         return format( "ReplicatedLockTokenRequest{owner=%s, candidateId=%d}", owner, candidateId );
     }
+
+    @Override
+    public String logString()
+    {
+        return toString();
+    }
 }

@@ -24,4 +24,5 @@ package org.neo4j.coreedge.raft.replication;
  */
 public interface ReplicatedContent
 {
+    String logString();
 }

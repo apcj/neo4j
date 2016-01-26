@@ -91,7 +91,7 @@ public class RaftInstanceBuilder<MEMBER>
 
         return new RaftInstance<>( member, termState, voteState, raftLog, electionTimeout, heartbeatInterval,
                 renewableTimeoutService, inbound, outbound, leaderWaitTimeout, logProvider, membershipManager,
-                logShipping, databaseHealthSupplier, clock, monitors );
+                logShipping, databaseHealthSupplier, clock, monitors, new NullOutcomeLogger() );
     }
 
     public RaftInstanceBuilder<MEMBER> leaderWaitTimeout( long leaderWaitTimeout )

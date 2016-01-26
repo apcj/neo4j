@@ -78,4 +78,10 @@ public class RaftTestGroup implements RaftGroup<RaftTestMember>
     {
         return format( "RaftTestGroup{members=%s}", members );
     }
+
+    @Override
+    public String logString()
+    {
+        return toString();
+    }
 }

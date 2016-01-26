@@ -66,4 +66,10 @@ public class SeedStoreId implements ReplicatedContent
     {
         return storeId;
     }
+
+    @Override
+    public String logString()
+    {
+        return toString();
+    }
 }

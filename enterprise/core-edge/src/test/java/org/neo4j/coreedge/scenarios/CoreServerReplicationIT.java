@@ -88,6 +88,8 @@ public class CoreServerReplicationIT
         File dbDir = dir.directory();
         cluster = Cluster.start( dbDir, 3, 0 );
 
+        System.out.println( "dbDir = " + dbDir );
+
         // when
         GraphDatabaseService coreDB = cluster.findLeader( 5000 );
 
@@ -118,6 +120,8 @@ public class CoreServerReplicationIT
                 tx.success();
             }
         }
+
+        System.exit( 1 );
     }
 
     @Test

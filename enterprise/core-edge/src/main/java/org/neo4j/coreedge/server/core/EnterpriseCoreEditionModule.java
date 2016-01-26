@@ -33,8 +33,10 @@ import org.neo4j.coreedge.catchup.StoreIdSupplier;
 import org.neo4j.coreedge.discovery.CoreDiscoveryService;
 import org.neo4j.coreedge.discovery.DiscoveryServiceFactory;
 import org.neo4j.coreedge.discovery.RaftDiscoveryServiceConnector;
+import org.neo4j.coreedge.raft.BetterOutcomeLogger;
 import org.neo4j.coreedge.raft.DelayedRenewableTimeoutService;
 import org.neo4j.coreedge.raft.LeaderLocator;
+import org.neo4j.coreedge.raft.OutcomeLogger;
 import org.neo4j.coreedge.raft.RaftInstance;
 import org.neo4j.coreedge.raft.RaftServer;
 import org.neo4j.coreedge.raft.log.MonitoredRaftLog;
@@ -60,7 +62,6 @@ import org.neo4j.coreedge.raft.replication.id.ReplicatedIdRangeAcquirer;
 import org.neo4j.coreedge.raft.replication.session.GlobalSessionTrackerState;
 import org.neo4j.coreedge.raft.replication.session.InMemoryGlobalSessionTrackerState;
 import org.neo4j.coreedge.raft.replication.session.LocalSessionPool;
-import org.neo4j.coreedge.raft.replication.session.OnDiskGlobalSessionTrackerState;
 import org.neo4j.coreedge.raft.replication.shipping.RaftLogShippingManager;
 import org.neo4j.coreedge.raft.replication.token.ReplicatedLabelTokenHolder;
 import org.neo4j.coreedge.raft.replication.token.ReplicatedPropertyKeyTokenHolder;
@@ -71,9 +72,7 @@ import org.neo4j.coreedge.raft.replication.tx.ReplicatedTransactionCommitProcess
 import org.neo4j.coreedge.raft.replication.tx.ReplicatedTransactionStateMachine;
 import org.neo4j.coreedge.raft.roles.Role;
 import org.neo4j.coreedge.raft.state.id_allocation.InMemoryIdAllocationState;
-import org.neo4j.coreedge.raft.state.id_allocation.OnDiskIdAllocationState;
 import org.neo4j.coreedge.raft.state.membership.InMemoryRaftMembershipState;
-import org.neo4j.coreedge.raft.state.membership.OnDiskRaftMembershipState;
 import org.neo4j.coreedge.raft.state.membership.RaftMembershipState;
 import org.neo4j.coreedge.raft.state.term.InMemoryTermState;
 import org.neo4j.coreedge.raft.state.term.MonitoredTermState;
@@ -93,7 +92,6 @@ import org.neo4j.coreedge.server.SenderService;
 import org.neo4j.coreedge.server.core.locks.InMemoryReplicatedLockTokenState;
 import org.neo4j.coreedge.server.core.locks.LeaderOnlyLockManager;
 import org.neo4j.coreedge.server.core.locks.LockTokenManager;
-import org.neo4j.coreedge.server.core.locks.OnDiskReplicatedLockTokenState;
 import org.neo4j.coreedge.server.core.locks.ReplicatedLockTokenState;
 import org.neo4j.coreedge.server.core.locks.ReplicatedLockTokenStateMachine;
 import org.neo4j.coreedge.server.logging.BetterMessageLogger;
@@ -185,6 +183,8 @@ public class EnterpriseCoreEditionModule
         final MessageLogger<AdvertisedSocketAddress> messageLogger =
                 new BetterMessageLogger<>( myself.getRaftAddress(), raftMessagesLog( storeDir ) );
 
+
+
         LoggingOutbound<AdvertisedSocketAddress> loggingOutbound = new LoggingOutbound<>(
                 senderService, myself.getRaftAddress(), messageLogger );
 
@@ -242,7 +242,7 @@ public class EnterpriseCoreEditionModule
 
         raft = createRaft( life, loggingOutbound, discoveryService, config, messageLogger, monitoredRaftLog,
                 termState, voteState, myself, logProvider, raftServer, raftTimeoutService,
-                databaseHealthSupplier, raftMembershipState, platformModule.monitors );
+                databaseHealthSupplier, raftMembershipState, platformModule.monitors, storeDir );
 
         dependencies.satisfyDependency( raft );
 
@@ -451,7 +451,7 @@ public class EnterpriseCoreEditionModule
                                                         DelayedRenewableTimeoutService raftTimeoutService,
                                                         Supplier<DatabaseHealth> databaseHealthSupplier,
                                                         RaftMembershipState<CoreMember> raftMembershipState, Monitors
-                                                                monitors )
+                                                                monitors, File storeDir )
     {
         LoggingInbound loggingRaftInbound = new LoggingInbound( raftServer, messageLogger, myself.getRaftAddress() );
 
@@ -480,7 +480,8 @@ public class EnterpriseCoreEditionModule
                 myself, termState, voteState, raftLog, electionTimeout, heartbeatInterval,
                 raftTimeoutService, loggingRaftInbound,
                 new RaftOutbound( outbound ), leaderWaitTimeout, logProvider,
-                raftMembershipManager, logShipping, databaseHealthSupplier, Clock.SYSTEM_CLOCK, monitors );
+                raftMembershipManager, logShipping, databaseHealthSupplier, Clock.SYSTEM_CLOCK, monitors,
+                new BetterOutcomeLogger(outcomeMessagesLog( storeDir )));
 
         life.add( new RaftDiscoveryServiceConnector( discoveryService, raftInstance ) );
 
@@ -493,6 +494,19 @@ public class EnterpriseCoreEditionModule
         try
         {
             return new PrintWriter( new FileOutputStream( new File( storeDir, "raft-messages.log" ), true ) );
+        }
+        catch ( FileNotFoundException e )
+        {
+            throw new RuntimeException( e );
+        }
+    }
+
+    private static PrintWriter outcomeMessagesLog( File storeDir )
+    {
+        storeDir.mkdirs();
+        try
+        {
+            return new PrintWriter( new FileOutputStream( new File( storeDir, "outcome-messages.log" ), true ) );
         }
         catch ( FileNotFoundException e )
         {

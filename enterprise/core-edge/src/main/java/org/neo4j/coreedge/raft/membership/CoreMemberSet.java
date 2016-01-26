@@ -65,4 +65,10 @@ public class CoreMemberSet implements RaftGroup<CoreMember>
     {
         return members != null ? members.hashCode() : 0;
     }
+
+    @Override
+    public String logString()
+    {
+        return toString();
+    }
 }

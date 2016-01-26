@@ -33,6 +33,7 @@ import org.neo4j.coreedge.raft.net.Inbound;
 import org.neo4j.coreedge.raft.net.Outbound;
 import org.neo4j.coreedge.raft.outcome.Outcome;
 import org.neo4j.coreedge.raft.replication.shipping.RaftLogShippingManager;
+import org.neo4j.coreedge.raft.roles.LoggingMessageHandler;
 import org.neo4j.coreedge.raft.roles.Role;
 import org.neo4j.coreedge.raft.state.RaftState;
 import org.neo4j.coreedge.raft.state.ReadableRaftState;
@@ -93,6 +94,7 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
 
     private final Supplier<DatabaseHealth> databaseHealthSupplier;
     private Clock clock;
+    private final OutcomeLogger outcomeLogger;
 
     private final Outbound<MEMBER> outbound;
     private final Log log;
@@ -107,7 +109,8 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
                          LogProvider logProvider, RaftMembershipManager<MEMBER> membershipManager,
                          RaftLogShippingManager<MEMBER> logShipping,
                          Supplier<DatabaseHealth> databaseHealthSupplier,
-                         Clock clock, Monitors monitors )
+                         Clock clock, Monitors monitors,
+                         OutcomeLogger outcomeLogger)
 
     {
         this.myself = myself;
@@ -122,6 +125,7 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
         this.logShipping = logShipping;
         this.databaseHealthSupplier = databaseHealthSupplier;
         this.clock = clock;
+        this.outcomeLogger = outcomeLogger;
         this.log = logProvider.getLog( getClass() );
 
         this.membershipManager = membershipManager;
@@ -245,7 +249,7 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
         try
         {
             handlingMessage = true;
-            Outcome<MEMBER> outcome = currentRole.role.handle( (RaftMessages.Message<MEMBER>) incomingMessage, state, log );
+            Outcome<MEMBER> outcome = new LoggingMessageHandler( currentRole.role, outcomeLogger ).handle( (RaftMessages.Message<MEMBER>) incomingMessage, state, log );
 
             handleOutcome( outcome );
             currentRole = outcome.getNewRole();

@@ -93,4 +93,10 @@ public class ReplicatedTransaction<MEMBER> implements ReplicatedContent
             throw new RuntimeException( e );
         }
     }
+
+    @Override
+    public String logString()
+    {
+        return format( "ReplicatedTransaction{globalSession=%s, localOperationId=%s}", globalSession, localOperationId);
+    }
 }

@@ -97,4 +97,10 @@ public class ReplicatedIdAllocationRequest implements ReplicatedContent
     {
         return format( "ReplicatedIdAllocationRequest{owner=%s, idType=%s, idRangeStart=%d, idRangeLength=%d}", owner, idType, idRangeStart, idRangeLength );
     }
+
+    @Override
+    public String logString()
+    {
+        return toString();
+    }
 }

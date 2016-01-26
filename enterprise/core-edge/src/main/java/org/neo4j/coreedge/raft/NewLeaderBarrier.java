@@ -44,4 +44,10 @@ public class NewLeaderBarrier implements ReplicatedContent
     {
         return obj instanceof NewLeaderBarrier;
     }
+
+    @Override
+    public String logString()
+    {
+        return toString();
+    }
 }

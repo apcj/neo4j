@@ -69,4 +69,10 @@ public class ReplicatedString implements ReplicatedContent
     {
         return format( "ReplicatedString{data=%s}", value );
     }
+
+    @Override
+    public String logString()
+    {
+        return toString();
+    }
 }
