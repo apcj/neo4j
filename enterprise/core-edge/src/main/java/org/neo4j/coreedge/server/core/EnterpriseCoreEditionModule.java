@@ -58,6 +58,7 @@ import org.neo4j.coreedge.raft.replication.id.ReplicatedIdAllocationStateMachine
 import org.neo4j.coreedge.raft.replication.id.ReplicatedIdGeneratorFactory;
 import org.neo4j.coreedge.raft.replication.id.ReplicatedIdRangeAcquirer;
 import org.neo4j.coreedge.raft.replication.session.GlobalSessionTrackerState;
+import org.neo4j.coreedge.raft.replication.session.InMemoryGlobalSessionTrackerState;
 import org.neo4j.coreedge.raft.replication.session.LocalSessionPool;
 import org.neo4j.coreedge.raft.replication.session.OnDiskGlobalSessionTrackerState;
 import org.neo4j.coreedge.raft.replication.shipping.RaftLogShippingManager;
@@ -69,12 +70,16 @@ import org.neo4j.coreedge.raft.replication.tx.CommittingTransactionsRegistry;
 import org.neo4j.coreedge.raft.replication.tx.ReplicatedTransactionCommitProcess;
 import org.neo4j.coreedge.raft.replication.tx.ReplicatedTransactionStateMachine;
 import org.neo4j.coreedge.raft.roles.Role;
+import org.neo4j.coreedge.raft.state.id_allocation.InMemoryIdAllocationState;
 import org.neo4j.coreedge.raft.state.id_allocation.OnDiskIdAllocationState;
+import org.neo4j.coreedge.raft.state.membership.InMemoryRaftMembershipState;
 import org.neo4j.coreedge.raft.state.membership.OnDiskRaftMembershipState;
 import org.neo4j.coreedge.raft.state.membership.RaftMembershipState;
+import org.neo4j.coreedge.raft.state.term.InMemoryTermState;
 import org.neo4j.coreedge.raft.state.term.MonitoredTermState;
 import org.neo4j.coreedge.raft.state.term.OnDiskTermState;
 import org.neo4j.coreedge.raft.state.term.TermState;
+import org.neo4j.coreedge.raft.state.vote.InMemoryVoteState;
 import org.neo4j.coreedge.raft.state.vote.OnDiskVoteState;
 import org.neo4j.coreedge.raft.state.vote.VoteState;
 import org.neo4j.coreedge.server.AdvertisedSocketAddress;
@@ -85,9 +90,11 @@ import org.neo4j.coreedge.server.Expiration;
 import org.neo4j.coreedge.server.ExpiryScheduler;
 import org.neo4j.coreedge.server.ListenSocketAddress;
 import org.neo4j.coreedge.server.SenderService;
+import org.neo4j.coreedge.server.core.locks.InMemoryReplicatedLockTokenState;
 import org.neo4j.coreedge.server.core.locks.LeaderOnlyLockManager;
 import org.neo4j.coreedge.server.core.locks.LockTokenManager;
 import org.neo4j.coreedge.server.core.locks.OnDiskReplicatedLockTokenState;
+import org.neo4j.coreedge.server.core.locks.ReplicatedLockTokenState;
 import org.neo4j.coreedge.server.core.locks.ReplicatedLockTokenStateMachine;
 import org.neo4j.coreedge.server.logging.BetterMessageLogger;
 import org.neo4j.coreedge.server.logging.MessageLogger;
@@ -193,45 +200,45 @@ public class EnterpriseCoreEditionModule
 
         MonitoredRaftLog monitoredRaftLog = new MonitoredRaftLog( raftLog, platformModule.monitors );
 
-        TermState termState;
-        try
-        {
-            OnDiskTermState onDiskTermState = life.add( new OnDiskTermState( fileSystem,
-                    new File( clusterStateDirectory, OnDiskTermState.DIRECTORY_NAME ),
-                    config.get( CoreEdgeClusterSettings.term_state_size ), databaseHealthSupplier ) );
-            termState = new MonitoredTermState( onDiskTermState, platformModule.monitors );
-        }
-        catch ( IOException e )
-        {
-            throw new RuntimeException( e );
-        }
+        final TermState termState = new InMemoryTermState();
+//        try
+//        {
+//            OnDiskTermState onDiskTermState = life.add( new OnDiskTermState( fileSystem,
+//                    new File( clusterStateDirectory, OnDiskTermState.DIRECTORY_NAME ),
+//                    config.get( CoreEdgeClusterSettings.term_state_size ), databaseHealthSupplier ) );
+//            termState = new MonitoredTermState( onDiskTermState, platformModule.monitors );
+//        }
+//        catch ( IOException e )
+//        {
+//            throw new RuntimeException( e );
+//        }
 
-        VoteState<CoreMember> voteState;
-        try
-        {
-            voteState = life.add( new OnDiskVoteState<>( fileSystem,
-                    new File( clusterStateDirectory, OnDiskVoteState.DIRECTORY_NAME ),
-                    config.get( CoreEdgeClusterSettings.vote_state_size ), databaseHealthSupplier,
-                    new CoreMemberMarshal() ) );
-        }
-        catch ( IOException e )
-        {
-            throw new RuntimeException( e );
-        }
+        final VoteState<CoreMember> voteState = new InMemoryVoteState<>();
+//        try
+//        {
+//            voteState = life.add( new OnDiskVoteState<>( fileSystem,
+//                    new File( clusterStateDirectory, OnDiskVoteState.DIRECTORY_NAME ),
+//                    config.get( CoreEdgeClusterSettings.vote_state_size ), databaseHealthSupplier,
+//                    new CoreMemberMarshal() ) );
+//        }
+//        catch ( IOException e )
+//        {
+//            throw new RuntimeException( e );
+//        }
 
 
-        RaftMembershipState<CoreMember> raftMembershipState;
-        try
-        {
-            raftMembershipState = life.add( new OnDiskRaftMembershipState<>( fileSystem,
-                    new File( clusterStateDirectory, OnDiskRaftMembershipState.DIRECTORY_NAME ),
-                    config.get( CoreEdgeClusterSettings.raft_membership_state_size ),
-                    databaseHealthSupplier, new CoreMemberMarshal() ) );
-        }
-        catch ( IOException e )
-        {
-            throw new RuntimeException( e );
-        }
+        final RaftMembershipState<CoreMember> raftMembershipState = new InMemoryRaftMembershipState<>();
+//        try
+//        {
+//            raftMembershipState = life.add( new OnDiskRaftMembershipState<>( fileSystem,
+//                    new File( clusterStateDirectory, OnDiskRaftMembershipState.DIRECTORY_NAME ),
+//                    config.get( CoreEdgeClusterSettings.raft_membership_state_size ),
+//                    databaseHealthSupplier, new CoreMemberMarshal() ) );
+//        }
+//        catch ( IOException e )
+//        {
+//            throw new RuntimeException( e );
+//        }
 
         raft = createRaft( life, loggingOutbound, discoveryService, config, messageLogger, monitoredRaftLog,
                 termState, voteState, myself, logProvider, raftServer, raftTimeoutService,
@@ -247,51 +254,54 @@ public class EnterpriseCoreEditionModule
         LocalSessionPool localSessionPool = new LocalSessionPool( myself );
 
 
-        OnDiskReplicatedLockTokenState<CoreMember> onDiskReplicatedLockTokenState;
-        try
-        {
-            onDiskReplicatedLockTokenState = life.add( new OnDiskReplicatedLockTokenState<>( fileSystem,
-                    new File( clusterStateDirectory, OnDiskReplicatedLockTokenState.DIRECTORY_NAME ),
-                    config.get( CoreEdgeClusterSettings.replicated_lock_token_state_size ),
-                    new CoreMember.CoreMemberMarshal(), databaseHealthSupplier ) );
-        }
-        catch ( IOException e )
-        {
-            throw new RuntimeException( e );
-        }
-        ReplicatedLockTokenStateMachine<CoreMember> replicatedLockTokenStateMachine =
-                new ReplicatedLockTokenStateMachine<>( replicator, onDiskReplicatedLockTokenState );
+        final ReplicatedLockTokenState<CoreMember> replicatedLockTokenState =
+                new InMemoryReplicatedLockTokenState<>();
+//        try
+//        {
+//            replicatedLockTokenState = life.add( new OnDiskReplicatedLockTokenState<>( fileSystem,
+//                    new File( clusterStateDirectory, OnDiskReplicatedLockTokenState.DIRECTORY_NAME ),
+//                    config.get( CoreEdgeClusterSettings.replicated_lock_token_state_size ),
+//                    new CoreMember.CoreMemberMarshal(), databaseHealthSupplier ) );
+//        }
+//        catch ( IOException e )
+//        {
+//            throw new RuntimeException( e );
+//        }
 
-        OnDiskGlobalSessionTrackerState<CoreMember> onDiskGlobalSessionTrackerState;
-        try
-        {
-            onDiskGlobalSessionTrackerState = new
-                    OnDiskGlobalSessionTrackerState<>( fileSystem,
-                    new File( clusterStateDirectory, OnDiskGlobalSessionTrackerState.DIRECTORY_NAME ),
-                    new CoreMemberMarshal(),
-                    config.get( CoreEdgeClusterSettings.global_session_tracker_state_size ),
-                    databaseHealthSupplier );
-        }
-        catch ( IOException e )
-        {
-            throw new RuntimeException( e );
-        }
+        ReplicatedLockTokenStateMachine<CoreMember> replicatedLockTokenStateMachine =
+                new ReplicatedLockTokenStateMachine<>( replicator, replicatedLockTokenState );
+
+        final GlobalSessionTrackerState<CoreMember> onDiskGlobalSessionTrackerState =
+                new InMemoryGlobalSessionTrackerState<>();
+//        try
+//        {
+//            onDiskGlobalSessionTrackerState = new
+//                    OnDiskGlobalSessionTrackerState<>( fileSystem,
+//                    new File( clusterStateDirectory, OnDiskGlobalSessionTrackerState.DIRECTORY_NAME ),
+//                    new CoreMemberMarshal(),
+//                    config.get( CoreEdgeClusterSettings.global_session_tracker_state_size ),
+//                    databaseHealthSupplier );
+//        }
+//        catch ( IOException e )
+//        {
+//            throw new RuntimeException( e );
+//        }
 
         commitProcessFactory = createCommitProcessFactory( replicator, localSessionPool,
                 replicatedLockTokenStateMachine,
                 dependencies, logging, platformModule.monitors, onDiskGlobalSessionTrackerState );
 
-        final IdAllocationState idAllocationState;
-        try
-        {
-            idAllocationState = life.add( new OnDiskIdAllocationState( fileSystem,
-                    new File( clusterStateDirectory, OnDiskIdAllocationState.DIRECTORY_NAME ),
-                    config.get( CoreEdgeClusterSettings.id_alloc_state_size ), databaseHealthSupplier ) );
-        }
-        catch ( IOException e )
-        {
-            throw new RuntimeException( e );
-        }
+        final IdAllocationState idAllocationState = new InMemoryIdAllocationState();
+//        try
+//        {
+//            idAllocationState = life.add( new OnDiskIdAllocationState( fileSystem,
+//                    new File( clusterStateDirectory, OnDiskIdAllocationState.DIRECTORY_NAME ),
+//                    config.get( CoreEdgeClusterSettings.id_alloc_state_size ), databaseHealthSupplier ) );
+//        }
+//        catch ( IOException e )
+//        {
+//            throw new RuntimeException( e );
+//        }
 
         ReplicatedIdAllocationStateMachine idAllocationStateMachine = new ReplicatedIdAllocationStateMachine( myself,
                 idAllocationState );
