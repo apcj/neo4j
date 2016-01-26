@@ -6,6 +6,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.neo4j.coreedge.raft.outcome.Outcome;
+import org.neo4j.coreedge.raft.state.RaftState;
 
 import static java.lang.String.format;
 import static java.lang.String.valueOf;
@@ -21,8 +22,12 @@ public class BetterOutcomeLogger implements OutcomeLogger
     }
 
     @Override
-    public void info( RaftMessages.Message message, Outcome outcome )
+    public void info( RaftState state, RaftMessages.Message message, Outcome outcome )
     {
+        printWriter.println( format( "%s -->%s",
+                dateFormat.format( new Date() ),
+                state) );
+
         printWriter.println( format( "%s -->%s: %s",
                 dateFormat.format( new Date() ),
                 message.getClass().getSimpleName(),

@@ -414,4 +414,15 @@ public class NaiveDurableRaftLog extends LifecycleAdapter implements RaftLog
         buffer.flip();
         return buffer.getLong();
     }
+
+    @Override
+    public String toString()
+    {
+        return "NaiveDurableRaftLog{" +
+                "term=" + term +
+                ", commitIndex=" + commitIndex +
+                ", contentOffset=" + contentOffset +
+                ", appendIndex=" + appendIndex +
+                "} ";
+    }
 }

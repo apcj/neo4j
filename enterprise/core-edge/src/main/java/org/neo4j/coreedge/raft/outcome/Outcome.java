@@ -202,7 +202,6 @@ public class Outcome<MEMBER> implements Serializable
                 ", updatedVotesForMe=" + votesForMe +
                 ", lastLogIndexBeforeWeBecameLeader=" + lastLogIndexBeforeWeBecameLeader +
                 ", updatedFollowerStates=" + followerStates +
-                ", renewElectionTimeout=" + renewElectionTimeout +
                 ", outgoingMessages=" + outgoingMessages +
                 '}';
     }

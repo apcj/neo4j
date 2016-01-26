@@ -106,4 +106,11 @@ public class MonitoredRaftLog implements RaftLog
     {
         return delegate.entryExists( logIndex );
     }
+
+
+    @Override
+    public String toString()
+    {
+        return delegate.toString();
+    }
 }

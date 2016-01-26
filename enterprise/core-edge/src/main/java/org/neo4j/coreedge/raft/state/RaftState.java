@@ -136,4 +136,21 @@ public class RaftState<MEMBER> implements ReadableRaftState<MEMBER>
             logCommand.applyTo( entryLog );
         }
     }
+
+    @Override
+    public String toString()
+    {
+        return "RaftState{" +
+                "myself=" + myself +
+                ", membership=" + membership +
+                ", termState=" + termState +
+                ", leader=" + leader +
+                ", leaderCommit=" + leaderCommit +
+                ", voteState=" + voteState +
+                ", votesForMe=" + votesForMe +
+                ", lastLogIndexBeforeWeBecameLeader=" + lastLogIndexBeforeWeBecameLeader +
+                ", followerStates=" + followerStates +
+                ", entryLog=" + entryLog +
+                '}';
+    }
 }

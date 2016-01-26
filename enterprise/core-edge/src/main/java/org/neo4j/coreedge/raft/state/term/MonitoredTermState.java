@@ -48,4 +48,10 @@ public class MonitoredTermState implements TermState
         delegate.update( newTerm );
         termMonitor.term( newTerm );
     }
+
+    @Override
+    public String toString()
+    {
+        return delegate.toString();
+    }
 }

@@ -100,4 +100,10 @@ public class OnDiskVoteState<MEMBER> extends LifecycleAdapter implements VoteSta
     {
         statePersister.close();
     }
+
+    @Override
+    public String toString()
+    {
+        return inMemoryVoteState.toString();
+    }
 }

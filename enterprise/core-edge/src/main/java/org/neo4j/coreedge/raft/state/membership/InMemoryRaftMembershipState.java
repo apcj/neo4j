@@ -175,4 +175,15 @@ public class InMemoryRaftMembershipState<MEMBER> implements RaftMembershipState<
             }
         }
     }
+
+    @Override
+    public String toString()
+    {
+        return "InMemoryRaftMembershipState{" +
+                "additionalReplicationMembers=" + additionalReplicationMembers +
+                ", votingMembers=" + votingMembers +
+                ", replicationMembers=" + replicationMembers +
+                ", logIndex=" + logIndex +
+                '}';
+    }
 }

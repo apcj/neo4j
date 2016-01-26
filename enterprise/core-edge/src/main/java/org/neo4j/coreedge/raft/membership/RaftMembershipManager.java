@@ -274,4 +274,15 @@ public class RaftMembershipManager<MEMBER> implements RaftMembership<MEMBER>, Ra
     {
         raftMembershipState.deregisterListener( listener );
     }
+
+    @Override
+    public String toString()
+    {
+        return "RaftMembershipManager{" +
+                ", targetMembers=" + targetMembers +
+                ", uncommittedMemberChanges=" + uncommittedMemberChanges +
+                ", expectedClusterSize=" + expectedClusterSize +
+                ", raftMembershipState=" + raftMembershipState +
+                '}';
+    }
 }

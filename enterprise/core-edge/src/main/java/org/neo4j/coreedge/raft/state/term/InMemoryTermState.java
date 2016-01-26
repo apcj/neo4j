@@ -91,4 +91,12 @@ public class InMemoryTermState implements TermState
             }
         }
     }
+
+    @Override
+    public String toString()
+    {
+        return "InMemoryTermState{" +
+                "term=" + term +
+                '}';
+    }
 }

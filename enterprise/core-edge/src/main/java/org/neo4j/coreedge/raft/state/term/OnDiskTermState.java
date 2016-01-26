@@ -97,4 +97,10 @@ public class OnDiskTermState extends LifecycleAdapter implements TermState
     {
         return newTerm > inMemoryTermState.currentTerm();
     }
+
+    @Override
+    public String toString()
+    {
+        return inMemoryTermState.toString();
+    }
 }

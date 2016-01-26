@@ -33,7 +33,6 @@ import org.neo4j.coreedge.raft.net.Inbound;
 import org.neo4j.coreedge.raft.net.Outbound;
 import org.neo4j.coreedge.raft.outcome.Outcome;
 import org.neo4j.coreedge.raft.replication.shipping.RaftLogShippingManager;
-import org.neo4j.coreedge.raft.roles.LoggingMessageHandler;
 import org.neo4j.coreedge.raft.roles.Role;
 import org.neo4j.coreedge.raft.state.RaftState;
 import org.neo4j.coreedge.raft.state.ReadableRaftState;
@@ -249,7 +248,9 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
         try
         {
             handlingMessage = true;
-            Outcome<MEMBER> outcome = new LoggingMessageHandler( currentRole.role, outcomeLogger ).handle( (RaftMessages.Message<MEMBER>) incomingMessage, state, log );
+            RaftMessages.Message<MEMBER> message = (RaftMessages.Message<MEMBER>) incomingMessage;
+            Outcome<MEMBER> outcome = currentRole.role.handle( message, state, log );
+            outcomeLogger.info( state, message, outcome );
 
             handleOutcome( outcome );
             currentRole = outcome.getNewRole();
