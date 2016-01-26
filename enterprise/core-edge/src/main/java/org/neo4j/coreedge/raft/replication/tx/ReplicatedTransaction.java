@@ -86,7 +86,7 @@ public class ReplicatedTransaction<MEMBER> implements ReplicatedContent
         try
         {
             TransactionRepresentation tx = ReplicatedTransactionFactory.extractTransactionRepresentation( this, new byte[0] );
-            return format( "ReplicatedTransaction{globalSession=%s, localOperationId=%s}", globalSession, localOperationId );
+            return format( "ReplicatedTransaction{globalSession=%s, localOperationId=%s, tx=%s}", globalSession, localOperationId, tx );
         }
         catch ( IOException e )
         {

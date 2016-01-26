@@ -226,7 +226,7 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
 
             logShipping.handleCommands( outcome.getShipCommands(), leaderContext );
         }
-        else if ( oldLeader != null && oldLeader.equals( myself ) && !outcome.getLeader().equals( myself ) ) // TODO: inspect the reported issue
+        else if (!myself.equals( outcome.getLeader() ) && myself.equals( oldLeader ) )
         {
             logShipping.stop();
         }
