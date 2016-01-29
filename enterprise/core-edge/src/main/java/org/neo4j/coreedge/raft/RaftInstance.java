@@ -21,7 +21,6 @@ package org.neo4j.coreedge.raft;
 
 import java.io.Serializable;
 import java.util.Set;
-import java.util.concurrent.locks.LockSupport;
 import java.util.function.Supplier;
 
 import org.neo4j.coreedge.raft.log.RaftLog;
@@ -40,12 +39,10 @@ import org.neo4j.coreedge.raft.state.term.TermState;
 import org.neo4j.coreedge.raft.state.vote.VoteState;
 import org.neo4j.helpers.Clock;
 import org.neo4j.kernel.internal.DatabaseHealth;
-import org.neo4j.kernel.monitoring.Monitors;
 import org.neo4j.logging.Log;
 import org.neo4j.logging.LogProvider;
 
 import static java.lang.String.format;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import static org.neo4j.coreedge.raft.roles.Role.LEADER;
 
@@ -69,11 +66,8 @@ import static org.neo4j.coreedge.raft.roles.Role.LEADER;
  *
  * @param <MEMBER> The membership type.
  */
-public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.MessageHandler, CoreMetaData
+public class RaftInstance<MEMBER> implements Inbound.MessageHandler, CoreMetaData
 {
-
-    private final LeaderNotFoundMonitor leaderNotFoundMonitor;
-
     public enum Timeouts implements RenewableTimeoutService.TimeoutName
     {
         ELECTION, HEARTBEAT
@@ -89,10 +83,9 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
     private RaftMembershipManager<MEMBER> membershipManager;
 
     private final long electionTimeout;
-    private final long leaderWaitTimeout;
 
     private final Supplier<DatabaseHealth> databaseHealthSupplier;
-    private Clock clock;
+    private final LeaderWaiter<MEMBER> leaderWaiter;
 
     private final Outbound<MEMBER> outbound;
     private final Log log;
@@ -103,11 +96,11 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
 
     public RaftInstance( MEMBER myself, TermState termState, VoteState<MEMBER> voteState, RaftLog entryLog,
                          long electionTimeout, long heartbeatInterval, RenewableTimeoutService renewableTimeoutService,
-                         final Inbound inbound, final Outbound<MEMBER> outbound, long leaderWaitTimeout,
+                         final Inbound inbound, final Outbound<MEMBER> outbound,
                          LogProvider logProvider, RaftMembershipManager<MEMBER> membershipManager,
                          RaftLogShippingManager<MEMBER> logShipping,
                          Supplier<DatabaseHealth> databaseHealthSupplier,
-                         Clock clock, Monitors monitors )
+                         LeaderWaiter<MEMBER> leaderWaiter )
 
     {
         this.myself = myself;
@@ -117,18 +110,15 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
 
         this.renewableTimeoutService = renewableTimeoutService;
 
-        this.leaderWaitTimeout = leaderWaitTimeout;
         this.outbound = outbound;
         this.logShipping = logShipping;
         this.databaseHealthSupplier = databaseHealthSupplier;
-        this.clock = clock;
+        this.leaderWaiter = leaderWaiter;
         this.log = logProvider.getLog( getClass() );
 
         this.membershipManager = membershipManager;
 
         this.state = new RaftState<>( myself, termState, membershipManager, entryLog, voteState );
-
-        leaderNotFoundMonitor = monitors.newMonitor( LeaderNotFoundMonitor.class );
 
         initTimers();
 
@@ -186,24 +176,6 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
         }
     }
 
-    @Override
-    public MEMBER getLeader() throws NoLeaderTimeoutException
-    {
-        long leaderWaitEndTime = leaderWaitTimeout + clock.currentTimeMillis();
-        while ( state.leader() == null && (clock.currentTimeMillis() < leaderWaitEndTime) )
-        {
-            LockSupport.parkNanos( MILLISECONDS.toNanos( electionTimeout ) / 2 );
-        }
-
-        if ( state.leader() == null )
-        {
-            leaderNotFoundMonitor.increment();
-            throw new NoLeaderTimeoutException();
-        }
-
-        return state.leader();
-    }
-
     public ReadableRaftState<MEMBER> state()
     {
         return state;
@@ -233,6 +205,7 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
 
         // Update state
         state.update( outcome );
+        leaderWaiter.setLeader( state.leader() );
     }
 
     public synchronized void handle( Serializable incomingMessage )

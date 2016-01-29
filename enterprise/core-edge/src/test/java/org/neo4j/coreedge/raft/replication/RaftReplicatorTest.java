@@ -55,7 +55,7 @@ public class RaftReplicatorTest
         net.processMessages();
 
         RaftReplicator<RaftTestMember> replicator =
-                new RaftReplicator<>( fixture.members().withId( leader ).raftInstance(),
+                new RaftReplicator<>( fixture.members().withId( leader ).leaderWaiter(),
                         member( 0 ), net.new Outbound( 0 ) );
 
         fixture.members().withId( leader ).raftLog().registerListener( replicator );

@@ -53,24 +53,21 @@ public class RaftInstanceBuilder<MEMBER>
     private RenewableTimeoutService renewableTimeoutService = new DelayedRenewableTimeoutService( Clock.SYSTEM_CLOCK,
             NullLogProvider.getInstance() );
 
-    private Inbound inbound = handler -> {
-    };
-    private Outbound<MEMBER> outbound = ( advertisedSocketAddress, messages ) -> {
-    };
+    private Inbound inbound = handler -> {};
+    private Outbound<MEMBER> outbound = ( advertisedSocketAddress, messages ) -> {};
 
     private LogProvider logProvider = NullLogProvider.getInstance();
     private Clock clock = Clock.SYSTEM_CLOCK;
 
     private long electionTimeout = 500;
     private long heartbeatInterval = 150;
-    private long leaderWaitTimeout = 10000;
     private long catchupTimeout = 30000;
     private long retryTimeMillis = electionTimeout / 2;
     private int catchupBatchSize = 64;
     private int maxAllowedShippingLag = 256;
     private Supplier<DatabaseHealth> databaseHealthSupplier;
     private InMemoryRaftMembershipState<MEMBER> raftMembership = new InMemoryRaftMembershipState<>();
-    private Monitors monitors  = new Monitors();
+    private LeaderWaiter<MEMBER> leaderWaiter = new LeaderWaiter<>( 10000, new Monitors() );
 
     public RaftInstanceBuilder( MEMBER member, int expectedClusterSize, RaftGroup.Builder<MEMBER> memberSetBuilder )
     {
@@ -90,14 +87,8 @@ public class RaftInstanceBuilder<MEMBER>
                 clock, member, membershipManager, retryTimeMillis, catchupBatchSize, maxAllowedShippingLag );
 
         return new RaftInstance<>( member, termState, voteState, raftLog, electionTimeout, heartbeatInterval,
-                renewableTimeoutService, inbound, outbound, leaderWaitTimeout, logProvider, membershipManager,
-                logShipping, databaseHealthSupplier, clock, monitors );
-    }
-
-    public RaftInstanceBuilder<MEMBER> leaderWaitTimeout( long leaderWaitTimeout )
-    {
-        this.leaderWaitTimeout = leaderWaitTimeout;
-        return this;
+                renewableTimeoutService, inbound, outbound, logProvider, membershipManager,
+                logShipping, databaseHealthSupplier, leaderWaiter );
     }
 
     public RaftInstanceBuilder<MEMBER> timeoutService( RenewableTimeoutService renewableTimeoutService )
@@ -130,15 +121,9 @@ public class RaftInstanceBuilder<MEMBER>
         return this;
     }
 
-    public RaftInstanceBuilder<MEMBER> clock( Clock clock )
+    public RaftInstanceBuilder<MEMBER> leaderWaiter( LeaderWaiter<MEMBER> leaderWaiter )
     {
-        this.clock = clock;
-        return this;
-    }
-
-    public RaftInstanceBuilder<MEMBER> monitors( Monitors monitors )
-    {
-        this.monitors = monitors;
+        this.leaderWaiter = leaderWaiter;
         return this;
     }
 }

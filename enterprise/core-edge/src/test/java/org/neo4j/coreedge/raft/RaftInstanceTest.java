@@ -326,33 +326,6 @@ public class RaftInstanceTest
         assertTrue( last( messages.sentTo( member2 ) ) instanceof RaftMessages.Heartbeat );
     }
 
-    @Test
-    public void shouldThrowExceptionIfReceivesClientRequestWithNoLeaderElected() throws Exception
-    {
-        // Given
-        ControlledRenewableTimeoutService timeouts = new ControlledRenewableTimeoutService();
-
-        int leaderWaitTimeout = 10000;
-        Clock clock = new TickingClock( 0, leaderWaitTimeout + 1, TimeUnit.MILLISECONDS );
-
-        RaftInstance<RaftTestMember> raft = new RaftInstanceBuilder<>( myself, 3, RaftTestMemberSetBuilder.INSTANCE )
-                .timeoutService( timeouts ).clock( clock ).leaderWaitTimeout( leaderWaitTimeout ).build();
-
-        raft.bootstrapWithInitialMembers( new RaftTestGroup( asSet( myself, member1, member2 ) ) ); // @logIndex=0
-
-        try
-        {
-            // When
-            // There is no leader
-            raft.getLeader();
-            fail( "Should have thrown exception" );
-        }
-        // Then
-        catch ( NoLeaderTimeoutException e )
-        {
-            // expected
-        }
-    }
 
     @Test
     public void shouldPersistAtSpecifiedLogIndex() throws Exception
@@ -459,44 +432,6 @@ public class RaftInstanceTest
         assertTrue( databaseHealth.hasPanicked() );
     }
 
-    @Test
-    public void shouldMonitorLeaderNotFound() throws Exception
-    {
-        // Given
-        ControlledRenewableTimeoutService timeouts = new ControlledRenewableTimeoutService();
-
-        int leaderWaitTimeout = 10000;
-        Clock clock = new TickingClock( 0, leaderWaitTimeout + 1, TimeUnit.MILLISECONDS );
-
-        Monitors monitors = new Monitors();
-        LeaderNotFoundMonitor leaderNotFoundMonitor = new StubLeaderNotFoundMonitor();
-        monitors.addMonitorListener( leaderNotFoundMonitor );
-
-
-        RaftInstance<RaftTestMember> raft = new RaftInstanceBuilder<>( myself, 3, RaftTestMemberSetBuilder.INSTANCE )
-                .timeoutService( timeouts )
-                .clock( clock )
-                .leaderWaitTimeout( leaderWaitTimeout )
-                .monitors(monitors)
-                .build();
-
-        raft.bootstrapWithInitialMembers( new RaftTestGroup( asSet( myself, member1, member2 ) ) ); // @logIndex=0
-
-        try
-        {
-            // When
-            // There is no leader
-            raft.getLeader();
-            fail( "Should have thrown exception" );
-        }
-        // Then
-        catch ( NoLeaderTimeoutException e )
-        {
-            // expected
-            assertEquals(1, leaderNotFoundMonitor.leaderNotFoundExceptions());
-        }
-    }
-
     private static class ExplodingRaftLog implements RaftLog
     {
         private boolean startExploding = false;
@@ -601,23 +536,6 @@ public class RaftInstanceTest
         public boolean hasPanicked()
         {
             return hasPanicked;
-        }
-    }
-
-    private class StubLeaderNotFoundMonitor implements LeaderNotFoundMonitor
-    {
-        long count = 0;
-
-        @Override
-        public long leaderNotFoundExceptions()
-        {
-            return count;
-        }
-
-        @Override
-        public void increment()
-        {
-            count++;
         }
     }
 }

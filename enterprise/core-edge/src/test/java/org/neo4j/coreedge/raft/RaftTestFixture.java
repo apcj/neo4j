@@ -36,6 +36,7 @@ import org.neo4j.coreedge.raft.roles.Role;
 import org.neo4j.coreedge.server.logging.MessageLogger;
 import org.neo4j.coreedge.server.logging.NullMessageLogger;
 import org.neo4j.helpers.Clock;
+import org.neo4j.kernel.monitoring.Monitors;
 
 import static java.lang.String.format;
 import static org.neo4j.coreedge.server.RaftTestMember.member;
@@ -69,12 +70,15 @@ public class RaftTestFixture
             Inbound inbound = net.new Inbound( id );
             Outbound<RaftTestMember> outbound = new LoggingOutbound<>( net.new Outbound( id ), fixtureMember.member, new NullMessageLogger<>() );
 
+            fixtureMember.leaderWaiter = new LeaderWaiter<>( 10000, new Monitors() );
+
             fixtureMember.raftInstance = new RaftInstanceBuilder<>( fixtureMember.member, expectedClusterSize,
                     RaftTestMemberSetBuilder.INSTANCE )
                     .inbound( inbound )
                     .outbound( outbound )
                     .raftLog ( fixtureMember.raftLog )
                     .timeoutService( fixtureMember.timeoutService )
+                    .leaderWaiter( fixtureMember.leaderWaiter )
                     .build();
 
             members.put( id, fixtureMember );
@@ -175,6 +179,7 @@ public class RaftTestFixture
         private RaftInstance<RaftTestMember> raftInstance;
         private ControlledRenewableTimeoutService timeoutService;
         private RaftLog raftLog;
+        public LeaderWaiter<RaftTestMember> leaderWaiter;
 
         public RaftTestMember member()
         {
@@ -194,6 +199,11 @@ public class RaftTestFixture
         public RaftLog raftLog()
         {
             return raftLog;
+        }
+
+        public LeaderWaiter<RaftTestMember> leaderWaiter()
+        {
+            return leaderWaiter;
         }
 
         @Override
