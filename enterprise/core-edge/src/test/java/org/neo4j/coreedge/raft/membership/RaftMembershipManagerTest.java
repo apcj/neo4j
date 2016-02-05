@@ -27,6 +27,7 @@ import org.neo4j.coreedge.raft.replication.DirectReplicator;
 import org.neo4j.coreedge.raft.state.membership.InMemoryRaftMembershipState;
 import org.neo4j.coreedge.server.RaftTestMember;
 import org.neo4j.coreedge.server.RaftTestMemberSetBuilder;
+import org.neo4j.coreedge.server.core.StateMachines;
 import org.neo4j.helpers.FakeClock;
 import org.neo4j.logging.NullLogProvider;
 
@@ -49,11 +50,11 @@ public class RaftMembershipManagerTest
         // given
         final InMemoryRaftLog log = new InMemoryRaftLog();
 
-        RaftMembershipManager<RaftTestMember> membershipManager = new RaftMembershipManager<>( new DirectReplicator(),
-                RaftTestMemberSetBuilder.INSTANCE, log, NullLogProvider.getInstance(), 3, 1000, new FakeClock(),
+        RaftMembershipManager<RaftTestMember> membershipManager = new RaftMembershipManager<>(
+                new DirectReplicator(new StateMachines()), RaftTestMemberSetBuilder.INSTANCE, log,
+                NullLogProvider.getInstance(), 3, 1000, new FakeClock(),
                 1000, new InMemoryRaftMembershipState<>() );
 
-        log.registerListener( membershipManager );
 
         // when
         log.append( new RaftLogEntry( 0, new RaftTestGroup( 1, 2, 3, 4 ) ) );
@@ -72,7 +73,8 @@ public class RaftMembershipManagerTest
         final InMemoryRaftLog log = new InMemoryRaftLog();
 
 
-        RaftMembershipManager<RaftTestMember> membershipManager = new RaftMembershipManager<>( new DirectReplicator(),
+        RaftMembershipManager<RaftTestMember> membershipManager = new RaftMembershipManager<>(
+                new DirectReplicator( new StateMachines() ),
                 RaftTestMemberSetBuilder.INSTANCE, log, NullLogProvider.getInstance(), 3, 1000, new FakeClock(),
                 1000, new InMemoryRaftMembershipState<>() );
 
@@ -97,7 +99,8 @@ public class RaftMembershipManagerTest
         // given
         final InMemoryRaftLog log = new InMemoryRaftLog();
 
-        RaftMembershipManager<RaftTestMember> membershipManager = new RaftMembershipManager<>( new DirectReplicator(),
+        RaftMembershipManager<RaftTestMember> membershipManager = new RaftMembershipManager<>(
+                new DirectReplicator( new StateMachines() ),
                 RaftTestMemberSetBuilder.INSTANCE, log, NullLogProvider.getInstance(), 3, 1000, new FakeClock(),
                 1000, new InMemoryRaftMembershipState<>() );
 
@@ -126,7 +129,8 @@ public class RaftMembershipManagerTest
         final long logIndex = 42l;
         when( state.logIndex() ).thenReturn( logIndex );
 
-        RaftMembershipManager<RaftTestMember> membershipManager = new RaftMembershipManager<>( new DirectReplicator(),
+        RaftMembershipManager<RaftTestMember> membershipManager = new RaftMembershipManager<>(
+                new DirectReplicator( new StateMachines() ),
                 RaftTestMemberSetBuilder.INSTANCE, log, NullLogProvider.getInstance(), 3, 1000, new FakeClock(),
                 1000, state );
 

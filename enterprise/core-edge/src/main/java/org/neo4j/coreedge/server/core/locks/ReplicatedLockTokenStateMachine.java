@@ -31,10 +31,9 @@ public class ReplicatedLockTokenStateMachine<MEMBER> extends LockTokenManager
 {
     private final ReplicatedLockTokenState<MEMBER> state;
 
-    public ReplicatedLockTokenStateMachine( Replicator replicator, ReplicatedLockTokenState state )
+    public ReplicatedLockTokenStateMachine( ReplicatedLockTokenState state )
     {
         this.state = state;
-        replicator.subscribe( this );
     }
 
     @Override

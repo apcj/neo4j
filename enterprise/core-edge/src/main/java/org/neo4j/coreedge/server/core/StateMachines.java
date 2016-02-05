@@ -17,23 +17,40 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.coreedge.raft.replication;
+package org.neo4j.coreedge.server.core;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import org.neo4j.coreedge.raft.log.RaftLog;
+import org.neo4j.coreedge.raft.replication.ReplicatedContent;
+import org.neo4j.coreedge.raft.replication.Replicator;
 
-public class DirectReplicator implements Replicator
+public class StateMachines implements RaftLog.Listener
 {
-    private final RaftLog.Listener listener;
-    private long logIndex = 0;
+    List<Replicator.ReplicatedContentListener> machines = new ArrayList<>();
 
-    public DirectReplicator( RaftLog.Listener listener )
+    public void add( Replicator.ReplicatedContentListener stateMachine )
     {
-        this.listener = listener;
+        machines.add( stateMachine );
     }
 
     @Override
-    public void replicate( ReplicatedContent content ) throws ReplicationFailedException
+    public void onAppended( ReplicatedContent content, long logIndex )
     {
-        listener.onCommitted( content, logIndex++ );
+    }
+
+    @Override
+    public void onCommitted( ReplicatedContent content, long logIndex )
+    {
+        for ( Replicator.ReplicatedContentListener machine : machines )
+        {
+            machine.onReplicated( content, logIndex );
+        }
+    }
+
+    @Override
+    public void onTruncated( long fromLogIndex )
+    {
     }
 }

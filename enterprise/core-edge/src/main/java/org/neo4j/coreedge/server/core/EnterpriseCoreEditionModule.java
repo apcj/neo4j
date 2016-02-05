@@ -244,6 +244,8 @@ public class EnterpriseCoreEditionModule
 
         LocalSessionPool localSessionPool = new LocalSessionPool( myself );
 
+        StateMachines stateMachines = new StateMachines();
+
         OnDiskReplicatedLockTokenState<CoreMember> onDiskReplicatedLockTokenState;
         try
         {
@@ -257,7 +259,8 @@ public class EnterpriseCoreEditionModule
             throw new RuntimeException( e );
         }
         ReplicatedLockTokenStateMachine<CoreMember> replicatedLockTokenStateMachine =
-                new ReplicatedLockTokenStateMachine<>( replicator, onDiskReplicatedLockTokenState );
+                new ReplicatedLockTokenStateMachine<>( onDiskReplicatedLockTokenState );
+        stateMachines.add( replicatedLockTokenStateMachine );
 
         OnDiskGlobalSessionTrackerState<CoreMember> onDiskGlobalSessionTrackerState;
         try
@@ -276,7 +279,7 @@ public class EnterpriseCoreEditionModule
 
         commitProcessFactory = createCommitProcessFactory( replicator, localSessionPool,
                 replicatedLockTokenStateMachine,
-                dependencies, logging, platformModule.monitors, onDiskGlobalSessionTrackerState );
+                dependencies, logging, platformModule.monitors, onDiskGlobalSessionTrackerState, stateMachines );
 
         final IdAllocationState idAllocationState;
         try
@@ -293,13 +296,13 @@ public class EnterpriseCoreEditionModule
         ReplicatedIdAllocationStateMachine idAllocationStateMachine = new ReplicatedIdAllocationStateMachine(
                 myself, idAllocationState, logProvider );
 
-        replicator.subscribe( idAllocationStateMachine );
+        stateMachines.add( idAllocationStateMachine );
 
         // TODO: AllocationChunk should be configurable and per type. The retry timeout should also be configurable.
         ReplicatedIdRangeAcquirer idRangeAcquirer = new ReplicatedIdRangeAcquirer( replicator,
                 idAllocationStateMachine, 1024, 1000, myself, logProvider );
 
-        monitoredRaftLog.registerListener( replicator );
+        monitoredRaftLog.registerListener( stateMachines );
 
         long electionTimeout = config.get( CoreEdgeClusterSettings.leader_election_timeout );
         MembershipWaiter<CoreMember> membershipWaiter =
@@ -318,6 +321,10 @@ public class EnterpriseCoreEditionModule
                 replicator, this.idGeneratorFactory, dependencies, tokenCreationTimeout, logProvider );
         ReplicatedLabelTokenHolder labelTokenHolder = new ReplicatedLabelTokenHolder(
                 replicator, this.idGeneratorFactory, dependencies, tokenCreationTimeout, logProvider );
+
+        stateMachines.add(labelTokenHolder);
+        stateMachines.add(relationshipTypeTokenHolder);
+        stateMachines.add(propertyKeyTokenHolder);
 
         LifeSupport tokenLife = new LifeSupport();
         this.relationshipTypeTokenHolder = tokenLife.add( relationshipTypeTokenHolder );
@@ -395,12 +402,12 @@ public class EnterpriseCoreEditionModule
 
     public static CommitProcessFactory createCommitProcessFactory( final Replicator replicator,
                                                                    final LocalSessionPool localSessionPool,
-                                                                   final LockTokenManager
-                                                                           currentReplicatedLockState,
+                                                                   final LockTokenManager currentReplicatedLockState,
                                                                    final Dependencies dependencies,
                                                                    final LogService logging,
                                                                    Monitors monitors,
-                                                                   GlobalSessionTrackerState<CoreMember> globalSessionTrackerState )
+                                                                   GlobalSessionTrackerState<CoreMember> globalSessionTrackerState,
+                                                                   StateMachines stateMachines )
     {
         return ( appender, applier, config ) -> {
             TransactionRepresentationCommitProcess localCommit =
@@ -414,10 +421,9 @@ public class EnterpriseCoreEditionModule
 
             dependencies.satisfyDependencies( replicatedTxStateMachine );
 
-            replicator.subscribe( replicatedTxStateMachine );
+            stateMachines.add( replicatedTxStateMachine );
 
             return new ReplicatedTransactionCommitProcess( replicator, localSessionPool,
-                    replicatedTxStateMachine,
                     config.get( CoreEdgeClusterSettings.tx_replication_retry_interval ),
                     logging, committingTransactions, monitors
             );

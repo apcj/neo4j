@@ -30,6 +30,7 @@ import org.neo4j.coreedge.raft.RaftTestFixture;
 import org.neo4j.coreedge.raft.ReplicatedString;
 import org.neo4j.coreedge.raft.membership.RaftTestGroup;
 import org.neo4j.coreedge.server.RaftTestMember;
+import org.neo4j.coreedge.server.core.StateMachines;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
@@ -58,10 +59,10 @@ public class RaftReplicatorTest
                 new RaftReplicator<>( fixture.members().withId( leader ).raftInstance(),
                         member( 0 ), net.new Outbound( 0 ) );
 
-        fixture.members().withId( leader ).raftLog().registerListener( replicator );
-
+        StateMachines stateMachines = new StateMachines();
         ReplicatedContentListener listener = new ReplicatedContentListener();
-        replicator.subscribe( listener );
+        stateMachines.add( listener );
+        fixture.members().withId( leader ).raftLog().registerListener( stateMachines );
 
         // when
         replicator.replicate( CONTENT );

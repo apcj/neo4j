@@ -104,13 +104,6 @@ public abstract class ReplicatedTokenHolder<TOKEN extends Token, RECORD extends 
         {
             throw new IllegalStateException( "lastCommittedIndex must be set before start." );
         }
-        replicator.subscribe( this );
-    }
-
-    @Override
-    public void stop() throws Throwable
-    {
-        replicator.unsubscribe( this );
     }
 
     @Override
