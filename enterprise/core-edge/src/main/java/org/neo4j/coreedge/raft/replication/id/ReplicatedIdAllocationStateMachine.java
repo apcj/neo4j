@@ -20,7 +20,7 @@
 package org.neo4j.coreedge.raft.replication.id;
 
 import org.neo4j.coreedge.raft.replication.ReplicatedContent;
-import org.neo4j.coreedge.raft.replication.Replicator;
+import org.neo4j.coreedge.raft.state.StateMachine;
 import org.neo4j.coreedge.server.CoreMember;
 import org.neo4j.kernel.impl.store.id.IdRange;
 import org.neo4j.kernel.impl.store.id.IdType;
@@ -44,7 +44,7 @@ import static org.neo4j.collection.primitive.PrimitiveLongCollections.EMPTY_LONG
  * 3) if state is not sufficient goto 1)
  * 4) state sufficient => done
  */
-public class ReplicatedIdAllocationStateMachine implements Replicator.ReplicatedContentListener
+public class ReplicatedIdAllocationStateMachine implements StateMachine
 {
     private final CoreMember me;
     private final IdAllocationState idAllocationState;
@@ -90,7 +90,7 @@ public class ReplicatedIdAllocationStateMachine implements Replicator.Replicated
     }
 
     @Override
-    public synchronized void onReplicated( ReplicatedContent content, long logIndex )
+    public synchronized void applyCommand( ReplicatedContent content, long logIndex )
     {
         if ( content instanceof ReplicatedIdAllocationRequest )
         {

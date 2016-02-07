@@ -17,14 +17,13 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.coreedge.server.core;
+package org.neo4j.coreedge.raft.state;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.neo4j.coreedge.raft.log.RaftLog;
 import org.neo4j.coreedge.raft.replication.ReplicatedContent;
-import org.neo4j.coreedge.raft.state.StateMachine;
 
 public class StateMachines implements RaftLog.Listener
 {

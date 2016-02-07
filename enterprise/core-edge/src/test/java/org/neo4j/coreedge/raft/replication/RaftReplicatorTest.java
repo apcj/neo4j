@@ -29,6 +29,7 @@ import org.neo4j.coreedge.raft.RaftInstance;
 import org.neo4j.coreedge.raft.RaftTestFixture;
 import org.neo4j.coreedge.raft.ReplicatedString;
 import org.neo4j.coreedge.raft.membership.RaftTestGroup;
+import org.neo4j.coreedge.raft.state.StateMachine;
 import org.neo4j.coreedge.server.RaftTestMember;
 import org.neo4j.coreedge.server.core.StateMachines;
 
@@ -72,12 +73,12 @@ public class RaftReplicatorTest
         assertEquals( CONTENT, listener.getContent().get( 3, SECONDS ) );
     }
 
-    private class ReplicatedContentListener implements Replicator.ReplicatedContentListener
+    private class ReplicatedContentListener implements StateMachine
     {
         private CompletableFuture<ReplicatedContent> content = new CompletableFuture<>();
 
         @Override
-        public void onReplicated( ReplicatedContent value, long logIndex )
+        public void applyCommand( ReplicatedContent value, long logIndex )
         {
             this.content.complete( value );
         }

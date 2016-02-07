@@ -188,54 +188,15 @@ public class EnterpriseCoreEditionModule
         final DelayedRenewableTimeoutService raftTimeoutService =
                 new DelayedRenewableTimeoutService( SYSTEM_CLOCK, logProvider );
 
-        NaiveDurableRaftLog raftLog = life.add( new NaiveDurableRaftLog( fileSystem,
+        MonitoredRaftLog monitoredRaftLog = new MonitoredRaftLog( life.add( new NaiveDurableRaftLog( fileSystem,
                 new File( clusterStateDirectory, NaiveDurableRaftLog.DIRECTORY_NAME ),
-                new RaftContentSerializer(), logProvider ) );
+                new RaftContentSerializer(), logProvider ) ), platformModule.monitors );
 
-        MonitoredRaftLog monitoredRaftLog = new MonitoredRaftLog( raftLog, platformModule.monitors );
-
-        TermState termState;
-        try
-        {
-            OnDiskTermState onDiskTermState = life.add( new OnDiskTermState( fileSystem,
-                    new File( clusterStateDirectory, OnDiskTermState.DIRECTORY_NAME ),
-                    config.get( CoreEdgeClusterSettings.term_state_size ), databaseHealthSupplier, logProvider ) );
-            termState = new MonitoredTermState( onDiskTermState, platformModule.monitors );
-        }
-        catch ( IOException e )
-        {
-            throw new RuntimeException( e );
-        }
-
-        VoteState<CoreMember> voteState;
-        try
-        {
-            voteState = life.add( new OnDiskVoteState<>( fileSystem,
-                    new File( clusterStateDirectory, OnDiskVoteState.DIRECTORY_NAME ),
-                    config.get( CoreEdgeClusterSettings.vote_state_size ), databaseHealthSupplier,
-                    new CoreMemberMarshal(), logProvider ) );
-        }
-        catch ( IOException e )
-        {
-            throw new RuntimeException( e );
-        }
-
-        RaftMembershipState<CoreMember> raftMembershipState;
-        try
-        {
-            raftMembershipState = life.add( new OnDiskRaftMembershipState<>( fileSystem,
-                    new File( clusterStateDirectory, OnDiskRaftMembershipState.DIRECTORY_NAME ),
-                    config.get( CoreEdgeClusterSettings.raft_membership_state_size ),
-                    databaseHealthSupplier, new CoreMemberMarshal(), logProvider ) );
-        }
-        catch ( IOException e )
-        {
-            throw new RuntimeException( e );
-        }
+        StateMachines stateMachines = new StateMachines();
 
         raft = createRaft( life, loggingOutbound, discoveryService, config, messageLogger, monitoredRaftLog,
-                termState, voteState, myself, logProvider, raftServer, raftTimeoutService,
-                databaseHealthSupplier, raftMembershipState, platformModule.monitors );
+                stateMachines, fileSystem, clusterStateDirectory, myself, logProvider, raftServer, raftTimeoutService,
+                databaseHealthSupplier, platformModule.monitors );
 
         dependencies.satisfyDependency( raft );
 
@@ -243,8 +204,6 @@ public class EnterpriseCoreEditionModule
                 new RaftOutbound( loggingOutbound ) );
 
         LocalSessionPool localSessionPool = new LocalSessionPool( myself );
-
-        StateMachines stateMachines = new StateMachines();
 
         OnDiskReplicatedLockTokenState<CoreMember> onDiskReplicatedLockTokenState;
         try
@@ -301,8 +260,6 @@ public class EnterpriseCoreEditionModule
         // TODO: AllocationChunk should be configurable and per type. The retry timeout should also be configurable.
         ReplicatedIdRangeAcquirer idRangeAcquirer = new ReplicatedIdRangeAcquirer( replicator,
                 idAllocationStateMachine, 1024, 1000, myself, logProvider );
-
-        monitoredRaftLog.registerListener( stateMachines );
 
         long electionTimeout = config.get( CoreEdgeClusterSettings.leader_election_timeout );
         MembershipWaiter<CoreMember> membershipWaiter =
@@ -436,16 +393,58 @@ public class EnterpriseCoreEditionModule
                                                         Config config,
                                                         MessageLogger<AdvertisedSocketAddress> messageLogger,
                                                         RaftLog raftLog,
-                                                        TermState termState,
-                                                        VoteState<CoreMember> voteState,
+                                                        StateMachines stateMachines,
+                                                        FileSystemAbstraction fileSystem,
+                                                        File clusterStateDirectory,
                                                         CoreMember myself,
                                                         LogProvider logProvider,
                                                         RaftServer<CoreMember> raftServer,
                                                         DelayedRenewableTimeoutService raftTimeoutService,
                                                         Supplier<DatabaseHealth> databaseHealthSupplier,
-                                                        RaftMembershipState<CoreMember> raftMembershipState, Monitors
-                                                                monitors )
+                                                        Monitors monitors )
     {
+        TermState termState;
+        try
+        {
+            OnDiskTermState onDiskTermState = life.add( new OnDiskTermState( fileSystem,
+                    new File( clusterStateDirectory, OnDiskTermState.DIRECTORY_NAME ),
+                    config.get( CoreEdgeClusterSettings.term_state_size ), databaseHealthSupplier, logProvider ) );
+            termState = new MonitoredTermState( onDiskTermState, monitors );
+        }
+        catch ( IOException e )
+        {
+            throw new RuntimeException( e );
+        }
+
+        VoteState<CoreMember> voteState;
+        try
+        {
+            voteState = life.add( new OnDiskVoteState<>( fileSystem,
+                    new File( clusterStateDirectory, OnDiskVoteState.DIRECTORY_NAME ),
+                    config.get( CoreEdgeClusterSettings.vote_state_size ), databaseHealthSupplier,
+                    new CoreMemberMarshal(), logProvider ) );
+        }
+        catch ( IOException e )
+        {
+            throw new RuntimeException( e );
+        }
+
+
+        RaftMembershipState<CoreMember> raftMembershipState;
+        try
+        {
+            raftMembershipState = life.add( new OnDiskRaftMembershipState<>( fileSystem,
+                    new File( clusterStateDirectory, OnDiskRaftMembershipState.DIRECTORY_NAME ),
+                    config.get( CoreEdgeClusterSettings.raft_membership_state_size ),
+                    databaseHealthSupplier, new CoreMemberMarshal(), logProvider ) );
+        }
+        catch ( IOException e )
+        {
+            throw new RuntimeException( e );
+        }
+
+        raftLog.registerListener( stateMachines );
+
         LoggingInbound loggingRaftInbound = new LoggingInbound( raftServer, messageLogger, myself.getRaftAddress() );
 
         long electionTimeout = config.get( CoreEdgeClusterSettings.leader_election_timeout );

@@ -36,17 +36,6 @@ public interface Replicator
      */
     void replicate( ReplicatedContent content ) throws ReplicationFailedException;
 
-    interface ReplicatedContentListener
-    {
-        /**
-         * Notification that content has been successfully replicated.
-         *
-         * @param content The replicated content.
-         * @param logIndex The index of the content.
-         */
-        void onReplicated( ReplicatedContent content, long logIndex );
-    }
-
     /**
      * Thrown when the replication surely failed, as compared to cases
      * where the replication may or may not have succeeded, for which

@@ -69,7 +69,7 @@ public class ReplicatedTransactionStateMachinePersistenceTest
         // when
         try
         {
-            stateMachine.onReplicated( rtx, 100 );
+            stateMachine.applyCommand( rtx, 100 );
             fail( "test design throws exception here" );
         }
         catch ( TransactionFailureException thrownByTestDesign )
@@ -78,7 +78,7 @@ public class ReplicatedTransactionStateMachinePersistenceTest
         }
         reset( commitProcess ); // ignore all previous interactions, we care what happens from now on
         stateMachine.setLastCommittedIndex( 99 );
-        stateMachine.onReplicated( rtx, 100 );
+        stateMachine.applyCommand( rtx, 100 );
 
         // then
         verify( commitProcess, times( 1 ) ).commit( any(), any(), any() );
@@ -106,7 +106,7 @@ public class ReplicatedTransactionStateMachinePersistenceTest
         try
         {
             // transaction gets committed at log index 99. It will reach the tx log but not the session state
-            stateMachine.onReplicated( rtx, 99 );
+            stateMachine.applyCommand( rtx, 99 );
             fail( "test setup should have resulted in an exception by now" );
         }
         catch ( RuntimeException totallyExpectedByTestSetup )
@@ -121,7 +121,7 @@ public class ReplicatedTransactionStateMachinePersistenceTest
 
         // however, the raft log will give us the same tx, as we did not return successfully from the last
         // onReplicated()
-        stateMachine.onReplicated( rtx, 99 );
+        stateMachine.applyCommand( rtx, 99 );
 
         // then
         // there should be no commit of tx, but an update on the session state
@@ -144,13 +144,13 @@ public class ReplicatedTransactionStateMachinePersistenceTest
         // when
         // we commit a tx normally
         final int commitAtRaftLogIndex = 99;
-        stateMachine.onReplicated( rtx, commitAtRaftLogIndex );
+        stateMachine.applyCommand( rtx, commitAtRaftLogIndex );
 
         // simply verify that things were properly updated
         assertEquals( commitAtRaftLogIndex, sessionTrackerState.logIndex() );
 
         // when the same replicated content is passed in again
-        stateMachine.onReplicated( rtx, commitAtRaftLogIndex );
+        stateMachine.applyCommand( rtx, commitAtRaftLogIndex );
 
         // then
         verify( commitProcess, times( 1 ) ).commit( any(), any(), any() );

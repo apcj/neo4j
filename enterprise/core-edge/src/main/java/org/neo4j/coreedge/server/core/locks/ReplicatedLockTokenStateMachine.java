@@ -20,14 +20,14 @@
 package org.neo4j.coreedge.server.core.locks;
 
 import org.neo4j.coreedge.raft.replication.ReplicatedContent;
-import org.neo4j.coreedge.raft.replication.Replicator;
+import org.neo4j.coreedge.raft.state.StateMachine;
 
 /**
  * Listens for {@link ReplicatedLockTokenRequest}. Keeps track of the current holder of the replicated token,
  * which is identified by a monotonically increasing id, and an owning member.
  */
 public class ReplicatedLockTokenStateMachine<MEMBER> extends LockTokenManager
-        implements Replicator.ReplicatedContentListener
+        implements StateMachine
 {
     private final ReplicatedLockTokenState<MEMBER> state;
 
@@ -37,7 +37,7 @@ public class ReplicatedLockTokenStateMachine<MEMBER> extends LockTokenManager
     }
 
     @Override
-    public synchronized void onReplicated( ReplicatedContent content, long logIndex )
+    public synchronized void applyCommand( ReplicatedContent content, long logIndex )
     {
         if ( content instanceof ReplicatedLockTokenRequest )
         {

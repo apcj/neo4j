@@ -67,7 +67,7 @@ public class ReplicatedIdAllocationStateMachineTest
         ReplicatedIdAllocationRequest idAllocationRequest = new ReplicatedIdAllocationRequest( me, someType, 0, 1024 );
 
         // when
-        idAllocationStateMachine.onReplicated( idAllocationRequest, 0 );
+        idAllocationStateMachine.applyCommand( idAllocationRequest, 0 );
 
         // then
         assertEquals( 1024, idAllocationStateMachine.getFirstNotAllocated( someType ) );
@@ -83,7 +83,7 @@ public class ReplicatedIdAllocationStateMachineTest
         ReplicatedIdAllocationRequest idAllocationRequest = new ReplicatedIdAllocationRequest( me, someType, 0, 1024 );
 
         // when
-        idAllocationStateMachine.onReplicated( idAllocationRequest, 0 );
+        idAllocationStateMachine.applyCommand( idAllocationRequest, 0 );
         IdRange highestIdRange = idAllocationStateMachine.getHighestIdRange( me, someType );
 
         // then
@@ -100,9 +100,9 @@ public class ReplicatedIdAllocationStateMachineTest
         long index = 0;
 
         // when
-        idAllocationStateMachine.onReplicated( new ReplicatedIdAllocationRequest( me, someType, 0, 1024 ), index++ );
-        idAllocationStateMachine.onReplicated( new ReplicatedIdAllocationRequest( me, someType, 1024, 1024 ), index++ );
-        idAllocationStateMachine.onReplicated( new ReplicatedIdAllocationRequest( me, someType, 2048, 1024 ), index );
+        idAllocationStateMachine.applyCommand( new ReplicatedIdAllocationRequest( me, someType, 0, 1024 ), index++ );
+        idAllocationStateMachine.applyCommand( new ReplicatedIdAllocationRequest( me, someType, 1024, 1024 ), index++ );
+        idAllocationStateMachine.applyCommand( new ReplicatedIdAllocationRequest( me, someType, 2048, 1024 ), index );
 
         // then
         assertEquals( 3072, idAllocationStateMachine.getFirstNotAllocated( someType ) );
@@ -116,9 +116,9 @@ public class ReplicatedIdAllocationStateMachineTest
                 new InMemoryIdAllocationState(), NullLogProvider.getInstance() );
 
         // when
-        idAllocationStateMachine.onReplicated( new ReplicatedIdAllocationRequest( me, someType, 0, 1024 ), 0 );
-        idAllocationStateMachine.onReplicated( new ReplicatedIdAllocationRequest( me, someType, 0, 1024 ), 0 );
-        idAllocationStateMachine.onReplicated( new ReplicatedIdAllocationRequest( me, someType, 0, 1024 ), 0 );
+        idAllocationStateMachine.applyCommand( new ReplicatedIdAllocationRequest( me, someType, 0, 1024 ), 0 );
+        idAllocationStateMachine.applyCommand( new ReplicatedIdAllocationRequest( me, someType, 0, 1024 ), 0 );
+        idAllocationStateMachine.applyCommand( new ReplicatedIdAllocationRequest( me, someType, 0, 1024 ), 0 );
 
         // then
         assertEquals( 1024, idAllocationStateMachine.getFirstNotAllocated( someType ) );
@@ -132,8 +132,8 @@ public class ReplicatedIdAllocationStateMachineTest
                 new InMemoryIdAllocationState(), NullLogProvider.getInstance() );
 
         // when
-        idAllocationStateMachine.onReplicated( new ReplicatedIdAllocationRequest( me, someType, 0, 1024 ), 0 );
-        idAllocationStateMachine.onReplicated( new ReplicatedIdAllocationRequest( me, someType, 2048, 1024 ), 0 ); //
+        idAllocationStateMachine.applyCommand( new ReplicatedIdAllocationRequest( me, someType, 0, 1024 ), 0 );
+        idAllocationStateMachine.applyCommand( new ReplicatedIdAllocationRequest( me, someType, 2048, 1024 ), 0 ); //
         // should be ignored - not adjacent to previous
 
         // then
@@ -148,8 +148,8 @@ public class ReplicatedIdAllocationStateMachineTest
                 new InMemoryIdAllocationState(), NullLogProvider.getInstance() );
 
         // when
-        idAllocationStateMachine.onReplicated( new ReplicatedIdAllocationRequest( someoneElse, someType, 0, 1024 ), 0 );
-        idAllocationStateMachine.onReplicated( new ReplicatedIdAllocationRequest( me, someType, 0, 1024 ), 0 ); //
+        idAllocationStateMachine.applyCommand( new ReplicatedIdAllocationRequest( someoneElse, someType, 0, 1024 ), 0 );
+        idAllocationStateMachine.applyCommand( new ReplicatedIdAllocationRequest( me, someType, 0, 1024 ), 0 ); //
         // should be ignored - someone else took it first
 
         IdRange highestIdRange = idAllocationStateMachine.getHighestIdRange( me, someType );
@@ -167,8 +167,8 @@ public class ReplicatedIdAllocationStateMachineTest
         ReplicatedIdAllocationStateMachine firstIdAllocationStateMachine =
                 new ReplicatedIdAllocationStateMachine( me, idAllocationState, NullLogProvider.getInstance() );
 
-        firstIdAllocationStateMachine.onReplicated( new ReplicatedIdAllocationRequest( me, someType, 0, 1024 ), 0 );
-        firstIdAllocationStateMachine.onReplicated( new ReplicatedIdAllocationRequest( me, someType, 1024, 1024 ), 1 );
+        firstIdAllocationStateMachine.applyCommand( new ReplicatedIdAllocationRequest( me, someType, 0, 1024 ), 0 );
+        firstIdAllocationStateMachine.applyCommand( new ReplicatedIdAllocationRequest( me, someType, 1024, 1024 ), 1 );
 
         // when
         ReplicatedIdAllocationStateMachine secondIdAllocationStateMachine =
@@ -208,17 +208,17 @@ public class ReplicatedIdAllocationStateMachineTest
         ReplicatedIdAllocationRequest mockRequest = mock( ReplicatedIdAllocationRequest.class );
         when( mockRequest.owner() ).thenReturn( someoneElse );
         when( mockRequest.idType() ).thenReturn( someType );
-        stateMachine.onReplicated( mockRequest, AN_INDEX );
+        stateMachine.applyCommand( mockRequest, AN_INDEX );
 
         // when
         // we see content at an index before and content at the above index
         ReplicatedIdAllocationRequest replicatedMockRequest = mock( ReplicatedIdAllocationRequest.class );
         when( replicatedMockRequest.owner() ).thenReturn( someoneElse );
-        stateMachine.onReplicated( replicatedMockRequest, AN_INDEX - 3 ); // random already seen index
+        stateMachine.applyCommand( replicatedMockRequest, AN_INDEX - 3 ); // random already seen index
 
         ReplicatedIdAllocationRequest anotherReplicatedMockRequest = mock( ReplicatedIdAllocationRequest.class );
         when( anotherReplicatedMockRequest.owner() ).thenReturn( someoneElse );
-        stateMachine.onReplicated( anotherReplicatedMockRequest, AN_INDEX );
+        stateMachine.applyCommand( anotherReplicatedMockRequest, AN_INDEX );
 
         // then
         // there should be only one interaction with the mock, the one for the first time onReplicated() was called
@@ -244,20 +244,20 @@ public class ReplicatedIdAllocationStateMachineTest
         ReplicatedIdAllocationRequest mockRequest = mock( ReplicatedIdAllocationRequest.class );
         when( mockRequest.owner() ).thenReturn( someoneElse );
         when( mockRequest.idType() ).thenReturn( someType );
-        stateMachine.onReplicated( mockRequest, AN_INDEX );
+        stateMachine.applyCommand( mockRequest, AN_INDEX );
 
         // we see content at an index before the last seen one
         ReplicatedIdAllocationRequest replicatedMockRequest = mock( ReplicatedIdAllocationRequest.class );
         when( replicatedMockRequest.owner() ).thenReturn( someoneElse );
         when( replicatedMockRequest.idType() ).thenReturn( someType );
-        stateMachine.onReplicated( replicatedMockRequest, AN_INDEX - 3 ); // random already seen index
+        stateMachine.applyCommand( replicatedMockRequest, AN_INDEX - 3 ); // random already seen index
 
         // when
         // we receive value for an index larger than the one seen
         ReplicatedIdAllocationRequest newReplicatedRequest = mock( ReplicatedIdAllocationRequest.class );
         when( newReplicatedRequest.owner() ).thenReturn( someoneElse );
         when( newReplicatedRequest.idType() ).thenReturn( someType );
-        stateMachine.onReplicated( newReplicatedRequest, AN_INDEX + 12 ); // random future index
+        stateMachine.applyCommand( newReplicatedRequest, AN_INDEX + 12 ); // random future index
 
         // then
         // there should be two interactions with the mock, the one for the first time onReplicated() was called and

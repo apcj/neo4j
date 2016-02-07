@@ -17,40 +17,18 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.coreedge.server.core;
+package org.neo4j.coreedge.raft.state;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.neo4j.coreedge.raft.log.RaftLog;
 import org.neo4j.coreedge.raft.replication.ReplicatedContent;
-import org.neo4j.coreedge.raft.state.StateMachine;
 
-public class StateMachines implements RaftLog.Listener
+public interface StateMachine
 {
-    List<StateMachine> machines = new ArrayList<>();
-
-    public void add( StateMachine stateMachine )
-    {
-        machines.add( stateMachine );
-    }
-
-    @Override
-    public void onAppended( ReplicatedContent content, long logIndex )
-    {
-    }
-
-    @Override
-    public void onCommitted( ReplicatedContent content, long logIndex )
-    {
-        for ( StateMachine machine : machines )
-        {
-            machine.applyCommand( content, logIndex );
-        }
-    }
-
-    @Override
-    public void onTruncated( long fromLogIndex )
-    {
-    }
+    /**
+     * Apply command to state machine, modifying its internal state.
+     * Implementations should be idempotent, so that the caller is free to replay commands from any point in the log.
+     *
+     * @param content The replicated content, to be interpreted as a command.
+     * @param logIndex The index of the content.
+     */
+    void applyCommand( ReplicatedContent content, long logIndex );
 }

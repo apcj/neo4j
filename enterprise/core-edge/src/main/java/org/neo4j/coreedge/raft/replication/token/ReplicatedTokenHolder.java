@@ -28,6 +28,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.neo4j.coreedge.raft.replication.ReplicatedContent;
 import org.neo4j.coreedge.raft.replication.Replicator;
+import org.neo4j.coreedge.raft.state.StateMachine;
 import org.neo4j.kernel.api.exceptions.TransactionFailureException;
 import org.neo4j.kernel.api.exceptions.schema.ConstraintValidationKernelException;
 import org.neo4j.kernel.api.exceptions.schema.CreateConstraintFailureException;
@@ -64,7 +65,7 @@ import org.neo4j.storageengine.api.lock.ResourceLocker;
 import static org.neo4j.coreedge.raft.replication.tx.LogIndexTxHeaderEncoding.encodeLogIndexAsTxHeader;
 
 public abstract class ReplicatedTokenHolder<TOKEN extends Token, RECORD extends TokenRecord> extends LifecycleAdapter
-        implements TokenHolder<TOKEN>, Replicator.ReplicatedContentListener
+        implements TokenHolder<TOKEN>, StateMachine
 {
     protected final Dependencies dependencies;
 
@@ -204,7 +205,7 @@ public abstract class ReplicatedTokenHolder<TOKEN extends Token, RECORD extends 
     }
 
     @Override
-    public void onReplicated( ReplicatedContent content, long logIndex )
+    public void applyCommand( ReplicatedContent content, long logIndex )
     {
         if ( content instanceof ReplicatedTokenRequest && ((ReplicatedTokenRequest) content).type().equals( type ) )
         {

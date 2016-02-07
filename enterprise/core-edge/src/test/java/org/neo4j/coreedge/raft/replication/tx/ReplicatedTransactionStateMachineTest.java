@@ -29,7 +29,6 @@ import org.neo4j.coreedge.raft.replication.session.InMemoryGlobalSessionTrackerS
 import org.neo4j.coreedge.raft.replication.session.LocalOperationId;
 import org.neo4j.coreedge.server.AdvertisedSocketAddress;
 import org.neo4j.coreedge.server.CoreMember;
-import org.neo4j.coreedge.server.RaftTestMember;
 import org.neo4j.coreedge.server.core.locks.LockTokenManager;
 import org.neo4j.coreedge.server.core.locks.ReplicatedLockTokenRequest;
 import org.neo4j.kernel.api.exceptions.Status;
@@ -74,7 +73,7 @@ public class ReplicatedTransactionStateMachineTest
                 new InMemoryGlobalSessionTrackerState<>(), NullLogProvider.getInstance() );
 
         // when
-        listener.onReplicated( tx, 0 );
+        listener.applyCommand( tx, 0 );
 
         // then
         verify( localCommitProcess, times( 1 ) ).commit( any( TransactionToApply.class ),
@@ -97,8 +96,8 @@ public class ReplicatedTransactionStateMachineTest
                 new InMemoryGlobalSessionTrackerState<>(), NullLogProvider.getInstance() );
 
         // when
-        listener.onReplicated( tx, 0 );
-        listener.onReplicated( tx, 0 );
+        listener.applyCommand( tx, 0 );
+        listener.applyCommand( tx, 0 );
 
         // then
         verify( localCommitProcess ).commit( any( TransactionToApply.class ),
@@ -126,7 +125,7 @@ public class ReplicatedTransactionStateMachineTest
         CommittingTransaction future = committingTransactions.register( localOperationId );
 
         // when
-        listener.onReplicated( tx, 0 );
+        listener.applyCommand( tx, 0 );
 
         // then
         try
@@ -161,7 +160,7 @@ public class ReplicatedTransactionStateMachineTest
         CommittingTransaction future = committingTransactions.register( localOperationId );
 
         // when
-        listener.onReplicated( tx, 0 );
+        listener.applyCommand( tx, 0 );
 
         // then
         future.waitUntilCommitted( 1, TimeUnit.SECONDS );

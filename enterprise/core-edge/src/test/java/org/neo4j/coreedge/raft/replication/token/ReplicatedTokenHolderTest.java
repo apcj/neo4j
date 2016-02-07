@@ -188,7 +188,7 @@ public class ReplicatedTokenHolderTest
         // when
         ReplicatedTokenRequest tokenRequest = new ReplicatedTokenRequest( LABEL, "Person",
                 createCommandBytes( createCommands( EXPECTED_TOKEN_ID ) ) );
-        tokenHolder.onReplicated( tokenRequest, logIndex );
+        tokenHolder.applyCommand( tokenRequest, logIndex );
 
         // then
         List<TransactionRepresentation> transactions = commitProcess.transactionsToApply;
@@ -249,7 +249,7 @@ public class ReplicatedTokenHolderTest
 
         tokenHolder.setLastCommittedIndex( -1 );
         tokenHolder.start();
-        tokenHolder.onReplicated( new ReplicatedTokenRequest( LABEL, "Person", createCommandBytes(
+        tokenHolder.applyCommand( new ReplicatedTokenRequest( LABEL, "Person", createCommandBytes(
                 createCommands( EXPECTED_TOKEN_ID ) ) ), 0 );
 
         // when

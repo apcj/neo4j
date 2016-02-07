@@ -23,9 +23,9 @@ import java.io.IOException;
 import java.util.Optional;
 
 import org.neo4j.coreedge.raft.replication.ReplicatedContent;
-import org.neo4j.coreedge.raft.replication.Replicator;
 import org.neo4j.coreedge.raft.replication.session.GlobalSession;
 import org.neo4j.coreedge.raft.replication.session.GlobalSessionTrackerState;
+import org.neo4j.coreedge.raft.state.StateMachine;
 import org.neo4j.coreedge.server.core.locks.LockTokenManager;
 import org.neo4j.kernel.api.exceptions.TransactionFailureException;
 import org.neo4j.kernel.impl.api.TransactionCommitProcess;
@@ -42,7 +42,7 @@ import static java.lang.String.format;
 import static org.neo4j.coreedge.raft.replication.tx.LogIndexTxHeaderEncoding.encodeLogIndexAsTxHeader;
 import static org.neo4j.kernel.api.exceptions.Status.Transaction.LockSessionInvalid;
 
-public class ReplicatedTransactionStateMachine<MEMBER> implements Replicator.ReplicatedContentListener
+public class ReplicatedTransactionStateMachine<MEMBER> implements StateMachine
 {
     private final GlobalSessionTrackerState<MEMBER> sessionTracker;
     private final GlobalSession myGlobalSession;
@@ -69,7 +69,7 @@ public class ReplicatedTransactionStateMachine<MEMBER> implements Replicator.Rep
     }
 
     @Override
-    public synchronized void onReplicated( ReplicatedContent content, long logIndex )
+    public synchronized void applyCommand( ReplicatedContent content, long logIndex )
     {
         if ( content instanceof ReplicatedTransaction )
         {
