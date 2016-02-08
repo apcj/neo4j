@@ -24,7 +24,7 @@ import org.junit.Test;
 import org.neo4j.coreedge.raft.LeaderLocator;
 import org.neo4j.coreedge.raft.replication.DirectReplicator;
 import org.neo4j.coreedge.server.RaftTestMember;
-import org.neo4j.coreedge.server.core.StateMachines;
+import org.neo4j.coreedge.raft.state.StateMachines;
 import org.neo4j.kernel.impl.locking.Locks;
 import org.neo4j.kernel.impl.locking.ResourceTypes;
 import org.neo4j.storageengine.api.lock.AcquireLockTimeoutException;

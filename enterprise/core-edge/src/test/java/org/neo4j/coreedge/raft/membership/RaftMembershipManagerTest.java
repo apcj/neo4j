@@ -27,7 +27,7 @@ import org.neo4j.coreedge.raft.replication.DirectReplicator;
 import org.neo4j.coreedge.raft.state.membership.InMemoryRaftMembershipState;
 import org.neo4j.coreedge.server.RaftTestMember;
 import org.neo4j.coreedge.server.RaftTestMemberSetBuilder;
-import org.neo4j.coreedge.server.core.StateMachines;
+import org.neo4j.coreedge.raft.state.StateMachines;
 import org.neo4j.helpers.FakeClock;
 import org.neo4j.logging.NullLogProvider;
 
