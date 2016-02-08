@@ -39,7 +39,7 @@ public class RaftLogReplay extends LifecycleAdapter
     public void start() throws Throwable
     {
         long start = System.currentTimeMillis();
-        raftLog.replay();
+        // TODO: need to replay here
 
         log.info( "Replay done, took %d ms", System.currentTimeMillis() - start );
     }

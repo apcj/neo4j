@@ -19,8 +19,6 @@
  */
 package org.neo4j.coreedge.raft;
 
-import java.util.concurrent.TimeUnit;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.runners.MockitoJUnitRunner;
@@ -33,8 +31,6 @@ import org.neo4j.coreedge.raft.membership.RaftTestGroup;
 import org.neo4j.coreedge.raft.replication.ReplicatedContent;
 import org.neo4j.coreedge.server.RaftTestMember;
 import org.neo4j.coreedge.server.RaftTestMemberSetBuilder;
-import org.neo4j.helpers.Clock;
-import org.neo4j.helpers.TickingClock;
 import org.neo4j.kernel.KernelEventHandlers;
 import org.neo4j.kernel.impl.core.DatabasePanicEventGenerator;
 import org.neo4j.kernel.internal.DatabaseHealth;
@@ -496,16 +492,6 @@ public class RaftInstanceTest
     private static class ExplodingRaftLog implements RaftLog
     {
         private boolean startExploding = false;
-
-        @Override
-        public void replay() throws Throwable
-        {
-        }
-
-        @Override
-        public void registerListener( Listener consumer )
-        {
-        }
 
         @Override
         public long append( RaftLogEntry entry ) throws RaftStorageException
