@@ -20,17 +20,21 @@
 package org.neo4j.coreedge.server.core;
 
 import org.neo4j.coreedge.raft.log.RaftLog;
+import org.neo4j.coreedge.raft.replication.ReplicatedContent;
+import org.neo4j.coreedge.raft.state.StateMachine;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.logging.Log;
 import org.neo4j.logging.LogProvider;
 
 public class RaftLogReplay extends LifecycleAdapter
 {
+    private final StateMachine stateMachine;
     private final RaftLog raftLog;
     private final Log log;
 
-    public RaftLogReplay( RaftLog raftLog, LogProvider logProvider )
+    public RaftLogReplay( StateMachine stateMachine, RaftLog raftLog, LogProvider logProvider )
     {
+        this.stateMachine = stateMachine;
         this.raftLog = raftLog;
         this.log = logProvider.getLog( getClass() );
     }
@@ -39,7 +43,24 @@ public class RaftLogReplay extends LifecycleAdapter
     public void start() throws Throwable
     {
         long start = System.currentTimeMillis();
-        // TODO: need to replay here
+        /*
+         * Since all state machines and replicated content listeners persist their state, we can skip all entries that
+         * have been committed successfully.
+         * However, looking at how commit() does its thing, we probably face a race with a crash in between updating
+         * the commit index and having notified all replicated content listeners. We should probably invert the order
+         * there. For this reason, and having the (assumed/required) idempotent property of replicated content listeners,
+         * we still replay the last committed entry because, since we do one entry at a time, that may be the only one
+         * that has not been applied against all listeners.
+         * This change is effectively equivalent to truncating/compacting the raft log.
+         */
+        long index = Math.max( 0, raftLog.commitIndex() - 1 ); // new instances have a commit index of -1, which should be ignored
+        log.info( "Starting replay at index %d", index );
+        for(; index <= raftLog.commitIndex(); index++ )
+        {
+            ReplicatedContent content = raftLog.readEntryContent( index );
+            stateMachine.applyCommand( content, index );
+            log.info( "Index %d replayed as committed", index );
+        }
 
         log.info( "Replay done, took %d ms", System.currentTimeMillis() - start );
     }

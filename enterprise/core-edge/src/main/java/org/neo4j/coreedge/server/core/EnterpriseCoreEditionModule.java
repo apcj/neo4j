@@ -327,6 +327,7 @@ public class EnterpriseCoreEditionModule
 
         life.add( CoreServerStartupProcess.createLifeSupport(
                 platformModule.dataSourceManager, replicatedIdGeneratorFactory, raft, new RaftLogReplay(
+                        stateMachines,
                         monitoredRaftLog,
                         logProvider ), raftServer,
                 catchupServer, raftTimeoutService, membershipWaiter,
