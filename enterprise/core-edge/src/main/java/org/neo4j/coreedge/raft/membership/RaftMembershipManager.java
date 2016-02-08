@@ -19,6 +19,7 @@
  */
 package org.neo4j.coreedge.raft.membership;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -27,6 +28,11 @@ import org.neo4j.coreedge.raft.log.RaftLog;
 import org.neo4j.coreedge.raft.log.RaftLogEntry;
 import org.neo4j.coreedge.raft.log.RaftStorageException;
 import org.neo4j.coreedge.raft.log.ReadableRaftLog;
+import org.neo4j.coreedge.raft.outcome.AppendLogEntry;
+import org.neo4j.coreedge.raft.outcome.BatchAppendLogEntries;
+import org.neo4j.coreedge.raft.outcome.CommitCommand;
+import org.neo4j.coreedge.raft.outcome.LogCommand;
+import org.neo4j.coreedge.raft.outcome.TruncateLogCommand;
 import org.neo4j.coreedge.raft.replication.ReplicatedContent;
 import org.neo4j.coreedge.raft.replication.Replicator;
 import org.neo4j.coreedge.raft.roles.Role;
@@ -46,7 +52,7 @@ import static org.neo4j.helpers.collection.IteratorUtil.first;
  * - raft membership state machine
  * - raft log events
  */
-public class RaftMembershipManager<MEMBER> implements RaftMembership<MEMBER>, RaftLog.Listener, MembershipDriver<MEMBER>
+public class RaftMembershipManager<MEMBER> implements RaftMembership<MEMBER>, MembershipDriver<MEMBER>
 {
     private RaftMembershipStateMachine<MEMBER> membershipStateMachine;
 
@@ -60,6 +66,7 @@ public class RaftMembershipManager<MEMBER> implements RaftMembership<MEMBER>, Ra
     private final Log log;
     private final int expectedClusterSize;
     private final RaftMembershipState<MEMBER> raftMembershipState;
+    private long lastApplied = -1;
 
     public RaftMembershipManager( Replicator replicator, RaftGroup.Builder<MEMBER> memberSetBuilder, RaftLog entryLog,
                                   LogProvider logProvider, int expectedClusterSize, long electionTimeout,
@@ -74,12 +81,42 @@ public class RaftMembershipManager<MEMBER> implements RaftMembership<MEMBER>, Ra
 
         this.membershipStateMachine = new RaftMembershipStateMachine<>( entryLog, clock, electionTimeout, this,
                 logProvider, catchupTimeout, raftMembershipState );
-
-        entryLog.registerListener( this );
     }
 
-    @Override
-    public void onAppended( ReplicatedContent content, long logIndex )
+    public void processLog(Collection<LogCommand> logCommands) throws RaftStorageException
+    {
+        for ( LogCommand logCommand : logCommands )
+        {
+            if ( logCommand instanceof TruncateLogCommand )
+            {
+                onTruncated();
+            }
+            if ( logCommand instanceof AppendLogEntry )
+            {
+                AppendLogEntry command = (AppendLogEntry) logCommand;
+                onAppended( command.entry.content(), command.index );
+            }
+            if ( logCommand instanceof BatchAppendLogEntries )
+            {
+                BatchAppendLogEntries command = (BatchAppendLogEntries) logCommand;
+                for ( int i = command.offset; i < command.entries.length; i++ )
+                {
+                    onAppended( command.entries[i].content(), command.baseIndex + i );
+                }
+            }
+            if ( logCommand instanceof CommitCommand )
+            {
+                for ( long index = lastApplied + 1; index <= entryLog.commitIndex(); index++ )
+                {
+                    ReplicatedContent content = entryLog.readEntryContent( index );
+                    onCommitted( content, index );
+                }
+                lastApplied = entryLog.commitIndex();
+            }
+        }
+    }
+
+    private void onAppended( ReplicatedContent content, long logIndex )
     {
         if ( content instanceof RaftGroup)
         {
@@ -100,8 +137,7 @@ public class RaftMembershipManager<MEMBER> implements RaftMembership<MEMBER>, Ra
         }
     }
 
-    @Override
-    public void onCommitted( ReplicatedContent content, long logIndex )
+    private void onCommitted( ReplicatedContent content, long logIndex )
     {
         if ( content instanceof RaftGroup )
         {
@@ -125,8 +161,7 @@ public class RaftMembershipManager<MEMBER> implements RaftMembership<MEMBER>, Ra
         }
     }
 
-    @Override
-    public void onTruncated( long fromLogIndex )
+    private void onTruncated()
     {
         try
         {

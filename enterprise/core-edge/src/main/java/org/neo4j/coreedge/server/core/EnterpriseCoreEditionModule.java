@@ -444,7 +444,7 @@ public class EnterpriseCoreEditionModule
             throw new RuntimeException( e );
         }
 
-        raftLog.registerListener( stateMachines );
+//        raftLog.registerListener( stateMachines );
 
         LoggingInbound loggingRaftInbound = new LoggingInbound( raftServer, messageLogger, myself.getRaftAddress() );
 
@@ -470,10 +470,10 @@ public class EnterpriseCoreEditionModule
                 config.get( CoreEdgeClusterSettings.log_shipping_max_lag ) );
 
         RaftInstance<CoreMember> raftInstance = new RaftInstance<>(
-                myself, termState, voteState, raftLog, electionTimeout, heartbeatInterval,
+                myself, termState, voteState, raftLog, stateMachines, electionTimeout, heartbeatInterval,
                 raftTimeoutService, loggingRaftInbound,
                 new RaftOutbound( outbound ), leaderWaitTimeout, logProvider,
-                raftMembershipManager, logShipping, databaseHealthSupplier, SYSTEM_CLOCK, monitors );
+                raftMembershipManager, logShipping, databaseHealthSupplier, monitors );
 
         life.add( new RaftDiscoveryServiceConnector( discoveryService, raftInstance ) );
 

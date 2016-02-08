@@ -25,12 +25,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
-import org.neo4j.coreedge.raft.log.RaftLog;
 import org.neo4j.coreedge.raft.replication.ReplicatedContent;
 import org.neo4j.coreedge.raft.replication.Replicator;
 import org.neo4j.coreedge.raft.replication.session.InMemoryGlobalSessionTrackerState;
 import org.neo4j.coreedge.raft.replication.session.LocalOperationId;
 import org.neo4j.coreedge.raft.replication.session.LocalSessionPool;
+import org.neo4j.coreedge.raft.state.StateMachine;
 import org.neo4j.coreedge.server.AdvertisedSocketAddress;
 import org.neo4j.coreedge.server.CoreMember;
 import org.neo4j.coreedge.raft.state.StateMachines;
@@ -135,13 +135,13 @@ public class CommitProcessStateMachineCollaborationTest
 
     private class TriggeredReplicator implements Replicator
     {
-        private RaftLog.Listener listener;
+        private StateMachine stateMachine;
         private int timesReplicated = 0;
         private ReplicatedContent content;
 
-        public TriggeredReplicator( RaftLog.Listener listener )
+        public TriggeredReplicator( StateMachine stateMachine )
         {
-            this.listener = listener;
+            this.stateMachine = stateMachine;
         }
 
         @Override
@@ -153,7 +153,7 @@ public class CommitProcessStateMachineCollaborationTest
 
         public void triggerReplication()
         {
-            listener.onCommitted( content, 1 );
+            stateMachine.applyCommand( content, 1 );
         }
 
         public int timesReplicated()

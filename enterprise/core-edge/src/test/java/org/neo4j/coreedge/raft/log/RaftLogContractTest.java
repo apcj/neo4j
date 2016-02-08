@@ -109,9 +109,6 @@ public abstract class RaftLogContractTest
     {
         RaftLog log = createRaftLog();
 
-        RaftLog.Listener listener = mock( RaftLog.Listener.class );
-        log.registerListener( listener );
-
         log.commit( 10 );
 
         RaftLogEntry logEntry = new RaftLogEntry( 1, ReplicatedInteger.valueOf( 1 ) );
@@ -122,7 +119,6 @@ public abstract class RaftLogContractTest
         assertThat( log.appendIndex(), is( 0L ) );
         assertThat( log.commitIndex(), is( 0L ) );
         assertThat( log.entryExists( 0 ), is( true ) );
-        verify( listener, times( 1 ) ).onCommitted( eq( logEntry.content() ), anyLong() );
     }
 
     @Test

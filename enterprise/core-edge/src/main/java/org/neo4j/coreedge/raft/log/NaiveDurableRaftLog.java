@@ -274,16 +274,17 @@ public class NaiveDurableRaftLog extends LifecycleAdapter implements RaftLog
         {
             throw new RaftStorageException( "Failed to commit", e );
         }
+        commitIndex = actualNewCommitIndex;
 
-        while ( commitIndex < actualNewCommitIndex )
-        {
-            commitIndex++;
-            for ( Listener listener : listeners )
-            {
-                ReplicatedContent content = readEntryContent( commitIndex );
-                listener.onCommitted( content, commitIndex );
-            }
-        }
+//        while ( commitIndex < actualNewCommitIndex )
+//        {
+//            commitIndex++;
+//            for ( Listener listener : listeners )
+//            {
+//                ReplicatedContent content = readEntryContent( commitIndex );
+//                listener.onCommitted( content, commitIndex );
+//            }
+//        }
     }
 
     @Override

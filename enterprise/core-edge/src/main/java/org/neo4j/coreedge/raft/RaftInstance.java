@@ -22,6 +22,7 @@ package org.neo4j.coreedge.raft;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
@@ -35,14 +36,18 @@ import org.neo4j.coreedge.raft.membership.RaftGroup;
 import org.neo4j.coreedge.raft.membership.RaftMembershipManager;
 import org.neo4j.coreedge.raft.net.Inbound;
 import org.neo4j.coreedge.raft.net.Outbound;
+import org.neo4j.coreedge.raft.outcome.AppendLogEntry;
+import org.neo4j.coreedge.raft.outcome.CommitCommand;
+import org.neo4j.coreedge.raft.outcome.LogCommand;
 import org.neo4j.coreedge.raft.outcome.Outcome;
+import org.neo4j.coreedge.raft.replication.ReplicatedContent;
 import org.neo4j.coreedge.raft.replication.shipping.RaftLogShippingManager;
 import org.neo4j.coreedge.raft.roles.Role;
 import org.neo4j.coreedge.raft.state.RaftState;
 import org.neo4j.coreedge.raft.state.ReadableRaftState;
+import org.neo4j.coreedge.raft.state.StateMachine;
 import org.neo4j.coreedge.raft.state.term.TermState;
 import org.neo4j.coreedge.raft.state.vote.VoteState;
-import org.neo4j.helpers.Clock;
 import org.neo4j.kernel.impl.util.Listener;
 import org.neo4j.kernel.internal.DatabaseHealth;
 import org.neo4j.kernel.monitoring.Monitors;
@@ -50,6 +55,8 @@ import org.neo4j.logging.Log;
 import org.neo4j.logging.LogProvider;
 
 import static java.lang.String.format;
+import static java.util.Arrays.asList;
+
 import static org.neo4j.coreedge.raft.roles.Role.LEADER;
 
 /**
@@ -90,11 +97,11 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
     private RenewableTimeoutService.RenewableTimeout electionTimer;
     private RaftMembershipManager<MEMBER> membershipManager;
 
+    private final StateMachine stateMachine;
     private final long electionTimeout;
     private final long leaderWaitTimeout;
 
     private final Supplier<DatabaseHealth> databaseHealthSupplier;
-    private Clock clock;
     private final VolatileFuture<MEMBER> volatileLeader = new VolatileFuture<>( null );
 
     private final Outbound<MEMBER> outbound;
@@ -105,16 +112,17 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
     private RaftLogShippingManager<MEMBER> logShipping;
 
     public RaftInstance( MEMBER myself, TermState termState, VoteState<MEMBER> voteState, RaftLog entryLog,
-                         long electionTimeout, long heartbeatInterval, RenewableTimeoutService renewableTimeoutService,
+                         StateMachine stateMachine, long electionTimeout, long heartbeatInterval,
+                         RenewableTimeoutService renewableTimeoutService,
                          final Inbound inbound, final Outbound<MEMBER> outbound, long leaderWaitTimeout,
                          LogProvider logProvider, RaftMembershipManager<MEMBER> membershipManager,
                          RaftLogShippingManager<MEMBER> logShipping,
                          Supplier<DatabaseHealth> databaseHealthSupplier,
-                         Clock clock, Monitors monitors )
-
+                         Monitors monitors )
     {
         this.myself = myself;
         this.entryLog = entryLog;
+        this.stateMachine = stateMachine;
         this.electionTimeout = electionTimeout;
         this.heartbeatInterval = heartbeatInterval;
 
@@ -124,7 +132,6 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
         this.outbound = outbound;
         this.logShipping = logShipping;
         this.databaseHealthSupplier = databaseHealthSupplier;
-        this.clock = clock;
         this.log = logProvider.getLog( getClass() );
 
         this.membershipManager = membershipManager;
@@ -169,8 +176,16 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
 
         try
         {
-            entryLog.append( membershipLogEntry );
-            entryLog.commit( 0 );
+            List<LogCommand> logCommands = asList(
+                    new AppendLogEntry( 0, membershipLogEntry ),
+                    new CommitCommand( 0 )
+            );
+            for ( LogCommand logCommand : logCommands )
+            {
+                logCommand.applyTo( entryLog );
+            }
+            membershipManager.processLog( logCommands );
+            lastApplied = 0;
         }
         catch ( RaftStorageException e )
         {
@@ -235,6 +250,8 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
         return state;
     }
 
+    private long lastApplied = -1;
+
     private synchronized void handleOutcome( Outcome<MEMBER> outcome ) throws RaftStorageException
     {
         // Save interesting pre-state
@@ -257,7 +274,7 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
             logShipping.stop();
         }
 
-        if( leaderChanged( outcome, state.leader() ) )
+        if ( leaderChanged( outcome, state.leader() ) )
         {
             for ( Listener<MEMBER> listener : leaderListeners )
             {
@@ -267,6 +284,15 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
 
         // Update state
         state.update( outcome );
+        membershipManager.processLog( outcome.getLogCommands() );
+
+        for ( long index = lastApplied + 1; index <= state.entryLog().commitIndex(); index++ )
+        {
+            ReplicatedContent content = state.entryLog().readEntryContent( index );
+            stateMachine.applyCommand( content, index );
+        }
+        lastApplied = state.entryLog().commitIndex();
+
         volatileLeader.set( outcome.getLeader() );
     }
 
@@ -276,7 +302,7 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
         {
             return true;
         }
-        else if( oldLeader != null && !oldLeader.equals( outcome.getLeader() ) )
+        else if ( oldLeader != null && !oldLeader.equals( outcome.getLeader() ) )
         {
             return true;
         }
@@ -294,7 +320,8 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
         try
         {
             handlingMessage = true;
-            Outcome<MEMBER> outcome = currentRole.handler.handle( (RaftMessages.Message<MEMBER>) incomingMessage, state, log );
+            Outcome<MEMBER> outcome = currentRole.handler.handle( (RaftMessages.Message<MEMBER>) incomingMessage,
+                    state, log );
 
             handleOutcome( outcome );
             currentRole = outcome.getNewRole();

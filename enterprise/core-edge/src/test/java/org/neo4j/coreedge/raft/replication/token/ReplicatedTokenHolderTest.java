@@ -31,6 +31,7 @@ import org.neo4j.coreedge.raft.log.RaftLog;
 import org.neo4j.coreedge.raft.replication.DirectReplicator;
 import org.neo4j.coreedge.raft.replication.ReplicatedContent;
 import org.neo4j.coreedge.raft.replication.Replicator;
+import org.neo4j.coreedge.raft.state.StateMachine;
 import org.neo4j.coreedge.raft.state.StateMachines;
 import org.neo4j.graphdb.TransactionFailureException;
 import org.neo4j.kernel.impl.api.TransactionRepresentationCommitProcess;
@@ -333,12 +334,12 @@ public class ReplicatedTokenHolderTest
 
     static class RaceConditionSimulatingReplicator implements Replicator
     {
-        private final RaftLog.Listener listener;
+        private final StateMachine stateMachine;
         private ReplicatedTokenRequest otherToken;
 
-        public RaceConditionSimulatingReplicator(RaftLog.Listener listener)
+        public RaceConditionSimulatingReplicator(StateMachine stateMachine )
         {
-            this.listener = listener;
+            this.stateMachine = stateMachine;
         }
 
         public void injectLabelTokenBeforeOtherOneReplicates( ReplicatedTokenRequest token )
@@ -351,9 +352,9 @@ public class ReplicatedTokenHolderTest
         {
             if ( otherToken != null )
             {
-                listener.onCommitted( otherToken, 0 );
+                stateMachine.applyCommand( otherToken, 0 );
             }
-            listener.onCommitted( content, 0 );
+            stateMachine.applyCommand( content, 0 );
         }
 
     }

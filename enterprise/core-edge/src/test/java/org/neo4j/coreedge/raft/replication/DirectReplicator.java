@@ -19,21 +19,21 @@
  */
 package org.neo4j.coreedge.raft.replication;
 
-import org.neo4j.coreedge.raft.log.RaftLog;
+import org.neo4j.coreedge.raft.state.StateMachine;
 
 public class DirectReplicator implements Replicator
 {
-    private final RaftLog.Listener listener;
+    private final StateMachine stateMachine;
     private long logIndex = 0;
 
-    public DirectReplicator( RaftLog.Listener listener )
+    public DirectReplicator( StateMachine stateMachine )
     {
-        this.listener = listener;
+        this.stateMachine = stateMachine;
     }
 
     @Override
     public void replicate( ReplicatedContent content ) throws ReplicationFailedException
     {
-        listener.onCommitted( content, logIndex++ );
+        stateMachine.applyCommand( content, logIndex++ );
     }
 }

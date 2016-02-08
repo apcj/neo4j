@@ -332,11 +332,9 @@ public class RaftInstanceTest
         // Given
         ControlledRenewableTimeoutService timeouts = new ControlledRenewableTimeoutService();
 
-        int leaderWaitTimeout = 10000;
-        Clock clock = new TickingClock( 0, leaderWaitTimeout + 1, TimeUnit.MILLISECONDS );
-
+        int leaderWaitTimeout = 10;
         RaftInstance<RaftTestMember> raft = new RaftInstanceBuilder<>( myself, 3, RaftTestMemberSetBuilder.INSTANCE )
-                .timeoutService( timeouts ).clock( clock ).leaderWaitTimeout( leaderWaitTimeout ).build();
+                .timeoutService( timeouts ).leaderWaitTimeout( leaderWaitTimeout ).build();
 
         raft.bootstrapWithInitialMembers( new RaftTestGroup( asSet( myself, member1, member2 ) ) ); // @logIndex=0
 
@@ -465,8 +463,7 @@ public class RaftInstanceTest
         // Given
         ControlledRenewableTimeoutService timeouts = new ControlledRenewableTimeoutService();
 
-        int leaderWaitTimeout = 10000;
-        Clock clock = new TickingClock( 0, leaderWaitTimeout + 1, TimeUnit.MILLISECONDS );
+        int leaderWaitTimeout = 10;
 
         Monitors monitors = new Monitors();
         LeaderNotFoundMonitor leaderNotFoundMonitor = new StubLeaderNotFoundMonitor();
@@ -475,7 +472,6 @@ public class RaftInstanceTest
 
         RaftInstance<RaftTestMember> raft = new RaftInstanceBuilder<>( myself, 3, RaftTestMemberSetBuilder.INSTANCE )
                 .timeoutService( timeouts )
-                .clock( clock )
                 .leaderWaitTimeout( leaderWaitTimeout )
                 .monitors(monitors)
                 .build();

@@ -29,6 +29,8 @@ import org.neo4j.coreedge.raft.net.Inbound;
 import org.neo4j.coreedge.raft.net.Outbound;
 import org.neo4j.coreedge.raft.replication.LeaderOnlyReplicator;
 import org.neo4j.coreedge.raft.replication.shipping.RaftLogShippingManager;
+import org.neo4j.coreedge.raft.state.StateMachine;
+import org.neo4j.coreedge.raft.state.StateMachines;
 import org.neo4j.coreedge.raft.state.membership.InMemoryRaftMembershipState;
 import org.neo4j.coreedge.raft.state.term.InMemoryTermState;
 import org.neo4j.coreedge.raft.state.term.TermState;
@@ -71,6 +73,7 @@ public class RaftInstanceBuilder<MEMBER>
     private Supplier<DatabaseHealth> databaseHealthSupplier;
     private InMemoryRaftMembershipState<MEMBER> raftMembership = new InMemoryRaftMembershipState<>();
     private Monitors monitors  = new Monitors();
+    private StateMachine stateMachine = new StateMachines();
 
     public RaftInstanceBuilder( MEMBER member, int expectedClusterSize, RaftGroup.Builder<MEMBER> memberSetBuilder )
     {
@@ -89,9 +92,9 @@ public class RaftInstanceBuilder<MEMBER>
         RaftLogShippingManager<MEMBER> logShipping = new RaftLogShippingManager<>( outbound, logProvider, raftLog,
                 clock, member, membershipManager, retryTimeMillis, catchupBatchSize, maxAllowedShippingLag );
 
-        return new RaftInstance<>( member, termState, voteState, raftLog, electionTimeout, heartbeatInterval,
+        return new RaftInstance<>( member, termState, voteState, raftLog, stateMachine, electionTimeout, heartbeatInterval,
                 renewableTimeoutService, inbound, outbound, leaderWaitTimeout, logProvider, membershipManager,
-                logShipping, databaseHealthSupplier, clock, monitors );
+                logShipping, databaseHealthSupplier, monitors );
     }
 
     public RaftInstanceBuilder<MEMBER> leaderWaitTimeout( long leaderWaitTimeout )
@@ -136,15 +139,15 @@ public class RaftInstanceBuilder<MEMBER>
         return this;
     }
 
-    public RaftInstanceBuilder<MEMBER> databaseHealth( final DatabaseHealth databaseHealth )
+    public RaftInstanceBuilder<MEMBER> stateMachine( StateMachine stateMachine )
     {
-        this.databaseHealthSupplier = () -> databaseHealth;
+        this.stateMachine = stateMachine;
         return this;
     }
 
-    public RaftInstanceBuilder<MEMBER> clock( Clock clock )
+    public RaftInstanceBuilder<MEMBER> databaseHealth( final DatabaseHealth databaseHealth )
     {
-        this.clock = clock;
+        this.databaseHealthSupplier = () -> databaseHealth;
         return this;
     }
 

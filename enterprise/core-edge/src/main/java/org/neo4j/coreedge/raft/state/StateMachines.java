@@ -22,10 +22,9 @@ package org.neo4j.coreedge.raft.state;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.neo4j.coreedge.raft.log.RaftLog;
 import org.neo4j.coreedge.raft.replication.ReplicatedContent;
 
-public class StateMachines implements RaftLog.Listener
+public class StateMachines implements StateMachine
 {
     List<StateMachine> machines = new ArrayList<>();
 
@@ -35,21 +34,11 @@ public class StateMachines implements RaftLog.Listener
     }
 
     @Override
-    public void onAppended( ReplicatedContent content, long logIndex )
-    {
-    }
-
-    @Override
-    public void onCommitted( ReplicatedContent content, long logIndex )
+    public void applyCommand( ReplicatedContent content, long logIndex )
     {
         for ( StateMachine machine : machines )
         {
             machine.applyCommand( content, logIndex );
         }
-    }
-
-    @Override
-    public void onTruncated( long fromLogIndex )
-    {
     }
 }

@@ -19,17 +19,26 @@
  */
 package org.neo4j.coreedge.raft.membership;
 
+import java.util.Collections;
+import java.util.List;
+
 import org.junit.Test;
 
 import org.neo4j.coreedge.raft.log.InMemoryRaftLog;
 import org.neo4j.coreedge.raft.log.RaftLogEntry;
+import org.neo4j.coreedge.raft.outcome.AppendLogEntry;
+import org.neo4j.coreedge.raft.outcome.CommitCommand;
+import org.neo4j.coreedge.raft.outcome.LogCommand;
+import org.neo4j.coreedge.raft.outcome.TruncateLogCommand;
 import org.neo4j.coreedge.raft.replication.DirectReplicator;
+import org.neo4j.coreedge.raft.state.StateMachines;
 import org.neo4j.coreedge.raft.state.membership.InMemoryRaftMembershipState;
 import org.neo4j.coreedge.server.RaftTestMember;
 import org.neo4j.coreedge.server.RaftTestMemberSetBuilder;
-import org.neo4j.coreedge.raft.state.StateMachines;
 import org.neo4j.helpers.FakeClock;
 import org.neo4j.logging.NullLogProvider;
+
+import static java.util.Arrays.asList;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -51,15 +60,16 @@ public class RaftMembershipManagerTest
         final InMemoryRaftLog log = new InMemoryRaftLog();
 
         RaftMembershipManager<RaftTestMember> membershipManager = new RaftMembershipManager<>(
-                new DirectReplicator(new StateMachines()), RaftTestMemberSetBuilder.INSTANCE, log,
+                null, RaftTestMemberSetBuilder.INSTANCE, log,
                 NullLogProvider.getInstance(), 3, 1000, new FakeClock(),
                 1000, new InMemoryRaftMembershipState<>() );
 
-
         // when
-        log.append( new RaftLogEntry( 0, new RaftTestGroup( 1, 2, 3, 4 ) ) );
-        log.commit( 0 );
-        log.append( new RaftLogEntry( 0, new RaftTestGroup( 1, 2, 3, 5 ) ) );
+        membershipManager.processLog( asList(
+                new AppendLogEntry( 0, new RaftLogEntry( 0, new RaftTestGroup( 1, 2, 3, 4 ) ) ),
+                new CommitCommand( 0 ),
+                new AppendLogEntry( 1, new RaftLogEntry( 0, new RaftTestGroup( 1, 2, 3, 5 ) ) )
+        ) );
 
         // then
         assertEquals( new RaftTestGroup( 1, 2, 3, 5 ).getMembers(), membershipManager.votingMembers() );
@@ -72,20 +82,23 @@ public class RaftMembershipManagerTest
         // given
         final InMemoryRaftLog log = new InMemoryRaftLog();
 
-
         RaftMembershipManager<RaftTestMember> membershipManager = new RaftMembershipManager<>(
-                new DirectReplicator( new StateMachines() ),
+                null,
                 RaftTestMemberSetBuilder.INSTANCE, log, NullLogProvider.getInstance(), 3, 1000, new FakeClock(),
                 1000, new InMemoryRaftMembershipState<>() );
 
-        log.registerListener( membershipManager );
-
-        log.append( new RaftLogEntry( 0, new RaftTestGroup( 1, 2, 3, 4 ) ) );
-        log.commit( 0 );
-        log.append( new RaftLogEntry( 0, new RaftTestGroup( 1, 2, 3, 5 ) ) );
-
         // when
-        log.truncate( log.appendIndex() );
+        List<LogCommand> logCommands = asList(
+                new AppendLogEntry( 0, new RaftLogEntry( 0, new RaftTestGroup( 1, 2, 3, 4 ) ) ),
+                new CommitCommand( 0 ),
+                new AppendLogEntry( 1, new RaftLogEntry( 0, new RaftTestGroup( 1, 2, 3, 5 ) ) ),
+                new TruncateLogCommand( 1 )
+        );
+        for ( LogCommand logCommand : logCommands )
+        {
+            logCommand.applyTo( log );
+        }
+        membershipManager.processLog( logCommands );
 
         // then
         assertEquals( new RaftTestGroup( 1, 2, 3, 4 ).getMembers(), membershipManager.votingMembers() );
@@ -100,19 +113,23 @@ public class RaftMembershipManagerTest
         final InMemoryRaftLog log = new InMemoryRaftLog();
 
         RaftMembershipManager<RaftTestMember> membershipManager = new RaftMembershipManager<>(
-                new DirectReplicator( new StateMachines() ),
+                null,
                 RaftTestMemberSetBuilder.INSTANCE, log, NullLogProvider.getInstance(), 3, 1000, new FakeClock(),
                 1000, new InMemoryRaftMembershipState<>() );
 
-        log.registerListener( membershipManager );
-
-        log.append( new RaftLogEntry( 0, new RaftTestGroup( 1, 2, 3, 4 ) ) );
-        log.commit( 0 );
-        log.append( new RaftLogEntry( 0, new RaftTestGroup( 1, 2, 3, 5 ) ) );
-        log.append( new RaftLogEntry( 0, new RaftTestGroup( 1, 2, 3, 6 ) ) );
-
         // when
-        log.truncate( log.appendIndex() );
+        List<LogCommand> logCommands = asList(
+                new AppendLogEntry( 0, new RaftLogEntry( 0, new RaftTestGroup( 1, 2, 3, 4 ) ) ),
+                new CommitCommand( 0 ),
+                new AppendLogEntry( 1, new RaftLogEntry( 0, new RaftTestGroup( 1, 2, 3, 5 ) ) ),
+                new AppendLogEntry( 2, new RaftLogEntry( 0, new RaftTestGroup( 1, 2, 3, 6 ) ) ),
+                new TruncateLogCommand( 2 )
+        );
+        for ( LogCommand logCommand : logCommands )
+        {
+            logCommand.applyTo( log );
+        }
+        membershipManager.processLog( logCommands );
 
         // then
         assertEquals( new RaftTestGroup( 1, 2, 3, 5 ).getMembers(), membershipManager.votingMembers() );
@@ -130,14 +147,12 @@ public class RaftMembershipManagerTest
         when( state.logIndex() ).thenReturn( logIndex );
 
         RaftMembershipManager<RaftTestMember> membershipManager = new RaftMembershipManager<>(
-                new DirectReplicator( new StateMachines() ),
+                null,
                 RaftTestMemberSetBuilder.INSTANCE, log, NullLogProvider.getInstance(), 3, 1000, new FakeClock(),
                 1000, state );
 
-        log.registerListener( membershipManager );
-
         // when
-        membershipManager.onAppended( new RaftTestGroup( 1, 2, 3, 4 ), logIndex - 1 );
+        membershipManager.processLog( Collections.singletonList( new AppendLogEntry( 0, new RaftLogEntry( 0, new RaftTestGroup( 1, 2, 3, 4 ) ) ) ) );
 
         // then
         verify( state, times( 0 ) ).logIndex( anyLong() );
