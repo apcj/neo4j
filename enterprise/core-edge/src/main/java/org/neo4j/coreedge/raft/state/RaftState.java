@@ -19,24 +19,27 @@
  */
 package org.neo4j.coreedge.raft.state;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.neo4j.coreedge.raft.membership.RaftMembership;
 import org.neo4j.coreedge.raft.log.RaftLog;
 import org.neo4j.coreedge.raft.log.RaftStorageException;
 import org.neo4j.coreedge.raft.log.ReadableRaftLog;
+import org.neo4j.coreedge.raft.membership.RaftMembership;
+import org.neo4j.coreedge.raft.membership.RaftMembershipManager;
 import org.neo4j.coreedge.raft.outcome.LogCommand;
 import org.neo4j.coreedge.raft.outcome.Outcome;
 import org.neo4j.coreedge.raft.state.follower.FollowerStates;
-import org.neo4j.coreedge.raft.state.term.TermState;
+import org.neo4j.coreedge.raft.state.term.InMemoryTermState;
 import org.neo4j.coreedge.raft.state.vote.VoteState;
 
 public class RaftState<MEMBER> implements ReadableRaftState<MEMBER>
 {
     private final MEMBER myself;
+    private final StateStorage<InMemoryTermState> termStorage;
     private final RaftMembership<MEMBER> membership;
-    private final TermState termState;
+    private final InMemoryTermState termState;
     private MEMBER leader;
     private long leaderCommit = -1;
     private final VoteState<MEMBER> voteState;
@@ -45,11 +48,12 @@ public class RaftState<MEMBER> implements ReadableRaftState<MEMBER>
     private FollowerStates<MEMBER> followerStates = new FollowerStates<>();
     private final RaftLog entryLog;
 
-    public RaftState( MEMBER myself, TermState termState, RaftMembership<MEMBER> membership,
+    public RaftState( MEMBER myself, StateStorage<InMemoryTermState> termStorage, RaftMembership<MEMBER> membership,
                       RaftLog entryLog, VoteState<MEMBER> voteState )
     {
         this.myself = myself;
-        this.termState = termState;
+        this.termStorage = termStorage;
+        this.termState = termStorage.getInitialState();
         this.voteState = voteState;
         this.membership = membership;
         this.entryLog = entryLog;
@@ -124,6 +128,14 @@ public class RaftState<MEMBER> implements ReadableRaftState<MEMBER>
     public void update( Outcome<MEMBER> outcome ) throws RaftStorageException
     {
         termState.update( outcome.getTerm() );
+        try
+        {
+            termStorage.persistStoreData( termState );
+        }
+        catch ( IOException e )
+        {
+            throw new RaftStorageException( e );
+        }
         voteState.votedFor( outcome.getVotedFor(), outcome.getTerm() );
         leader = outcome.getLeader();
         leaderCommit = outcome.getLeaderCommit();

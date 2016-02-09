@@ -26,10 +26,10 @@ import java.util.function.Supplier;
 import org.junit.Test;
 
 import org.neo4j.coreedge.raft.log.RaftStorageException;
+import org.neo4j.coreedge.raft.state.term.InMemoryTermState;
 import org.neo4j.coreedge.raft.state.term.OnDiskTermState;
 import org.neo4j.coreedge.raft.state.term.TermState;
 import org.neo4j.graphdb.mockfs.EphemeralFileSystemAbstraction;
-import org.neo4j.kernel.monitoring.Monitors;
 import org.neo4j.logging.NullLogProvider;
 
 import static org.junit.Assert.assertEquals;
@@ -37,7 +37,7 @@ import static org.mockito.Mockito.mock;
 
 public class TermStateDurabilityTest
 {
-    public TermState createTermStore( EphemeralFileSystemAbstraction fileSystem ) throws IOException
+    public OnDiskTermState createTermStore( EphemeralFileSystemAbstraction fileSystem ) throws IOException
     {
         File directory = new File( "raft-log" );
         fileSystem.mkdir( directory );
@@ -48,32 +48,24 @@ public class TermStateDurabilityTest
     public void shouldStoreTerm() throws Exception
     {
         EphemeralFileSystemAbstraction fileSystem = new EphemeralFileSystemAbstraction();
-        TermState termState = createTermStore( fileSystem );
+        OnDiskTermState storage = createTermStore( fileSystem );
 
+        InMemoryTermState termState = storage.getInitialState();
         termState.update( 23 );
+        storage.persistStoreData( termState );
 
-        verifyCurrentLogAndNewLogLoadedFromFileSystem( termState, fileSystem, new TermVerifier()
-        {
-            public void verifyTerm( TermState termState ) throws RaftStorageException
-            {
-                assertEquals( 23, termState.currentTerm() );
-            }
-        } );
+        verifyCurrentLogAndNewLogLoadedFromFileSystem( termState, fileSystem,
+                termState1 -> assertEquals( 23, termState1.currentTerm() ) );
     }
 
     @Test
     public void emptyFileShouldImplyZeroTerm() throws Exception
     {
         EphemeralFileSystemAbstraction fileSystem = new EphemeralFileSystemAbstraction();
-        TermState termState = createTermStore( fileSystem );
+        TermState termState = createTermStore( fileSystem ).getInitialState();
 
-        verifyCurrentLogAndNewLogLoadedFromFileSystem( termState, fileSystem, new TermVerifier()
-        {
-            public void verifyTerm( TermState termState ) throws RaftStorageException
-            {
-                assertEquals( 0, termState.currentTerm() );
-            }
-        } );
+        verifyCurrentLogAndNewLogLoadedFromFileSystem( termState, fileSystem,
+                termState1 -> assertEquals( 0, termState1.currentTerm() ) );
     }
 
     private void verifyCurrentLogAndNewLogLoadedFromFileSystem( TermState termState,
@@ -81,9 +73,9 @@ public class TermStateDurabilityTest
                                                                 TermVerifier termVerifier ) throws RaftStorageException, IOException
     {
         termVerifier.verifyTerm( termState );
-        termVerifier.verifyTerm( createTermStore( fileSystem ) );
+        termVerifier.verifyTerm( createTermStore( fileSystem ).getInitialState() );
         fileSystem.crash();
-        termVerifier.verifyTerm( createTermStore( fileSystem ) );
+        termVerifier.verifyTerm( createTermStore( fileSystem ).getInitialState() );
     }
 
     private interface TermVerifier

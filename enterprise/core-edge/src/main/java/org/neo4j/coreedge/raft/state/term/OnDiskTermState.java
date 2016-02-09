@@ -23,21 +23,21 @@ import java.io.File;
 import java.io.IOException;
 import java.util.function.Supplier;
 
-import org.neo4j.coreedge.raft.log.RaftStorageException;
 import org.neo4j.coreedge.raft.state.StatePersister;
 import org.neo4j.coreedge.raft.state.StateRecoveryManager;
+import org.neo4j.coreedge.raft.state.StateStorage;
 import org.neo4j.coreedge.raft.state.term.InMemoryTermState.InMemoryTermStateChannelMarshal;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.internal.DatabaseHealth;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.logging.LogProvider;
 
-public class OnDiskTermState extends LifecycleAdapter implements TermState
+public class OnDiskTermState extends LifecycleAdapter implements StateStorage<InMemoryTermState>
 {
     public static final String FILENAME = "term.";
     public static final String DIRECTORY_NAME = "term-state";
 
-    private InMemoryTermState inMemoryTermState;
+    private InMemoryTermState initialState;
 
     private final StatePersister<InMemoryTermState> statePersister;
 
@@ -56,49 +56,28 @@ public class OnDiskTermState extends LifecycleAdapter implements TermState
 
         StateRecoveryManager.RecoveryStatus recoveryStatus = recoveryManager.recover( fileA, fileB );
 
-        this.inMemoryTermState = recoveryManager.readLastEntryFrom( recoveryStatus.previouslyActive() );
+        this.initialState = recoveryManager.readLastEntryFrom( recoveryStatus.previouslyActive() );
 
         this.statePersister = new StatePersister<>( fileA, fileB, fileSystemAbstraction, numberOfEntriesBeforeRotation,
                 marshal, recoveryStatus.previouslyInactive(),
                 databaseHealthSupplier );
 
-        logProvider.getLog( getClass() ).info( "State restored, last term is %d", inMemoryTermState.currentTerm() );
+        logProvider.getLog( getClass() ).info( "State restored, last term is %d", initialState.currentTerm() );
+    }
+
+    public InMemoryTermState getInitialState()
+    {
+        return initialState;
+    }
+
+    public void persistStoreData( InMemoryTermState inMemoryTermState ) throws IOException
+    {
+        statePersister.persistStoreData( inMemoryTermState );
     }
 
     @Override
-    public void shutdown() throws Throwable
+    public void shutdown() throws IOException
     {
         statePersister.close();
-    }
-
-    @Override
-    public long currentTerm()
-    {
-        return inMemoryTermState.currentTerm();
-    }
-
-    @Override
-    public void update( long newTerm ) throws RaftStorageException
-    {
-        inMemoryTermState.failIfInvalid( newTerm );
-        try
-        {
-            if ( needsToWriteToDisk( newTerm ) )
-            {
-                InMemoryTermState tempState = new InMemoryTermState( inMemoryTermState );
-                tempState.update( newTerm );
-                statePersister.persistStoreData( tempState );
-                inMemoryTermState = tempState;
-            }
-        }
-        catch ( IOException e )
-        {
-            throw new RaftStorageException( e );
-        }
-    }
-
-    private boolean needsToWriteToDisk( long newTerm )
-    {
-        return newTerm > inMemoryTermState.currentTerm();
     }
 }

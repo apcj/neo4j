@@ -47,6 +47,9 @@ import org.neo4j.coreedge.raft.roles.Role;
 import org.neo4j.coreedge.raft.state.RaftState;
 import org.neo4j.coreedge.raft.state.ReadableRaftState;
 import org.neo4j.coreedge.raft.state.StateMachine;
+import org.neo4j.coreedge.raft.state.StateStorage;
+import org.neo4j.coreedge.raft.state.term.InMemoryTermState;
+import org.neo4j.coreedge.raft.state.term.OnDiskTermState;
 import org.neo4j.coreedge.raft.state.term.TermState;
 import org.neo4j.coreedge.raft.state.vote.VoteState;
 import org.neo4j.kernel.impl.util.Listener;
@@ -112,7 +115,7 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
 
     private RaftLogShippingManager<MEMBER> logShipping;
 
-    public RaftInstance( MEMBER myself, TermState termState, VoteState<MEMBER> voteState, RaftLog entryLog,
+    public RaftInstance( MEMBER myself, StateStorage<InMemoryTermState> termStorage, VoteState<MEMBER> voteState, RaftLog entryLog,
                          StateMachine stateMachine, long electionTimeout, long heartbeatInterval,
                          RenewableTimeoutService renewableTimeoutService,
                          final Inbound inbound, final Outbound<MEMBER> outbound, long leaderWaitTimeout,
@@ -137,7 +140,7 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
 
         this.membershipManager = membershipManager;
 
-        this.state = new RaftState<>( myself, termState, membershipManager, entryLog, voteState );
+        this.state = new RaftState<>( myself, termStorage, membershipManager, entryLog, voteState );
 
         leaderNotFoundMonitor = monitors.newMonitor( LeaderNotFoundMonitor.class );
 
@@ -298,7 +301,7 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
         }
         catch ( IOException e )
         {
-            throw new RuntimeException( e );
+            throw new RaftStorageException( e );
         }
         lastApplied = state.entryLog().commitIndex();
 

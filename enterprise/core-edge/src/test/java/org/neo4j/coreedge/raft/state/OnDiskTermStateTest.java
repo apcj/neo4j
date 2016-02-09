@@ -19,14 +19,15 @@
  */
 package org.neo4j.coreedge.raft.state;
 
-import org.junit.Rule;
-import org.junit.Test;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.function.Supplier;
 
+import org.junit.Rule;
+import org.junit.Test;
+
+import org.neo4j.coreedge.raft.state.term.InMemoryTermState;
 import org.neo4j.coreedge.raft.state.term.OnDiskTermState;
 import org.neo4j.graphdb.mockfs.EphemeralFileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -35,10 +36,8 @@ import org.neo4j.logging.NullLogProvider;
 import org.neo4j.test.TargetDirectory;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -55,13 +54,15 @@ public class OnDiskTermStateTest
         EphemeralFileSystemAbstraction fsa = new EphemeralFileSystemAbstraction();
         fsa.mkdir( testDir.directory() );
 
-        OnDiskTermState oldOnDiskTermState =
+        OnDiskTermState storage =
                 new OnDiskTermState( fsa, testDir.directory(), 100, mock( Supplier.class ), NullLogProvider.getInstance() );
+        InMemoryTermState oldOnDiskTermState = storage.getInitialState();
         oldOnDiskTermState.update( 99 );
+        storage.persistStoreData( oldOnDiskTermState );
 
         // when
-        OnDiskTermState newOnDiskTermState = new OnDiskTermState( fsa, testDir.directory(), 100, mock( Supplier.class ),
-                NullLogProvider.getInstance() );
+        InMemoryTermState newOnDiskTermState = new OnDiskTermState( fsa, testDir.directory(), 100, mock( Supplier.class ),
+                NullLogProvider.getInstance() ).getInitialState();
 
         // then
         assertEquals( oldOnDiskTermState.currentTerm(), newOnDiskTermState.currentTerm() );
@@ -74,44 +75,17 @@ public class OnDiskTermStateTest
         StoreFileChannel channel = newFileChannelMock();
         FileSystemAbstraction fsa = newFileSystemMock( channel );
 
-        OnDiskTermState state = new OnDiskTermState( fsa, testDir.directory(), 100, mock( Supplier.class ),
+        OnDiskTermState storage = new OnDiskTermState( fsa, testDir.directory(), 100, mock( Supplier.class ),
                 NullLogProvider.getInstance() );
 
         // When
+        InMemoryTermState state = storage.getInitialState();
         state.update( 100L );
+        storage.persistStoreData( state );
 
         // Then
         verify( channel ).writeAll( any( ByteBuffer.class ) );
         verify( channel ).flush();
-    }
-
-    @Test
-    public void termShouldRemainUnchangedOnFailureToWriteToDisk() throws Exception
-    {
-        // Given
-        StoreFileChannel channel = newFileChannelMock();
-        FileSystemAbstraction fsa = newFileSystemMock( channel );
-        doThrow( new IOException() ).when( channel ).writeAll( any( ByteBuffer.class ) );
-
-        OnDiskTermState store = new OnDiskTermState( fsa, testDir.directory(), 100, mock( Supplier.class ),
-                NullLogProvider.getInstance() );
-
-        // Then
-        // Sanity check more than anything else, to make sure the failed update below will retain the value
-        assertEquals( 0, store.currentTerm() );
-
-        // When
-        try
-        {
-            store.update( 2 );
-            fail( "Test setup should have caused an exception here" );
-        }
-        catch ( Exception e )
-        {
-        }
-
-        // Then
-        assertEquals( 0, store.currentTerm() );
     }
 
     @Test

@@ -405,13 +405,13 @@ public class EnterpriseCoreEditionModule
                                                         Supplier<DatabaseHealth> databaseHealthSupplier,
                                                         Monitors monitors )
     {
-        TermState termState;
+        OnDiskTermState termState;
         try
         {
-            OnDiskTermState onDiskTermState = life.add( new OnDiskTermState( fileSystem,
+            termState = life.add( new OnDiskTermState( fileSystem,
                     new File( clusterStateDirectory, OnDiskTermState.DIRECTORY_NAME ),
                     config.get( CoreEdgeClusterSettings.term_state_size ), databaseHealthSupplier, logProvider ) );
-            termState = new MonitoredTermState( onDiskTermState, monitors );
+//            termState = new MonitoredTermState( onDiskTermState, monitors );
         }
         catch ( IOException e )
         {
