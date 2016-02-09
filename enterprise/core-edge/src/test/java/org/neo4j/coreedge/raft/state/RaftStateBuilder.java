@@ -115,7 +115,7 @@ public class RaftStateBuilder
     public RaftState<RaftTestMember> build() throws RaftStorageException
     {
         StateStorage<InMemoryTermState> termStore = new StubStateStorage<>( new InMemoryTermState() );
-        InMemoryVoteState<RaftTestMember> voteStore = new InMemoryVoteState<>( );
+        StateStorage<InMemoryVoteState<RaftTestMember>> voteStore = new StubStateStorage<>( new InMemoryVoteState<>( ) );
         StubMembership membership = new StubMembership();
 
         RaftState<RaftTestMember> state = new RaftState<>( myself, termStore, membership, entryLog, voteStore );

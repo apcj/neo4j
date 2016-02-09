@@ -23,24 +23,24 @@ import java.io.File;
 import java.io.IOException;
 import java.util.function.Supplier;
 
-import org.neo4j.coreedge.raft.log.RaftStorageException;
 import org.neo4j.coreedge.raft.state.ChannelMarshal;
 import org.neo4j.coreedge.raft.state.StatePersister;
 import org.neo4j.coreedge.raft.state.StateRecoveryManager;
+import org.neo4j.coreedge.raft.state.StateStorage;
 import org.neo4j.coreedge.raft.state.vote.InMemoryVoteState.InMemoryVoteStateChannelMarshal;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.internal.DatabaseHealth;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.logging.LogProvider;
 
-public class OnDiskVoteState<MEMBER> extends LifecycleAdapter implements VoteState<MEMBER>
+public class OnDiskVoteState<MEMBER> extends LifecycleAdapter implements StateStorage<InMemoryVoteState<MEMBER>>
 {
     public static final String FILENAME = "vote.";
     public static final String DIRECTORY_NAME = "vote-state";
 
     private final StatePersister<InMemoryVoteState<MEMBER>> statePersister;
 
-    private InMemoryVoteState<MEMBER> inMemoryVoteState;
+    private InMemoryVoteState<MEMBER> initialState;
 
     public OnDiskVoteState( FileSystemAbstraction fileSystemAbstraction, File stateDir,
                             int numberOfEntriesBeforeRotation, Supplier<DatabaseHealth> databaseHealthSupplier,
@@ -57,43 +57,26 @@ public class OnDiskVoteState<MEMBER> extends LifecycleAdapter implements VoteSta
 
         StateRecoveryManager.RecoveryStatus recoveryStatus = recoveryManager.recover( fileA, fileB );
 
-        this.inMemoryVoteState = recoveryManager.readLastEntryFrom( recoveryStatus.previouslyActive() );
+        this.initialState = recoveryManager.readLastEntryFrom( recoveryStatus.previouslyActive() );
 
         this.statePersister = new StatePersister<>( fileA, fileB, fileSystemAbstraction, numberOfEntriesBeforeRotation,
                 marshal, recoveryStatus.previouslyInactive(), databaseHealthSupplier );
 
         logProvider.getLog( getClass() ).info( "State restored, last term is %d",
-                inMemoryVoteState.term() );
+                initialState.term() );
+    }
+
+
+    @Override
+    public InMemoryVoteState<MEMBER> getInitialState()
+    {
+        return initialState;
     }
 
     @Override
-    public MEMBER votedFor()
+    public void persistStoreData( InMemoryVoteState<MEMBER> state ) throws IOException
     {
-        return inMemoryVoteState.votedFor();
-    }
-
-    @Override
-    public void votedFor( MEMBER votedFor, long term ) throws RaftStorageException
-    {
-        InMemoryVoteState<MEMBER> tempState = new InMemoryVoteState<>( inMemoryVoteState );
-        tempState.votedFor( votedFor, term );
-
-        try
-        {
-            statePersister.persistStoreData( tempState );
-        }
-        catch ( IOException e )
-        {
-            throw new RaftStorageException( e );
-        }
-
-        inMemoryVoteState = tempState;
-    }
-
-    @Override
-    public long term()
-    {
-        return inMemoryVoteState.term();
+        statePersister.persistStoreData( state );
     }
 
     @Override
