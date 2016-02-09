@@ -33,7 +33,7 @@ import org.neo4j.test.TargetDirectory;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
-import static org.neo4j.coreedge.server.RaftTestMember.*;
+import static org.neo4j.coreedge.server.RaftTestMember.member;
 
 public class OnDiskReplicatedLockTokenStateTest
 {
@@ -47,16 +47,18 @@ public class OnDiskReplicatedLockTokenStateTest
         EphemeralFileSystemAbstraction fsa = new EphemeralFileSystemAbstraction();
         fsa.mkdir( testDir.directory() );
 
-        OnDiskReplicatedLockTokenState<RaftTestMember> oldState =
+        OnDiskReplicatedLockTokenState<RaftTestMember> storage =
                 new OnDiskReplicatedLockTokenState<>( fsa, testDir.directory(), 100, new RaftTestMarshal(),
                         mock( Supplier.class ), NullLogProvider.getInstance() );
+        InMemoryReplicatedLockTokenState<RaftTestMember> oldState = storage.getInitialState();
 
         oldState.set( new ReplicatedLockTokenRequest<>( member( 1 ), 99 ), 0 );
+        storage.persistStoreData( oldState );
 
         // when
-        OnDiskReplicatedLockTokenState<RaftTestMember> newState =
+        InMemoryReplicatedLockTokenState<RaftTestMember> newState =
                 new OnDiskReplicatedLockTokenState<>( fsa, testDir.directory(), 100, new RaftTestMarshal(),
-                        mock( Supplier.class ), NullLogProvider.getInstance() );
+                        mock( Supplier.class ), NullLogProvider.getInstance() ).getInitialState();
 
         // then
         assertEquals( oldState.get().owner(), newState.get().owner() );

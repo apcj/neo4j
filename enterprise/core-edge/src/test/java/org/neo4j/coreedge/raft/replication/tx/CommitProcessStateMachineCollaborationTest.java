@@ -31,6 +31,7 @@ import org.neo4j.coreedge.raft.replication.session.InMemoryGlobalSessionTrackerS
 import org.neo4j.coreedge.raft.replication.session.LocalOperationId;
 import org.neo4j.coreedge.raft.replication.session.LocalSessionPool;
 import org.neo4j.coreedge.raft.state.StateMachine;
+import org.neo4j.coreedge.raft.state.StubStateStorage;
 import org.neo4j.coreedge.server.AdvertisedSocketAddress;
 import org.neo4j.coreedge.server.CoreMember;
 import org.neo4j.coreedge.raft.state.StateMachines;
@@ -75,7 +76,7 @@ public class CommitProcessStateMachineCollaborationTest
         LockTokenManager lockState = lockState( 0 );
         final ReplicatedTransactionStateMachine stateMachine = new ReplicatedTransactionStateMachine<>(
                 localCommitProcess, sessionPool.getGlobalSession(), lockState, txFutures,
-                new InMemoryGlobalSessionTrackerState<>(), NullLogProvider.getInstance() );
+                new StubStateStorage<>( new InMemoryGlobalSessionTrackerState<>() ), NullLogProvider.getInstance() );
         stateMachines.add( stateMachine );
 
         ReplicatedTransactionCommitProcess commitProcess = new ReplicatedTransactionCommitProcess(
@@ -107,7 +108,7 @@ public class CommitProcessStateMachineCollaborationTest
 
         final ReplicatedTransactionStateMachine stateMachine = new ReplicatedTransactionStateMachine<>(
                 localCommitProcess, sessionPool.getGlobalSession(), lockState, txFutures,
-                new InMemoryGlobalSessionTrackerState<>(), NullLogProvider.getInstance() );
+                new StubStateStorage<>( new InMemoryGlobalSessionTrackerState<>() ), NullLogProvider.getInstance() );
         stateMachines.add( stateMachine );
 
         ReplicatedTransactionCommitProcess commitProcess = new ReplicatedTransactionCommitProcess(

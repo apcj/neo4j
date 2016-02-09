@@ -23,6 +23,7 @@ import org.junit.Test;
 
 import org.neo4j.coreedge.raft.LeaderLocator;
 import org.neo4j.coreedge.raft.replication.DirectReplicator;
+import org.neo4j.coreedge.raft.state.StubStateStorage;
 import org.neo4j.coreedge.server.RaftTestMember;
 import org.neo4j.coreedge.raft.state.StateMachines;
 import org.neo4j.kernel.impl.locking.Locks;
@@ -48,7 +49,7 @@ public class LeaderOnlyLockManagerTest
 
         StateMachines stateMachines = new StateMachines();
         ReplicatedLockTokenStateMachine<RaftTestMember> replicatedLockStateMachine =
-                new ReplicatedLockTokenStateMachine<>( new InMemoryReplicatedLockTokenState<>() );
+                new ReplicatedLockTokenStateMachine<>( new StubStateStorage( new InMemoryReplicatedLockTokenState<>() ) );
         stateMachines.add( replicatedLockStateMachine );
         DirectReplicator replicator = new DirectReplicator( stateMachines );
 
@@ -75,7 +76,7 @@ public class LeaderOnlyLockManagerTest
 
         StateMachines stateMachines = new StateMachines();
         ReplicatedLockTokenStateMachine<RaftTestMember> replicatedLockStateMachine =
-                new ReplicatedLockTokenStateMachine<>( new InMemoryReplicatedLockTokenState<>() );
+                new ReplicatedLockTokenStateMachine<>( new StubStateStorage( new InMemoryReplicatedLockTokenState<>() ) );
         stateMachines.add( replicatedLockStateMachine );
         DirectReplicator replicator = new DirectReplicator( stateMachines );
 

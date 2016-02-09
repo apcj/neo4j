@@ -38,7 +38,7 @@ import org.neo4j.test.TargetDirectory;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
-import static org.neo4j.coreedge.raft.state.id_allocation.OnDiskIdAllocationState.FILENAME;
+import static org.neo4j.coreedge.raft.state.id_allocation.OnDiskIdAllocationStateStorage.FILENAME;
 
 public class StatePersisterTest
 {

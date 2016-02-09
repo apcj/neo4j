@@ -19,6 +19,7 @@
  */
 package org.neo4j.coreedge.raft;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -290,6 +291,14 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
         {
             ReplicatedContent content = state.entryLog().readEntryContent( index );
             stateMachine.applyCommand( content, index );
+        }
+        try
+        {
+            stateMachine.flush();
+        }
+        catch ( IOException e )
+        {
+            throw new RuntimeException( e );
         }
         lastApplied = state.entryLog().commitIndex();
 

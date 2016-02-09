@@ -19,6 +19,8 @@
  */
 package org.neo4j.coreedge.raft.state;
 
+import java.io.IOException;
+
 import org.neo4j.coreedge.raft.replication.ReplicatedContent;
 
 public interface StateMachine
@@ -31,4 +33,10 @@ public interface StateMachine
      * @param logIndex The index of the content.
      */
     void applyCommand( ReplicatedContent content, long logIndex );
+
+    /**
+     * Flushes state to durable storage. Once
+     * @throws IOException
+     */
+    void flush() throws IOException;
 }

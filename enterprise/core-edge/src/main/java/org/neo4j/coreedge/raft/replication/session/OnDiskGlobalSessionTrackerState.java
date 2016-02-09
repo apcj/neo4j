@@ -28,17 +28,19 @@ import org.neo4j.coreedge.raft.replication.session.InMemoryGlobalSessionTrackerS
 import org.neo4j.coreedge.raft.state.ChannelMarshal;
 import org.neo4j.coreedge.raft.state.StatePersister;
 import org.neo4j.coreedge.raft.state.StateRecoveryManager;
+import org.neo4j.coreedge.raft.state.StateStorage;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.internal.DatabaseHealth;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.logging.LogProvider;
 
-public class OnDiskGlobalSessionTrackerState<MEMBER> extends LifecycleAdapter implements GlobalSessionTrackerState<MEMBER>
+public class OnDiskGlobalSessionTrackerState<MEMBER> extends LifecycleAdapter
+        implements StateStorage<InMemoryGlobalSessionTrackerState<MEMBER>>
 {
     public static final String DIRECTORY_NAME = "session-tracker-state";
     public static final String FILENAME = "session.tracker.";
 
-    private InMemoryGlobalSessionTrackerState<MEMBER> inMemoryGlobalSessionTrackerState;
+    private InMemoryGlobalSessionTrackerState<MEMBER> initialState;
 
     private final StatePersister<InMemoryGlobalSessionTrackerState<MEMBER>> statePersister;
 
@@ -58,50 +60,28 @@ public class OnDiskGlobalSessionTrackerState<MEMBER> extends LifecycleAdapter im
 
         final StateRecoveryManager.RecoveryStatus recoveryStatus = recoveryManager.recover( fileA, fileB );
 
-        this.inMemoryGlobalSessionTrackerState =
+        this.initialState =
                 recoveryManager.readLastEntryFrom( fileSystemAbstraction, recoveryStatus.previouslyActive() );
 
         this.statePersister = new StatePersister<>( fileA, fileB, fileSystemAbstraction, numberOfEntriesBeforeRotation,
                 marshal, recoveryStatus.previouslyInactive(), databaseHealthSupplier );
 
         logProvider.getLog( getClass() ).info( "State restored, last index is %d",
-                inMemoryGlobalSessionTrackerState.logIndex() );
+                initialState.logIndex() );
     }
 
-    @Override
-    public boolean validateOperation( GlobalSession<MEMBER> globalSession, LocalOperationId
-            localOperationId )
+    public InMemoryGlobalSessionTrackerState<MEMBER> getInitialState()
     {
-        return inMemoryGlobalSessionTrackerState.validateOperation( globalSession, localOperationId );
+        return initialState;
     }
 
-    @Override
-    public void update( GlobalSession<MEMBER> globalSession, LocalOperationId localOperationId, long logIndex )
+    public void persistStoreData( InMemoryGlobalSessionTrackerState<MEMBER> memberInMemoryGlobalSessionTrackerState )
+            throws IOException
     {
-        InMemoryGlobalSessionTrackerState<MEMBER> temp =
-                new InMemoryGlobalSessionTrackerState<>( inMemoryGlobalSessionTrackerState );
-
-        temp.update( globalSession, localOperationId, logIndex );
-
-        try
-        {
-            statePersister.persistStoreData( temp );
-            inMemoryGlobalSessionTrackerState = temp;
-        }
-        catch ( IOException e )
-        {
-            throw new RuntimeException( e );
-        }
+        statePersister.persistStoreData( memberInMemoryGlobalSessionTrackerState );
     }
 
-    @Override
-    public long logIndex()
-    {
-        return inMemoryGlobalSessionTrackerState.logIndex();
-    }
-
-    @Override
-    public void shutdown() throws Throwable
+    public void close() throws IOException
     {
         statePersister.close();
     }

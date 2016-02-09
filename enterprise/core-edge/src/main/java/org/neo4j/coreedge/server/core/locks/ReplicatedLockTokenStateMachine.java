@@ -19,21 +19,25 @@
  */
 package org.neo4j.coreedge.server.core.locks;
 
+import java.io.IOException;
+
 import org.neo4j.coreedge.raft.replication.ReplicatedContent;
 import org.neo4j.coreedge.raft.state.StateMachine;
+import org.neo4j.coreedge.raft.state.StateStorage;
 
 /**
  * Listens for {@link ReplicatedLockTokenRequest}. Keeps track of the current holder of the replicated token,
  * which is identified by a monotonically increasing id, and an owning member.
  */
-public class ReplicatedLockTokenStateMachine<MEMBER> extends LockTokenManager
-        implements StateMachine
+public class ReplicatedLockTokenStateMachine<MEMBER> extends LockTokenManager implements StateMachine
 {
-    private final ReplicatedLockTokenState<MEMBER> state;
+    private InMemoryReplicatedLockTokenState<MEMBER> state;
+    private final StateStorage<InMemoryReplicatedLockTokenState<MEMBER>> storage;
 
-    public ReplicatedLockTokenStateMachine( ReplicatedLockTokenState state )
+    public ReplicatedLockTokenStateMachine( StateStorage<InMemoryReplicatedLockTokenState<MEMBER>> storage )
     {
-        this.state = state;
+        this.storage = storage;
+        this.state = storage.getInitialState();
     }
 
     @Override
@@ -50,6 +54,13 @@ public class ReplicatedLockTokenStateMachine<MEMBER> extends LockTokenManager
 
             notifyAll();
         }
+    }
+
+    @Override
+    public void flush() throws IOException
+    {
+        InMemoryReplicatedLockTokenState<MEMBER> copy = new InMemoryReplicatedLockTokenState<MEMBER>( state );
+        storage.persistStoreData( copy );
     }
 
     @Override

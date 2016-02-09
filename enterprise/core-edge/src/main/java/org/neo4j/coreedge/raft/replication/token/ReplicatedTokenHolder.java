@@ -19,6 +19,7 @@
  */
 package org.neo4j.coreedge.raft.replication.token;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -288,5 +289,11 @@ public abstract class ReplicatedTokenHolder<TOKEN extends Token, RECORD extends 
     public int size()
     {
         return tokenCache.size();
+    }
+
+    @Override
+    public void flush() throws IOException
+    {
+        // already implicitly flushed to the transaction log.
     }
 }

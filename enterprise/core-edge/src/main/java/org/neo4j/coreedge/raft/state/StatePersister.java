@@ -95,7 +95,7 @@ public class StatePersister<STATE>
         }
     }
 
-    public PhysicalFlushableChannel initialiseStoreFile( File nextStore ) throws IOException
+    private PhysicalFlushableChannel initialiseStoreFile( File nextStore ) throws IOException
     {
         if ( fileSystemAbstraction.fileExists( nextStore ) )
         {

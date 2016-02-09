@@ -19,6 +19,7 @@
  */
 package org.neo4j.coreedge.raft.state;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,6 +40,15 @@ public class StateMachines implements StateMachine
         for ( StateMachine machine : machines )
         {
             machine.applyCommand( content, logIndex );
+        }
+    }
+
+    @Override
+    public void flush() throws IOException
+    {
+        for ( StateMachine machine : machines )
+        {
+            machine.flush();
         }
     }
 }

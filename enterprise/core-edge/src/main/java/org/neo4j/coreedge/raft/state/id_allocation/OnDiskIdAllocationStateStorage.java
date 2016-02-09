@@ -23,12 +23,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.function.Supplier;
 
-import org.neo4j.coreedge.raft.replication.id.IdAllocationState;
 import org.neo4j.coreedge.raft.state.StatePersister;
 import org.neo4j.coreedge.raft.state.StateRecoveryManager;
+import org.neo4j.coreedge.raft.state.StateStorage;
 import org.neo4j.coreedge.raft.state.id_allocation.InMemoryIdAllocationState.InMemoryIdAllocationStateChannelMarshal;
 import org.neo4j.io.fs.FileSystemAbstraction;
-import org.neo4j.kernel.impl.store.id.IdType;
 import org.neo4j.kernel.internal.DatabaseHealth;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.logging.LogProvider;
@@ -40,18 +39,19 @@ import org.neo4j.logging.LogProvider;
  * <p>
  * It is log structured for convenience and ease of operational problem solving.
  */
-public class OnDiskIdAllocationState extends LifecycleAdapter implements IdAllocationState
+public class OnDiskIdAllocationStateStorage extends LifecycleAdapter implements StateStorage<InMemoryIdAllocationState>
 {
     public static final String DIRECTORY_NAME = "id-allocation-state";
     public static final String FILENAME = "id.allocation.";
 
-    private InMemoryIdAllocationState inMemoryIdAllocationState;
+    private InMemoryIdAllocationState initialState;
 
     private final StatePersister<InMemoryIdAllocationState> statePersister;
 
-    public OnDiskIdAllocationState( FileSystemAbstraction fileSystemAbstraction, File stateDir,
-                                    int numberOfEntriesBeforeRotation, Supplier<DatabaseHealth> databaseHealthSupplier,
-                                    LogProvider logProvider )
+    public OnDiskIdAllocationStateStorage( FileSystemAbstraction fileSystemAbstraction, File stateDir,
+                                           int numberOfEntriesBeforeRotation, Supplier<DatabaseHealth>
+                                                   databaseHealthSupplier,
+                                           LogProvider logProvider )
             throws IOException
     {
         File fileA = new File( stateDir, FILENAME + "a" );
@@ -64,82 +64,26 @@ public class OnDiskIdAllocationState extends LifecycleAdapter implements IdAlloc
 
         StateRecoveryManager.RecoveryStatus recoveryStatus = recoveryManager.recover( fileA, fileB );
 
-        this.inMemoryIdAllocationState = recoveryManager.readLastEntryFrom( fileSystemAbstraction, recoveryStatus.previouslyActive() );
+        this.initialState = recoveryManager.readLastEntryFrom( fileSystemAbstraction, recoveryStatus.previouslyActive() );
 
         this.statePersister = new StatePersister<>( fileA, fileB, fileSystemAbstraction, numberOfEntriesBeforeRotation,
                 marshal, recoveryStatus.previouslyInactive(), databaseHealthSupplier );
 
         logProvider.getLog( getClass() ).info( "State restored, last index is %d",
-                inMemoryIdAllocationState.logIndex() );
+                initialState.logIndex() );
     }
 
-    @Override
-    public int lastIdRangeLength( IdType idType )
+    public InMemoryIdAllocationState getInitialState()
     {
-        return inMemoryIdAllocationState.lastIdRangeLength( idType );
+        return initialState;
     }
 
-    @Override
-    public void lastIdRangeLength( IdType idType, int idRangeLength )
+    public void persistStoreData( InMemoryIdAllocationState inMemoryIdAllocationState ) throws IOException
     {
-        inMemoryIdAllocationState.lastIdRangeLength( idType, idRangeLength );
+        statePersister.persistStoreData( inMemoryIdAllocationState );
     }
 
-    @Override
-    public long logIndex()
-    {
-        return inMemoryIdAllocationState.logIndex();
-    }
-
-    /**
-     * This should be the last method called after updating the state. It has a
-     * side-effect that it flushes the in-memory state to disk.
-     *
-     * @param logIndex The value to set as the last log index at which this state was updated
-     */
-    @Override
-    public void logIndex( long logIndex )
-    {
-        InMemoryIdAllocationState temp = new InMemoryIdAllocationState(inMemoryIdAllocationState);
-        temp.logIndex( logIndex );
-
-        try
-        {
-            statePersister.persistStoreData( temp );
-            inMemoryIdAllocationState = temp;
-        }
-        catch ( IOException e )
-        {
-            throw new RuntimeException( e );
-        }
-    }
-
-    @Override
-    public long firstUnallocated( IdType idType )
-    {
-        return inMemoryIdAllocationState.firstUnallocated( idType );
-    }
-
-    @Override
-    public void firstUnallocated( IdType idType, long idRangeEnd )
-    {
-        inMemoryIdAllocationState.firstUnallocated( idType, idRangeEnd );
-    }
-
-    @Override
-    public long lastIdRangeStart( IdType idType )
-    {
-        return inMemoryIdAllocationState.lastIdRangeStart( idType );
-    }
-
-    @Override
-    public void lastIdRangeStart( IdType idType, long idRangeStart )
-    {
-        inMemoryIdAllocationState.lastIdRangeStart( idType, idRangeStart );
-    }
-
-    @Override
-    public void shutdown() throws Throwable
+    public void close() throws IOException
     {
         statePersister.close();
     }

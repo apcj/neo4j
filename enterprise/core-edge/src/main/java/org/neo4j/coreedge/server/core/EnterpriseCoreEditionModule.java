@@ -70,7 +70,7 @@ import org.neo4j.coreedge.raft.replication.tx.ReplicatedTransactionCommitProcess
 import org.neo4j.coreedge.raft.replication.tx.ReplicatedTransactionStateMachine;
 import org.neo4j.coreedge.raft.roles.Role;
 import org.neo4j.coreedge.raft.state.StateMachines;
-import org.neo4j.coreedge.raft.state.id_allocation.OnDiskIdAllocationState;
+import org.neo4j.coreedge.raft.state.id_allocation.OnDiskIdAllocationStateStorage;
 import org.neo4j.coreedge.raft.state.membership.OnDiskRaftMembershipState;
 import org.neo4j.coreedge.raft.state.membership.RaftMembershipState;
 import org.neo4j.coreedge.raft.state.term.MonitoredTermState;
@@ -241,11 +241,11 @@ public class EnterpriseCoreEditionModule
                 replicatedLockTokenStateMachine,
                 dependencies, logging, platformModule.monitors, onDiskGlobalSessionTrackerState, stateMachines );
 
-        final IdAllocationState idAllocationState;
+        final OnDiskIdAllocationStateStorage idAllocationState;
         try
         {
-            idAllocationState = life.add( new OnDiskIdAllocationState( fileSystem,
-                    new File( clusterStateDirectory, OnDiskIdAllocationState.DIRECTORY_NAME ),
+            idAllocationState = life.add( new OnDiskIdAllocationStateStorage( fileSystem,
+                    new File( clusterStateDirectory, OnDiskIdAllocationStateStorage.DIRECTORY_NAME ),
                     config.get( CoreEdgeClusterSettings.id_alloc_state_size ), databaseHealthSupplier, logProvider ) );
         }
         catch ( IOException e )
@@ -365,7 +365,7 @@ public class EnterpriseCoreEditionModule
                                                                    final Dependencies dependencies,
                                                                    final LogService logging,
                                                                    Monitors monitors,
-                                                                   GlobalSessionTrackerState<CoreMember> globalSessionTrackerState,
+                                                                   OnDiskGlobalSessionTrackerState<CoreMember> globalSessionTrackerState,
                                                                    StateMachines stateMachines )
     {
         return ( appender, applier, config ) -> {

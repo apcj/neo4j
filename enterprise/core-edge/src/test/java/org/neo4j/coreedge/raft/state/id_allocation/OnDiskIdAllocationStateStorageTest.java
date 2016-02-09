@@ -28,8 +28,8 @@ import java.nio.ByteBuffer;
 import java.util.function.Supplier;
 
 import org.neo4j.graphdb.mockfs.EphemeralFileSystemAbstraction;
-import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.kernel.impl.store.id.IdType;
+import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.kernel.internal.DatabaseHealth;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.test.TargetDirectory;
@@ -44,9 +44,9 @@ import static org.mockito.Mockito.when;
 
 import static org.neo4j.coreedge.raft.state.id_allocation.InMemoryIdAllocationState
         .InMemoryIdAllocationStateChannelMarshal.NUMBER_OF_BYTES_PER_WRITE;
-import static org.neo4j.coreedge.raft.state.id_allocation.OnDiskIdAllocationState.FILENAME;
+import static org.neo4j.coreedge.raft.state.id_allocation.OnDiskIdAllocationStateStorage.FILENAME;
 
-public class OnDiskIdAllocationStateTest
+public class OnDiskIdAllocationStateStorageTest
 {
     IdType someType = IdType.NODE;
 
@@ -60,18 +60,20 @@ public class OnDiskIdAllocationStateTest
         EphemeralFileSystemAbstraction fsa = new EphemeralFileSystemAbstraction();
         fsa.mkdir( testDir.directory() );
 
-        OnDiskIdAllocationState store = new OnDiskIdAllocationState( fsa, testDir.directory(), 1,
+        OnDiskIdAllocationStateStorage store = new OnDiskIdAllocationStateStorage( fsa, testDir.directory(), 1,
                 mock( Supplier.class ), NullLogProvider.getInstance() );
 
-        store.firstUnallocated( someType, 1024 );
-        store.logIndex( 1 );
+        InMemoryIdAllocationState state = store.getInitialState();
+        state.firstUnallocated( someType, 1024 );
+        state.logIndex( 1 );
+        store.persistStoreData( state );
 
         // when
-        OnDiskIdAllocationState restoredOne = new OnDiskIdAllocationState( fsa, testDir
+        OnDiskIdAllocationStateStorage restoredOne = new OnDiskIdAllocationStateStorage( fsa, testDir
                 .directory(), 1, mock( Supplier.class ), NullLogProvider.getInstance() );
 
         // then
-        assertEquals( 1024, restoredOne.firstUnallocated( someType ) );
+        assertEquals( 1024, restoredOne.getInitialState().firstUnallocated( someType ) );
     }
 
     @Test
@@ -81,16 +83,19 @@ public class OnDiskIdAllocationStateTest
         EphemeralFileSystemAbstraction fsa = new EphemeralFileSystemAbstraction();
         fsa.mkdir( testDir.directory() );
 
-        OnDiskIdAllocationState store = new OnDiskIdAllocationState( fsa, testDir.directory(), 100,
+        OnDiskIdAllocationStateStorage store = new OnDiskIdAllocationStateStorage( fsa, testDir.directory(), 100,
                 mock( Supplier.class ), NullLogProvider.getInstance() );
+
+        InMemoryIdAllocationState state = store.getInitialState();
 
         final int numberOfAllocationsToAppend = 3;
 
         // when
         for ( int i = 1; i <= numberOfAllocationsToAppend; i++ )
         {
-            store.firstUnallocated( someType, 1024 * i );
-            store.logIndex( i );
+            state.firstUnallocated( someType, 1024 * i );
+            state.logIndex( i );
+            store.persistStoreData( state );
         }
 
         // then
@@ -105,20 +110,23 @@ public class OnDiskIdAllocationStateTest
         EphemeralFileSystemAbstraction fsa = new EphemeralFileSystemAbstraction();
         fsa.mkdir( testDir.directory() );
 
-        OnDiskIdAllocationState store = new OnDiskIdAllocationState( fsa, testDir.directory(),
+        OnDiskIdAllocationStateStorage store = new OnDiskIdAllocationStateStorage( fsa, testDir.directory(),
                 numberOfEntiesBeforeSwitchingFiles, mock( Supplier.class ), NullLogProvider.getInstance() );
+
+        InMemoryIdAllocationState state = store.getInitialState();
 
         // and a store that has two entries in the store file
         for ( int i = 1; i < 3; i++ )
         {
-            store.lastIdRangeLength( someType, i * 1024 );
-            store.logIndex( i );
+            state.lastIdRangeLength( someType, i * 1024 );
+            state.logIndex( i );
+            store.persistStoreData( state );
         }
 
         // then
         // we restore it and see the last of the two entries
-        OnDiskIdAllocationState restoredOne = new OnDiskIdAllocationState( fsa, testDir.directory(), 1,
-                mock( Supplier.class ), NullLogProvider.getInstance() );
+        InMemoryIdAllocationState restoredOne = new OnDiskIdAllocationStateStorage( fsa, testDir.directory(), 1,
+                mock( Supplier.class ), NullLogProvider.getInstance() ).getInitialState();
 
         assertEquals( 1024 * 2, restoredOne.lastIdRangeLength( someType ) );
         assertEquals( 2, restoredOne.logIndex() );
@@ -131,20 +139,26 @@ public class OnDiskIdAllocationStateTest
         EphemeralFileSystemAbstraction fsa = new EphemeralFileSystemAbstraction();
         fsa.mkdir( testDir.directory() );
 
-        OnDiskIdAllocationState store = new OnDiskIdAllocationState( fsa, testDir.directory(), 10,
+        OnDiskIdAllocationStateStorage store = new OnDiskIdAllocationStateStorage( fsa, testDir.directory(), 10,
                 mock( Supplier.class ), NullLogProvider.getInstance() );
+
+        InMemoryIdAllocationState state = store.getInitialState();
 
         for ( int i = 1; i <= 3; i++ )
         {
-            store.firstUnallocated( someType, 1024 * i );
-            store.logIndex( i );
+            state.firstUnallocated( someType, 1024 * i );
+            state.logIndex( i );
+            store.persistStoreData( state );
         }
 
         // when
-        store = new OnDiskIdAllocationState( fsa, testDir.directory(), 10, mock( Supplier.class ),
+        store = new OnDiskIdAllocationStateStorage( fsa, testDir.directory(), 10, mock( Supplier.class ),
                 NullLogProvider.getInstance() );
-        store.firstUnallocated( someType, 1024 * 4 );
-        store.logIndex( 4 );
+
+        state = store.getInitialState();
+        state.firstUnallocated( someType, 1024 * 4 );
+        state.logIndex( 4 );
+        store.persistStoreData( state );
 
         // then
         assertEquals( 3 * NUMBER_OF_BYTES_PER_WRITE,
@@ -165,19 +179,19 @@ public class OnDiskIdAllocationStateTest
         final DatabaseHealth databaseHealth = mock( DatabaseHealth.class );
         Supplier<DatabaseHealth> supplier = () -> databaseHealth;
 
-        OnDiskIdAllocationState store = new OnDiskIdAllocationState( fsa, testDir.directory(), 100, supplier,
+        OnDiskIdAllocationStateStorage store = new OnDiskIdAllocationStateStorage( fsa, testDir.directory(), 100, supplier,
                 NullLogProvider.getInstance() );
 
         // when
         try
         {
-            store.logIndex( 99 );
+            store.persistStoreData( new InMemoryIdAllocationState() );
             // then
-            fail( "Must throw IOExceptionWrapped in RuntimeException" );
+            fail( "should have thrown exception" );
         }
-        catch ( Exception e )
+        catch ( IOException e )
         {
-            assertEquals( IOException.class, e.getCause().getClass() );
+            // expected
         }
 
         verify( databaseHealth ).panic( any( Throwable.class ) );

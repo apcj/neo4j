@@ -53,16 +53,18 @@ public class OnDiskGlobalSessionTrackerStateTest extends BaseGlobalSessionTracke
     public void shouldRoundtripGlobalSessionTrackerState() throws Exception
     {
         // given
-        GlobalSessionTrackerState<RaftTestMember> oldState = instantiateSessionTracker();
+        OnDiskGlobalSessionTrackerState<RaftTestMember> storage = instantiateSessionTracker();
 
         final GlobalSession<RaftTestMember> globalSession = new GlobalSession<>( randomUUID(), member( 1 ) );
 
+        InMemoryGlobalSessionTrackerState<RaftTestMember> oldState = storage.getInitialState();
         oldState.update( globalSession, new LocalOperationId( 1, 0 ), 0 );
+        storage.persistStoreData( oldState );
 
         // when
-        OnDiskGlobalSessionTrackerState<RaftTestMember> newState = new OnDiskGlobalSessionTrackerState<>( fsa,
+        InMemoryGlobalSessionTrackerState<RaftTestMember> newState = new OnDiskGlobalSessionTrackerState<>( fsa,
                 testDir.directory(), new RaftTestMemberMarshal(), 100, mock( Supplier.class ),
-                NullLogProvider.getInstance() );
+                NullLogProvider.getInstance() ).getInitialState();
 
         // then
         assertTrue( oldState.validateOperation( globalSession, new LocalOperationId( 1, 1 ) ) );
@@ -76,10 +78,12 @@ public class OnDiskGlobalSessionTrackerStateTest extends BaseGlobalSessionTracke
     public void shouldPersistOnSessionCreation() throws Exception
     {
         // given
-        GlobalSessionTrackerState<RaftTestMember> state = instantiateSessionTracker();
+        OnDiskGlobalSessionTrackerState<RaftTestMember> storage = instantiateSessionTracker();
+        InMemoryGlobalSessionTrackerState<RaftTestMember> state = storage.getInitialState();
 
         // when
         state.update( new GlobalSession<>( randomUUID(), member( 1 ) ), new LocalOperationId( 1, 0 ), 0 );
+        storage.persistStoreData( state );
 
         // then
         assertThat( fsa.getFileSize( new File( testDir.directory(), OnDiskGlobalSessionTrackerState.FILENAME + "a" )
@@ -90,24 +94,27 @@ public class OnDiskGlobalSessionTrackerStateTest extends BaseGlobalSessionTracke
     public void shouldPersistOnSessionUpdate() throws Exception
     {
         // given
-        GlobalSessionTrackerState<RaftTestMember> state = instantiateSessionTracker();
+        OnDiskGlobalSessionTrackerState<RaftTestMember> storage = instantiateSessionTracker();
+        InMemoryGlobalSessionTrackerState<RaftTestMember> state = storage.getInitialState();
         File fileName = new File( testDir.directory(), OnDiskGlobalSessionTrackerState.FILENAME + "a" );
 
         GlobalSession<RaftTestMember> globalSession = new GlobalSession<>( randomUUID(), member( 1 ) );
         state.update( globalSession, new LocalOperationId( 1, 0 ), 0 );
+        storage.persistStoreData( state );
 
         long initialFileSize = fsa.getFileSize( fileName );
 
         // when
         // the global session exists and this local operation id is a valid next value
         state.update( globalSession, new LocalOperationId( 1, 1 ), 1 );
+        storage.persistStoreData( state );
 
         // then
         assertThat( fsa.getFileSize( fileName ), greaterThan( initialFileSize ) );
     }
 
     @Override
-    protected GlobalSessionTrackerState<RaftTestMember> instantiateSessionTracker()
+    protected OnDiskGlobalSessionTrackerState<RaftTestMember> instantiateSessionTracker()
     {
         fsa.mkdir( testDir.directory() );
 

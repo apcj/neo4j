@@ -38,12 +38,12 @@ public abstract class BaseGlobalSessionTrackerStateTest
 
     GlobalSession sessionB = new GlobalSession( UUID.randomUUID(), coreB );
 
-    protected abstract GlobalSessionTrackerState<RaftTestMember> instantiateSessionTracker();
+    protected abstract OnDiskGlobalSessionTrackerState<RaftTestMember> instantiateSessionTracker();
 
     @Test
     public void firstValidSequenceNumberIsZero()
     {
-        GlobalSessionTrackerState sessionTracker = instantiateSessionTracker();
+        GlobalSessionTrackerState sessionTracker = instantiateSessionTracker().getInitialState();
 
         assertTrue( sessionTracker.validateOperation( sessionA, new LocalOperationId( 0, 0 ) ) );
         sessionTracker.update( sessionA, new LocalOperationId( 0, 0 ), 0 );
@@ -55,7 +55,7 @@ public abstract class BaseGlobalSessionTrackerStateTest
     @Test
     public void repeatedOperationsAreRejected()
     {
-        GlobalSessionTrackerState sessionTracker = instantiateSessionTracker();
+        GlobalSessionTrackerState sessionTracker = instantiateSessionTracker().getInitialState();
 
         assertTrue( sessionTracker.validateOperation( sessionA, new LocalOperationId( 0, 0 ) ) );
         sessionTracker.update( sessionA, new LocalOperationId( 0, 0 ), 0 );
@@ -67,7 +67,7 @@ public abstract class BaseGlobalSessionTrackerStateTest
     @Test
     public void seriesOfOperationsAreAccepted()
     {
-        GlobalSessionTrackerState sessionTracker = instantiateSessionTracker();
+        GlobalSessionTrackerState sessionTracker = instantiateSessionTracker().getInitialState();
 
         assertTrue( sessionTracker.validateOperation( sessionA, new LocalOperationId( 0, 0 ) ) );
         sessionTracker.update( sessionA, new LocalOperationId( 0, 0 ), 0 );
@@ -79,7 +79,7 @@ public abstract class BaseGlobalSessionTrackerStateTest
     @Test
     public void gapsAreNotAllowed()
     {
-        GlobalSessionTrackerState sessionTracker = instantiateSessionTracker();
+        GlobalSessionTrackerState sessionTracker = instantiateSessionTracker().getInitialState();
 
         assertTrue( sessionTracker.validateOperation( sessionA, new LocalOperationId( 0, 0 ) ) );
         sessionTracker.update( sessionA, new LocalOperationId( 0, 0 ), 0 );
@@ -100,7 +100,7 @@ public abstract class BaseGlobalSessionTrackerStateTest
     @Test
     public void localSessionsAreIndependent()
     {
-        GlobalSessionTrackerState sessionTracker = instantiateSessionTracker();
+        GlobalSessionTrackerState sessionTracker = instantiateSessionTracker().getInitialState();
 
         assertTrue( sessionTracker.validateOperation( sessionA, new LocalOperationId( 0, 0 ) ) );
         sessionTracker.update( sessionA, new LocalOperationId( 0, 0 ), 0 );
@@ -119,7 +119,7 @@ public abstract class BaseGlobalSessionTrackerStateTest
     @Test
     public void globalSessionsAreIndependent()
     {
-        GlobalSessionTrackerState sessionTracker = instantiateSessionTracker();
+        GlobalSessionTrackerState sessionTracker = instantiateSessionTracker().getInitialState();
 
         assertTrue( sessionTracker.validateOperation( sessionA, new LocalOperationId( 0, 0 ) ) );
         sessionTracker.update( sessionA, new LocalOperationId( 0, 0 ), 0 );
@@ -145,7 +145,7 @@ public abstract class BaseGlobalSessionTrackerStateTest
     @Test
     public void newGlobalSessionUnderSameOwnerResetsCorrespondingLocalSessionTracker()
     {
-        GlobalSessionTrackerState sessionTracker = instantiateSessionTracker();
+        GlobalSessionTrackerState sessionTracker = instantiateSessionTracker().getInitialState();
 
         assertTrue( sessionTracker.validateOperation( sessionA, new LocalOperationId( 0, 0 ) ) );
         sessionTracker.update( sessionA, new LocalOperationId( 0, 0 ), 0 );

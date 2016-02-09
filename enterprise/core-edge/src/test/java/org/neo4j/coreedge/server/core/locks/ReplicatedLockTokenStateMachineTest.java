@@ -21,6 +21,7 @@ package org.neo4j.coreedge.server.core.locks;
 
 import org.junit.Test;
 
+import org.neo4j.coreedge.raft.state.StubStateStorage;
 import org.neo4j.coreedge.server.RaftTestMember;
 
 import static org.junit.Assert.assertEquals;
@@ -34,7 +35,7 @@ public class ReplicatedLockTokenStateMachineTest
     {
         // given
         LockTokenManager stateMachine = new ReplicatedLockTokenStateMachine<>(
-                new InMemoryReplicatedLockTokenState<RaftTestMember>() );
+                new StubStateStorage<>( new InMemoryReplicatedLockTokenState<RaftTestMember>() ) );
 
         // when
         int initialTokenId = stateMachine.currentToken().id();
@@ -48,7 +49,7 @@ public class ReplicatedLockTokenStateMachineTest
     {
         // given
         ReplicatedLockTokenStateMachine stateMachine = new ReplicatedLockTokenStateMachine<>(
-                new InMemoryReplicatedLockTokenState<RaftTestMember>() );
+                new StubStateStorage<>( new InMemoryReplicatedLockTokenState<RaftTestMember>() ) );
         int firstCandidateId = stateMachine.nextCandidateId();
 
         // when
@@ -63,7 +64,7 @@ public class ReplicatedLockTokenStateMachineTest
     {
         // given
         ReplicatedLockTokenStateMachine stateMachine = new ReplicatedLockTokenStateMachine<>(
-                new InMemoryReplicatedLockTokenState<RaftTestMember>() );
+                new StubStateStorage<>( new InMemoryReplicatedLockTokenState<RaftTestMember>() ) );
         int firstCandidateId = stateMachine.nextCandidateId();
 
         // when
@@ -84,7 +85,7 @@ public class ReplicatedLockTokenStateMachineTest
     {
         // given
         ReplicatedLockTokenStateMachine stateMachine = new ReplicatedLockTokenStateMachine<>(
-                new InMemoryReplicatedLockTokenState<RaftTestMember>() );
+                new StubStateStorage<>( new InMemoryReplicatedLockTokenState<RaftTestMember>() ) );
         int firstCandidateId = stateMachine.nextCandidateId();
 
         // when
@@ -105,7 +106,7 @@ public class ReplicatedLockTokenStateMachineTest
     {
         // given
         ReplicatedLockTokenStateMachine stateMachine = new ReplicatedLockTokenStateMachine<>(
-                new InMemoryReplicatedLockTokenState<RaftTestMember>() );
+                new StubStateStorage<>( new InMemoryReplicatedLockTokenState<RaftTestMember>() ) );
         int firstCandidateId = stateMachine.nextCandidateId();
 
         // when
@@ -130,7 +131,7 @@ public class ReplicatedLockTokenStateMachineTest
     {
         // given
         ReplicatedLockTokenStateMachine stateMachine = new ReplicatedLockTokenStateMachine<>(
-                new InMemoryReplicatedLockTokenState<RaftTestMember>() );
+                new StubStateStorage<>( new InMemoryReplicatedLockTokenState<RaftTestMember>() ) );
         int firstCandidateId = stateMachine.nextCandidateId();
 
         // when

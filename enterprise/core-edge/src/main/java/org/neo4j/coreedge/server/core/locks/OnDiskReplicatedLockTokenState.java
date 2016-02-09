@@ -26,17 +26,19 @@ import java.util.function.Supplier;
 import org.neo4j.coreedge.raft.state.ChannelMarshal;
 import org.neo4j.coreedge.raft.state.StatePersister;
 import org.neo4j.coreedge.raft.state.StateRecoveryManager;
+import org.neo4j.coreedge.raft.state.StateStorage;
 import org.neo4j.coreedge.server.core.locks.InMemoryReplicatedLockTokenState.InMemoryReplicatedLockStateChannelMarshal;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.internal.DatabaseHealth;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.logging.LogProvider;
 
-public class OnDiskReplicatedLockTokenState<MEMBER> extends LifecycleAdapter implements ReplicatedLockTokenState<MEMBER>
+public class OnDiskReplicatedLockTokenState<MEMBER> extends LifecycleAdapter implements StateStorage<InMemoryReplicatedLockTokenState<MEMBER>>
+
 {
     public static final String DIRECTORY_NAME = "lock-token-state";
     public static final String FILENAME = "lock-token.";
-    private InMemoryReplicatedLockTokenState<MEMBER> inMemoryReplicatedLockTokenState;
+    private InMemoryReplicatedLockTokenState<MEMBER> initialState;
     private final StatePersister<InMemoryReplicatedLockTokenState<MEMBER>> statePersister;
 
     public OnDiskReplicatedLockTokenState( FileSystemAbstraction fileSystemAbstraction, File stateDir,
@@ -55,42 +57,30 @@ public class OnDiskReplicatedLockTokenState<MEMBER> extends LifecycleAdapter imp
 
         StateRecoveryManager.RecoveryStatus recoveryStatus = recoveryManager.recover( fileA, fileB );
 
-        this.inMemoryReplicatedLockTokenState = recoveryManager.readLastEntryFrom( fileSystemAbstraction,
+        this.initialState = recoveryManager.readLastEntryFrom( fileSystemAbstraction,
                 recoveryStatus.previouslyActive() );
 
         this.statePersister = new StatePersister<>( fileA, fileB, fileSystemAbstraction, numberOfEntriesBeforeRotation,
                 marshal, recoveryStatus.previouslyInactive(), databaseHealthSupplier );
 
         logProvider.getLog( getClass() ).info( "State restored, last index is %d",
-                inMemoryReplicatedLockTokenState.logIndex() );
+                initialState.logIndex() );
     }
 
     @Override
-    public void set( ReplicatedLockTokenRequest<MEMBER> request, long logIndex )
+    public InMemoryReplicatedLockTokenState<MEMBER> getInitialState()
     {
-        InMemoryReplicatedLockTokenState<MEMBER> temp =
-                new InMemoryReplicatedLockTokenState<>( inMemoryReplicatedLockTokenState );
-        temp.set( request, logIndex );
-
-        try
-        {
-            statePersister.persistStoreData( temp );
-            inMemoryReplicatedLockTokenState = temp;
-        }
-        catch ( IOException e )
-        {
-            throw new RuntimeException( e );
-        }
+        return initialState;
     }
 
     @Override
-    public ReplicatedLockTokenRequest<MEMBER> get()
+    public void persistStoreData( InMemoryReplicatedLockTokenState<MEMBER> memberInMemoryReplicatedLockTokenState )
+            throws IOException
     {
-        return inMemoryReplicatedLockTokenState.get();
+        statePersister.persistStoreData( memberInMemoryReplicatedLockTokenState );
     }
 
-    @Override
-    public void shutdown() throws Throwable
+    public void close() throws IOException
     {
         statePersister.close();
     }

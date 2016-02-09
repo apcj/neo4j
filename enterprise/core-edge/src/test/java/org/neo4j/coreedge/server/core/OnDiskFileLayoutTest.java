@@ -28,7 +28,7 @@ import java.util.HashMap;
 import org.neo4j.coreedge.discovery.TestOnlyDiscoveryServiceFactory;
 import org.neo4j.coreedge.raft.log.NaiveDurableRaftLog;
 import org.neo4j.coreedge.raft.replication.session.OnDiskGlobalSessionTrackerState;
-import org.neo4j.coreedge.raft.state.id_allocation.OnDiskIdAllocationState;
+import org.neo4j.coreedge.raft.state.id_allocation.OnDiskIdAllocationStateStorage;
 import org.neo4j.coreedge.raft.state.membership.OnDiskRaftMembershipState;
 import org.neo4j.coreedge.raft.state.term.OnDiskTermState;
 import org.neo4j.coreedge.raft.state.vote.OnDiskVoteState;
@@ -63,7 +63,7 @@ public class OnDiskFileLayoutTest
         // then
         FileSystemAbstraction fs = platformModule.fileSystem;
         fs.fileExists( new File( baseClusterStateFile, OnDiskVoteState.DIRECTORY_NAME ) );
-        fs.fileExists( new File( baseClusterStateFile, OnDiskIdAllocationState.DIRECTORY_NAME ) );
+        fs.fileExists( new File( baseClusterStateFile, OnDiskIdAllocationStateStorage.DIRECTORY_NAME ) );
         fs.fileExists( new File( baseClusterStateFile, OnDiskTermState.DIRECTORY_NAME ) );
         fs.fileExists( new File( baseClusterStateFile, OnDiskRaftMembershipState.DIRECTORY_NAME ) );
         fs.fileExists( new File( baseClusterStateFile, NaiveDurableRaftLog.DIRECTORY_NAME ) );
