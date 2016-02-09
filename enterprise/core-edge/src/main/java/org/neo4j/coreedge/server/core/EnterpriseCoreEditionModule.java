@@ -84,9 +84,9 @@ import org.neo4j.coreedge.server.Expiration;
 import org.neo4j.coreedge.server.ExpiryScheduler;
 import org.neo4j.coreedge.server.ListenSocketAddress;
 import org.neo4j.coreedge.server.SenderService;
+import org.neo4j.coreedge.server.core.locks.InMemoryReplicatedLockTokenState;
 import org.neo4j.coreedge.server.core.locks.LeaderOnlyLockManager;
 import org.neo4j.coreedge.server.core.locks.LockTokenManager;
-import org.neo4j.coreedge.server.core.locks.OnDiskReplicatedLockTokenState;
 import org.neo4j.coreedge.server.core.locks.ReplicatedLockTokenStateMachine;
 import org.neo4j.coreedge.server.logging.BetterMessageLogger;
 import org.neo4j.coreedge.server.logging.MessageLogger;
@@ -204,13 +204,14 @@ public class EnterpriseCoreEditionModule
 
         LocalSessionPool localSessionPool = new LocalSessionPool( myself );
 
-        OnDiskReplicatedLockTokenState<CoreMember> onDiskReplicatedLockTokenState;
+        StateStorage<InMemoryReplicatedLockTokenState<CoreMember>> lockTokenState;
         try
         {
-            onDiskReplicatedLockTokenState = life.add( new OnDiskReplicatedLockTokenState<>( fileSystem,
-                    new File( clusterStateDirectory, OnDiskReplicatedLockTokenState.DIRECTORY_NAME ),
+            lockTokenState = life.add( new DurableStateStorage<>(
+                    fileSystem, new File( clusterStateDirectory, "lock-token-state" ), "lock-token",
+                    new InMemoryReplicatedLockTokenState.Marshal<>( new CoreMemberMarshal() ),
                     config.get( CoreEdgeClusterSettings.replicated_lock_token_state_size ),
-                    new CoreMember.CoreMemberMarshal(), databaseHealthSupplier, logProvider
+                    databaseHealthSupplier, logProvider
             ) );
         }
         catch ( IOException e )
@@ -218,7 +219,7 @@ public class EnterpriseCoreEditionModule
             throw new RuntimeException( e );
         }
         ReplicatedLockTokenStateMachine<CoreMember> replicatedLockTokenStateMachine =
-                new ReplicatedLockTokenStateMachine<>( onDiskReplicatedLockTokenState );
+                new ReplicatedLockTokenStateMachine<>( lockTokenState );
         stateMachines.add( replicatedLockTokenStateMachine );
 
         StateStorage<InMemoryGlobalSessionTrackerState<CoreMember>> onDiskGlobalSessionTrackerState;

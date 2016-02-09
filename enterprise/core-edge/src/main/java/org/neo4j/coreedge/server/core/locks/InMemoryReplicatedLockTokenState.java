@@ -67,12 +67,12 @@ public class InMemoryReplicatedLockTokenState<MEMBER> implements ReplicatedLockT
         return logIndex;
     }
 
-    public static class InMemoryReplicatedLockStateChannelMarshal<MEMBER> implements
+    public static class Marshal<MEMBER> implements
             StateMarshal<InMemoryReplicatedLockTokenState<MEMBER>>
     {
         private final ChannelMarshal<MEMBER> memberMarshal;
 
-        public InMemoryReplicatedLockStateChannelMarshal( ChannelMarshal<MEMBER> marshal )
+        public Marshal( ChannelMarshal<MEMBER> marshal )
         {
             this.memberMarshal = marshal;
         }
