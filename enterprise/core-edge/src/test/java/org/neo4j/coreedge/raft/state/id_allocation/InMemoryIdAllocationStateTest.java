@@ -40,8 +40,7 @@ public class InMemoryIdAllocationStateTest
             state.logIndex( i );
         }
 
-        final InMemoryIdAllocationState.InMemoryIdAllocationStateChannelMarshal marshal = new InMemoryIdAllocationState
-                .InMemoryIdAllocationStateChannelMarshal();
+        final InMemoryIdAllocationState.Marshal marshal = new InMemoryIdAllocationState.Marshal();
         // when
         InMemoryVersionableReadableClosablePositionAwareChannel channel = new
                 InMemoryVersionableReadableClosablePositionAwareChannel();
@@ -64,8 +63,7 @@ public class InMemoryIdAllocationStateTest
             state.logIndex( i );
         }
 
-        final InMemoryIdAllocationState.InMemoryIdAllocationStateChannelMarshal marshal = new InMemoryIdAllocationState
-                .InMemoryIdAllocationStateChannelMarshal();
+        final InMemoryIdAllocationState.Marshal marshal = new InMemoryIdAllocationState.Marshal();
         // when
         InMemoryVersionableReadableClosablePositionAwareChannel channel = new
                 InMemoryVersionableReadableClosablePositionAwareChannel();

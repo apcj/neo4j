@@ -36,7 +36,7 @@ import static java.util.Arrays.copyOf;
  * An in-memory representation of the IDs allocated to this core instance.
  * Instances of this class are serialized to disk by
  *
- * {@link InMemoryIdAllocationState.InMemoryIdAllocationStateChannelMarshal}. The serialized form:
+ * {@link Marshal}. The serialized form:
  * <p>
  * +----------------------------------+
  * |  8-byte length marker            |
@@ -176,7 +176,7 @@ public class InMemoryIdAllocationState implements IdAllocationState, Serializabl
         return result;
     }
 
-    static class InMemoryIdAllocationStateChannelMarshal implements StateMarshal<InMemoryIdAllocationState>
+    public static class Marshal implements StateMarshal<InMemoryIdAllocationState>
     {
         public static final int NUMBER_OF_BYTES_PER_WRITE =
                 3 * IdType.values().length * 8 // 3 arrays of IdType enum value length storing longs

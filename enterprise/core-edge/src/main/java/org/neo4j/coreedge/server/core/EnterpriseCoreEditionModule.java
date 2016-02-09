@@ -70,7 +70,7 @@ import org.neo4j.coreedge.raft.roles.Role;
 import org.neo4j.coreedge.raft.state.DurableStateStorage;
 import org.neo4j.coreedge.raft.state.StateMachines;
 import org.neo4j.coreedge.raft.state.StateStorage;
-import org.neo4j.coreedge.raft.state.id_allocation.OnDiskIdAllocationStateStorage;
+import org.neo4j.coreedge.raft.state.id_allocation.InMemoryIdAllocationState;
 import org.neo4j.coreedge.raft.state.membership.OnDiskRaftMembershipState;
 import org.neo4j.coreedge.raft.state.membership.RaftMembershipState;
 import org.neo4j.coreedge.raft.state.term.OnDiskTermState;
@@ -210,7 +210,8 @@ public class EnterpriseCoreEditionModule
             onDiskReplicatedLockTokenState = life.add( new OnDiskReplicatedLockTokenState<>( fileSystem,
                     new File( clusterStateDirectory, OnDiskReplicatedLockTokenState.DIRECTORY_NAME ),
                     config.get( CoreEdgeClusterSettings.replicated_lock_token_state_size ),
-                    new CoreMember.CoreMemberMarshal(), databaseHealthSupplier, logProvider ) );
+                    new CoreMember.CoreMemberMarshal(), databaseHealthSupplier, logProvider
+            ) );
         }
         catch ( IOException e )
         {
@@ -223,13 +224,12 @@ public class EnterpriseCoreEditionModule
         StateStorage<InMemoryGlobalSessionTrackerState<CoreMember>> onDiskGlobalSessionTrackerState;
         try
         {
-            onDiskGlobalSessionTrackerState = new
-                    DurableStateStorage<>( fileSystem,
-                    new File( clusterStateDirectory, "session-tracker-state" ),
-                    "session-tracker",
-                    new InMemoryGlobalSessionTrackerState.InMemoryGlobalSessionTrackerStateChannelMarshal<>( new CoreMemberMarshal() ),
+            onDiskGlobalSessionTrackerState = life.add( new DurableStateStorage<>(
+                    fileSystem, new File( clusterStateDirectory, "session-tracker-state" ), "session-tracker",
+                    new InMemoryGlobalSessionTrackerState.Marshal<>( new CoreMemberMarshal() ),
                     config.get( CoreEdgeClusterSettings.global_session_tracker_state_size ),
-                    databaseHealthSupplier, logProvider );
+                    databaseHealthSupplier, logProvider
+            ) );
         }
         catch ( IOException e )
         {
@@ -240,12 +240,14 @@ public class EnterpriseCoreEditionModule
                 replicatedLockTokenStateMachine,
                 dependencies, logging, platformModule.monitors, onDiskGlobalSessionTrackerState, stateMachines );
 
-        final OnDiskIdAllocationStateStorage idAllocationState;
+        final StateStorage<InMemoryIdAllocationState> idAllocationState;
         try
         {
-            idAllocationState = life.add( new OnDiskIdAllocationStateStorage( fileSystem,
-                    new File( clusterStateDirectory, OnDiskIdAllocationStateStorage.DIRECTORY_NAME ),
-                    config.get( CoreEdgeClusterSettings.id_alloc_state_size ), databaseHealthSupplier, logProvider ) );
+            idAllocationState = life.add( new DurableStateStorage<>(
+                    fileSystem, new File( clusterStateDirectory, "id-allocation-state" ), "id-allocation",
+                    new InMemoryIdAllocationState.Marshal(),
+                    config.get( CoreEdgeClusterSettings.id_alloc_state_size ), databaseHealthSupplier, logProvider
+            ) );
         }
         catch ( IOException e )
         {

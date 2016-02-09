@@ -38,8 +38,6 @@ import org.neo4j.test.TargetDirectory;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
-import static org.neo4j.coreedge.raft.state.id_allocation.OnDiskIdAllocationStateStorage.FILENAME;
-
 public class StatePersisterTest
 {
     @Rule
@@ -207,11 +205,11 @@ public class StatePersisterTest
 
     private File stateFileA()
     {
-        return new File( testDir.directory(), FILENAME + "a" );
+        return new File( testDir.directory(), "file.a" );
     }
 
     private File stateFileB()
     {
-        return new File( testDir.directory(), FILENAME + "b" );
+        return new File( testDir.directory(), "file.b" );
     }
 }

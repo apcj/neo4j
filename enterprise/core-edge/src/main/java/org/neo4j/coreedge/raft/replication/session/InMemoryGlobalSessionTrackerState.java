@@ -109,12 +109,11 @@ public class InMemoryGlobalSessionTrackerState<MEMBER> implements GlobalSessionT
         return localSessionTracker;
     }
 
-    public static class InMemoryGlobalSessionTrackerStateChannelMarshal<MEMBER> implements
-            StateMarshal<InMemoryGlobalSessionTrackerState<MEMBER>>
+    public static class Marshal<MEMBER> implements StateMarshal<InMemoryGlobalSessionTrackerState<MEMBER>>
     {
         private final ChannelMarshal<MEMBER> memberMarshal;
 
-        public InMemoryGlobalSessionTrackerStateChannelMarshal( ChannelMarshal<MEMBER> marshal )
+        public Marshal( ChannelMarshal<MEMBER> marshal )
         {
             this.memberMarshal = marshal;
         }
