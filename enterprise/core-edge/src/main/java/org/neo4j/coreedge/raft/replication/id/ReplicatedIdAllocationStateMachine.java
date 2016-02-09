@@ -24,7 +24,7 @@ import java.io.IOException;
 import org.neo4j.coreedge.raft.replication.ReplicatedContent;
 import org.neo4j.coreedge.raft.state.StateMachine;
 import org.neo4j.coreedge.raft.state.StateStorage;
-import org.neo4j.coreedge.raft.state.id_allocation.InMemoryIdAllocationState;
+import org.neo4j.coreedge.raft.state.id_allocation.IdAllocationState;
 import org.neo4j.coreedge.server.CoreMember;
 import org.neo4j.kernel.impl.store.id.IdRange;
 import org.neo4j.kernel.impl.store.id.IdType;
@@ -51,11 +51,11 @@ import static org.neo4j.collection.primitive.PrimitiveLongCollections.EMPTY_LONG
 public class ReplicatedIdAllocationStateMachine implements StateMachine
 {
     private final CoreMember me;
-    private final StateStorage<InMemoryIdAllocationState> storage;
-    private InMemoryIdAllocationState idAllocationState;
+    private final StateStorage<IdAllocationState> storage;
+    private IdAllocationState idAllocationState;
     private final Log log;
 
-    public ReplicatedIdAllocationStateMachine( CoreMember me, StateStorage<InMemoryIdAllocationState> storage,
+    public ReplicatedIdAllocationStateMachine( CoreMember me, StateStorage<IdAllocationState> storage,
                                                LogProvider logProvider )
     {
         this.me = me;
@@ -134,7 +134,7 @@ public class ReplicatedIdAllocationStateMachine implements StateMachine
     @Override
     public void flush() throws IOException
     {
-        InMemoryIdAllocationState copy = new InMemoryIdAllocationState( idAllocationState );
+        IdAllocationState copy = new IdAllocationState( idAllocationState );
         storage.persistStoreData( copy );
     }
 }

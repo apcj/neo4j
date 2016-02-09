@@ -26,13 +26,13 @@ import org.neo4j.kernel.impl.transaction.log.InMemoryVersionableReadableClosable
 
 import static org.junit.Assert.assertEquals;
 
-public class InMemoryIdAllocationStateTest
+public class IdAllocationStateTest
 {
     @Test
     public void shouldRoundtripToChannel() throws Exception
     {
         // given
-        final InMemoryIdAllocationState state = new InMemoryIdAllocationState();
+        final IdAllocationState state = new IdAllocationState();
 
         for ( int i = 1; i <= 3; i++ )
         {
@@ -40,12 +40,12 @@ public class InMemoryIdAllocationStateTest
             state.logIndex( i );
         }
 
-        final InMemoryIdAllocationState.Marshal marshal = new InMemoryIdAllocationState.Marshal();
+        final IdAllocationState.Marshal marshal = new IdAllocationState.Marshal();
         // when
         InMemoryVersionableReadableClosablePositionAwareChannel channel = new
                 InMemoryVersionableReadableClosablePositionAwareChannel();
         marshal.marshal( state, channel );
-        InMemoryIdAllocationState unmarshalled = marshal.unmarshal( channel );
+        IdAllocationState unmarshalled = marshal.unmarshal( channel );
 
         // then
         assertEquals( state, unmarshalled );
@@ -55,7 +55,7 @@ public class InMemoryIdAllocationStateTest
     public void shouldReturnNullForHalfWrittenEntries() throws Exception
     {
         // given
-        final InMemoryIdAllocationState state = new InMemoryIdAllocationState();
+        final IdAllocationState state = new IdAllocationState();
 
         for ( int i = 1; i <= 3; i++ )
         {
@@ -63,7 +63,7 @@ public class InMemoryIdAllocationStateTest
             state.logIndex( i );
         }
 
-        final InMemoryIdAllocationState.Marshal marshal = new InMemoryIdAllocationState.Marshal();
+        final IdAllocationState.Marshal marshal = new IdAllocationState.Marshal();
         // when
         InMemoryVersionableReadableClosablePositionAwareChannel channel = new
                 InMemoryVersionableReadableClosablePositionAwareChannel();
@@ -73,7 +73,7 @@ public class InMemoryIdAllocationStateTest
         // read back in the first one
         marshal.unmarshal( channel );
         // the second one will be half read (the ints and longs appended above). Result should be null
-        InMemoryIdAllocationState unmarshalled = marshal.unmarshal( channel );
+        IdAllocationState unmarshalled = marshal.unmarshal( channel );
 
         // then
         // the result should be null (and not a half read entry or any exception)

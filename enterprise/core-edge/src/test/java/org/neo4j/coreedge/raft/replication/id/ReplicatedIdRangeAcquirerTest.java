@@ -26,7 +26,7 @@ import org.junit.Test;
 
 import org.neo4j.coreedge.raft.replication.DirectReplicator;
 import org.neo4j.coreedge.raft.state.StubStateStorage;
-import org.neo4j.coreedge.raft.state.id_allocation.InMemoryIdAllocationState;
+import org.neo4j.coreedge.raft.state.id_allocation.IdAllocationState;
 import org.neo4j.coreedge.server.AdvertisedSocketAddress;
 import org.neo4j.coreedge.server.CoreMember;
 import org.neo4j.coreedge.raft.state.StateMachines;
@@ -95,7 +95,7 @@ public class ReplicatedIdRangeAcquirerTest
                                                                               int idRangeLength )
     {
         ReplicatedIdAllocationStateMachine idAllocationStateMachine = new ReplicatedIdAllocationStateMachine( member,
-                new StubStateStorage<>( new InMemoryIdAllocationState() ), NullLogProvider.getInstance() );
+                new StubStateStorage<>( new IdAllocationState() ), NullLogProvider.getInstance() );
         stateMachines.add( idAllocationStateMachine );
 
         ReplicatedIdRangeAcquirer acquirer = new ReplicatedIdRangeAcquirer( replicator,

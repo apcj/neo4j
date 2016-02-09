@@ -70,7 +70,7 @@ import org.neo4j.coreedge.raft.roles.Role;
 import org.neo4j.coreedge.raft.state.DurableStateStorage;
 import org.neo4j.coreedge.raft.state.StateMachines;
 import org.neo4j.coreedge.raft.state.StateStorage;
-import org.neo4j.coreedge.raft.state.id_allocation.InMemoryIdAllocationState;
+import org.neo4j.coreedge.raft.state.id_allocation.IdAllocationState;
 import org.neo4j.coreedge.raft.state.membership.InMemoryRaftMembershipState;
 import org.neo4j.coreedge.raft.state.term.TermState;
 import org.neo4j.coreedge.raft.state.term.MonitoredTermStateStorage;
@@ -240,12 +240,12 @@ public class EnterpriseCoreEditionModule
                 replicatedLockTokenStateMachine,
                 dependencies, logging, platformModule.monitors, onDiskGlobalSessionTrackerState, stateMachines );
 
-        final StateStorage<InMemoryIdAllocationState> idAllocationState;
+        final StateStorage<IdAllocationState> idAllocationState;
         try
         {
             idAllocationState = life.add( new DurableStateStorage<>(
                     fileSystem, new File( clusterStateDirectory, "id-allocation-state" ), "id-allocation",
-                    new InMemoryIdAllocationState.Marshal(),
+                    new IdAllocationState.Marshal(),
                     config.get( CoreEdgeClusterSettings.id_alloc_state_size ), databaseHealthSupplier, logProvider
             ) );
         }
