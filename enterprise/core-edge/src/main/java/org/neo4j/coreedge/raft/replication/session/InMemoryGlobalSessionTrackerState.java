@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.neo4j.coreedge.raft.state.ChannelMarshal;
-import org.neo4j.coreedge.raft.state.StateStuff;
+import org.neo4j.coreedge.raft.state.StateMarshal;
 import org.neo4j.storageengine.api.ReadPastEndException;
 import org.neo4j.storageengine.api.ReadableChannel;
 import org.neo4j.storageengine.api.WritableChannel;
@@ -109,9 +109,8 @@ public class InMemoryGlobalSessionTrackerState<MEMBER> implements GlobalSessionT
         return localSessionTracker;
     }
 
-    static class InMemoryGlobalSessionTrackerStateChannelMarshal<MEMBER> implements
-            ChannelMarshal<InMemoryGlobalSessionTrackerState<MEMBER>>,
-            StateStuff<InMemoryGlobalSessionTrackerState<MEMBER>>
+    public static class InMemoryGlobalSessionTrackerStateChannelMarshal<MEMBER> implements
+            StateMarshal<InMemoryGlobalSessionTrackerState<MEMBER>>
     {
         private final ChannelMarshal<MEMBER> memberMarshal;
 

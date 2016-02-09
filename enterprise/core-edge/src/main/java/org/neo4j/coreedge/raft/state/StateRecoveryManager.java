@@ -51,14 +51,12 @@ public class StateRecoveryManager<STATE>
     }
 
     protected final FileSystemAbstraction fileSystem;
-    private final ChannelMarshal<STATE> marshal;
-    private final StateStuff<STATE> stateStuff;
+    private final StateMarshal<STATE> marshal;
 
-    public StateRecoveryManager( FileSystemAbstraction fileSystem, ChannelMarshal<STATE> marshal, StateStuff<STATE> stateStuff )
+    public StateRecoveryManager( FileSystemAbstraction fileSystem, StateMarshal<STATE> marshal )
     {
         this.fileSystem = fileSystem;
         this.marshal = marshal;
-        this.stateStuff = stateStuff;
     }
 
     /**
@@ -102,7 +100,7 @@ public class StateRecoveryManager<STATE>
 
     protected long getOrdinalOfLastRecord( File file ) throws IOException
     {
-        return stateStuff.ordinal( readLastEntryFrom( file ) );
+        return marshal.ordinal( readLastEntryFrom( file ) );
     }
 
     public STATE readLastEntryFrom( File file )
@@ -110,7 +108,7 @@ public class StateRecoveryManager<STATE>
     {
         final ReadableChannel channel = new ReadAheadChannel<>( fileSystem.open( file, "r" ) );
 
-        STATE result = stateStuff.startState();
+        STATE result = marshal.startState();
         STATE lastRead;
 
         while ( (lastRead = marshal.unmarshal( channel)) != null )

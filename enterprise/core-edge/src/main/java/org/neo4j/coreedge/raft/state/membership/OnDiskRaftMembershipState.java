@@ -55,7 +55,7 @@ public class OnDiskRaftMembershipState<MEMBER> extends LifecycleAdapter implemen
         File fileB = new File( stateDir, FILENAME + "b" );
 
         StateRecoveryManager<InMemoryRaftMembershipState<MEMBER>> recoveryManager =
-                new StateRecoveryManager<>( fileSystemAbstraction, marshal, marshal );
+                new StateRecoveryManager<>( fileSystemAbstraction, marshal );
 
         final StateRecoveryManager.RecoveryStatus recoveryStatus = recoveryManager.recover( fileA, fileB );
 

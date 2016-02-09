@@ -53,13 +53,11 @@ import org.neo4j.coreedge.raft.replication.LeaderOnlyReplicator;
 import org.neo4j.coreedge.raft.replication.RaftContentSerializer;
 import org.neo4j.coreedge.raft.replication.RaftReplicator;
 import org.neo4j.coreedge.raft.replication.Replicator;
-import org.neo4j.coreedge.raft.replication.id.IdAllocationState;
 import org.neo4j.coreedge.raft.replication.id.ReplicatedIdAllocationStateMachine;
 import org.neo4j.coreedge.raft.replication.id.ReplicatedIdGeneratorFactory;
 import org.neo4j.coreedge.raft.replication.id.ReplicatedIdRangeAcquirer;
-import org.neo4j.coreedge.raft.replication.session.GlobalSessionTrackerState;
+import org.neo4j.coreedge.raft.replication.session.InMemoryGlobalSessionTrackerState;
 import org.neo4j.coreedge.raft.replication.session.LocalSessionPool;
-import org.neo4j.coreedge.raft.replication.session.OnDiskGlobalSessionTrackerState;
 import org.neo4j.coreedge.raft.replication.shipping.RaftLogShippingManager;
 import org.neo4j.coreedge.raft.replication.token.ReplicatedLabelTokenHolder;
 import org.neo4j.coreedge.raft.replication.token.ReplicatedPropertyKeyTokenHolder;
@@ -69,17 +67,15 @@ import org.neo4j.coreedge.raft.replication.tx.CommittingTransactionsRegistry;
 import org.neo4j.coreedge.raft.replication.tx.ReplicatedTransactionCommitProcess;
 import org.neo4j.coreedge.raft.replication.tx.ReplicatedTransactionStateMachine;
 import org.neo4j.coreedge.raft.roles.Role;
+import org.neo4j.coreedge.raft.state.DurableStateStorage;
 import org.neo4j.coreedge.raft.state.StateMachines;
 import org.neo4j.coreedge.raft.state.StateStorage;
 import org.neo4j.coreedge.raft.state.id_allocation.OnDiskIdAllocationStateStorage;
 import org.neo4j.coreedge.raft.state.membership.OnDiskRaftMembershipState;
 import org.neo4j.coreedge.raft.state.membership.RaftMembershipState;
-import org.neo4j.coreedge.raft.state.term.MonitoredTermState;
 import org.neo4j.coreedge.raft.state.term.OnDiskTermState;
-import org.neo4j.coreedge.raft.state.term.TermState;
 import org.neo4j.coreedge.raft.state.vote.InMemoryVoteState;
 import org.neo4j.coreedge.raft.state.vote.OnDiskVoteState;
-import org.neo4j.coreedge.raft.state.vote.VoteState;
 import org.neo4j.coreedge.server.AdvertisedSocketAddress;
 import org.neo4j.coreedge.server.CoreEdgeClusterSettings;
 import org.neo4j.coreedge.server.CoreMember;
@@ -224,13 +220,14 @@ public class EnterpriseCoreEditionModule
                 new ReplicatedLockTokenStateMachine<>( onDiskReplicatedLockTokenState );
         stateMachines.add( replicatedLockTokenStateMachine );
 
-        OnDiskGlobalSessionTrackerState<CoreMember> onDiskGlobalSessionTrackerState;
+        StateStorage<InMemoryGlobalSessionTrackerState<CoreMember>> onDiskGlobalSessionTrackerState;
         try
         {
             onDiskGlobalSessionTrackerState = new
-                    OnDiskGlobalSessionTrackerState<>( fileSystem,
-                    new File( clusterStateDirectory, OnDiskGlobalSessionTrackerState.DIRECTORY_NAME ),
-                    new CoreMemberMarshal(),
+                    DurableStateStorage<>( fileSystem,
+                    new File( clusterStateDirectory, "session-tracker-state" ),
+                    "session-tracker",
+                    new InMemoryGlobalSessionTrackerState.InMemoryGlobalSessionTrackerStateChannelMarshal<>( new CoreMemberMarshal() ),
                     config.get( CoreEdgeClusterSettings.global_session_tracker_state_size ),
                     databaseHealthSupplier, logProvider );
         }
@@ -361,14 +358,12 @@ public class EnterpriseCoreEditionModule
 
     }
 
-    public static CommitProcessFactory createCommitProcessFactory( final Replicator replicator,
-                                                                   final LocalSessionPool localSessionPool,
-                                                                   final LockTokenManager currentReplicatedLockState,
-                                                                   final Dependencies dependencies,
-                                                                   final LogService logging,
-                                                                   Monitors monitors,
-                                                                   OnDiskGlobalSessionTrackerState<CoreMember> globalSessionTrackerState,
-                                                                   StateMachines stateMachines )
+    public static CommitProcessFactory createCommitProcessFactory(
+            final Replicator replicator, final LocalSessionPool localSessionPool,
+            final LockTokenManager currentReplicatedLockState, final Dependencies dependencies,
+            final LogService logging, Monitors monitors,
+            StateStorage<InMemoryGlobalSessionTrackerState<CoreMember>> globalSessionTrackerState,
+            StateMachines stateMachines )
     {
         return ( appender, applier, config ) -> {
             TransactionRepresentationCommitProcess localCommit =

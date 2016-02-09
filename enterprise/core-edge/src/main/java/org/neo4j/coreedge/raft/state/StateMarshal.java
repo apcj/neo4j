@@ -4,7 +4,7 @@
  */
 package org.neo4j.coreedge.raft.state;
 
-public interface StateStuff<STATE>
+public interface StateMarshal<STATE> extends ChannelMarshal<STATE>
 {
     STATE startState();
 

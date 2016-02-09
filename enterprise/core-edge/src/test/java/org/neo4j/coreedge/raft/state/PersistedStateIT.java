@@ -280,7 +280,7 @@ public class PersistedStateIT
                 }
             };
 
-            StateRecoveryManager recoveryManager = new StateRecoveryManager( fileSystemAbstraction, null, null )
+            StateRecoveryManager recoveryManager = new StateRecoveryManager( fileSystemAbstraction, null )
             {
                 @Override
                 protected long getOrdinalOfLastRecord( File file ) throws IOException

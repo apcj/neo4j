@@ -22,7 +22,7 @@ package org.neo4j.coreedge.raft.state.vote;
 import java.io.IOException;
 
 import org.neo4j.coreedge.raft.state.ChannelMarshal;
-import org.neo4j.coreedge.raft.state.StateStuff;
+import org.neo4j.coreedge.raft.state.StateMarshal;
 import org.neo4j.storageengine.api.ReadPastEndException;
 import org.neo4j.storageengine.api.ReadableChannel;
 import org.neo4j.storageengine.api.WritableChannel;
@@ -90,7 +90,7 @@ public class InMemoryVoteState<MEMBER> implements VoteState<MEMBER>
     }
 
     public static class InMemoryVoteStateChannelMarshal<CoreMember> implements
-            ChannelMarshal<InMemoryVoteState<CoreMember>>, StateStuff<InMemoryVoteState<CoreMember>>
+            StateMarshal<InMemoryVoteState<CoreMember>>
 
     {
         public static final int NUMBER_OF_BYTES_PER_VOTE = 100_000; // 100kB URI max

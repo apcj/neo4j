@@ -24,7 +24,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.neo4j.coreedge.raft.state.ChannelMarshal;
-import org.neo4j.coreedge.raft.state.StateStuff;
+import org.neo4j.coreedge.raft.state.StateMarshal;
 import org.neo4j.storageengine.api.ReadPastEndException;
 import org.neo4j.storageengine.api.ReadableChannel;
 import org.neo4j.storageengine.api.WritableChannel;
@@ -136,7 +136,7 @@ public class InMemoryRaftMembershipState<MEMBER> implements RaftMembershipState<
     }
 
     public static class InMemoryRaftMembershipStateChannelMarshal<MEMBER> implements
-            ChannelMarshal<InMemoryRaftMembershipState<MEMBER>>, StateStuff<InMemoryRaftMembershipState<MEMBER>>
+            StateMarshal<InMemoryRaftMembershipState<MEMBER>>
     {
         private final ChannelMarshal<MEMBER> memberMarshal;
 

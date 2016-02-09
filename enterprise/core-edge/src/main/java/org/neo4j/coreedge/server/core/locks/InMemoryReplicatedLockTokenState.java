@@ -22,7 +22,7 @@ package org.neo4j.coreedge.server.core.locks;
 import java.io.IOException;
 
 import org.neo4j.coreedge.raft.state.ChannelMarshal;
-import org.neo4j.coreedge.raft.state.StateStuff;
+import org.neo4j.coreedge.raft.state.StateMarshal;
 import org.neo4j.storageengine.api.ReadPastEndException;
 import org.neo4j.storageengine.api.ReadableChannel;
 import org.neo4j.storageengine.api.WritableChannel;
@@ -68,8 +68,7 @@ public class InMemoryReplicatedLockTokenState<MEMBER> implements ReplicatedLockT
     }
 
     public static class InMemoryReplicatedLockStateChannelMarshal<MEMBER> implements
-            ChannelMarshal<InMemoryReplicatedLockTokenState<MEMBER>>,
-            StateStuff<InMemoryReplicatedLockTokenState<MEMBER>>
+            StateMarshal<InMemoryReplicatedLockTokenState<MEMBER>>
     {
         private final ChannelMarshal<MEMBER> memberMarshal;
 

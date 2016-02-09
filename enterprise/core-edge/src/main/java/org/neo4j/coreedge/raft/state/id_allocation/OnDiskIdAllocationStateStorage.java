@@ -60,7 +60,7 @@ public class OnDiskIdAllocationStateStorage extends LifecycleAdapter implements 
         InMemoryIdAllocationStateChannelMarshal marshal = new InMemoryIdAllocationStateChannelMarshal();
 
         StateRecoveryManager<InMemoryIdAllocationState> recoveryManager =
-                new StateRecoveryManager<>( fileSystemAbstraction, marshal, marshal );
+                new StateRecoveryManager<>( fileSystemAbstraction, marshal );
 
         StateRecoveryManager.RecoveryStatus recoveryStatus = recoveryManager.recover( fileA, fileB );
 

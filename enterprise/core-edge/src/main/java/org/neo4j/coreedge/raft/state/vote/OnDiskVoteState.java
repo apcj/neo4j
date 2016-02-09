@@ -53,7 +53,7 @@ public class OnDiskVoteState<MEMBER> extends LifecycleAdapter implements StateSt
                 new InMemoryVoteStateChannelMarshal<>( memberByteBufferMarshal );
 
         StateRecoveryManager<InMemoryVoteState<MEMBER>> recoveryManager =
-                new StateRecoveryManager<>( fileSystemAbstraction, marshal, marshal );
+                new StateRecoveryManager<>( fileSystemAbstraction, marshal );
 
         StateRecoveryManager.RecoveryStatus recoveryStatus = recoveryManager.recover( fileA, fileB );
 

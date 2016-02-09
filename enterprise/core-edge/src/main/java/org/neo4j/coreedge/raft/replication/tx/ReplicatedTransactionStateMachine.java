@@ -25,7 +25,6 @@ import java.util.Optional;
 import org.neo4j.coreedge.raft.replication.ReplicatedContent;
 import org.neo4j.coreedge.raft.replication.session.GlobalSession;
 import org.neo4j.coreedge.raft.replication.session.InMemoryGlobalSessionTrackerState;
-import org.neo4j.coreedge.raft.replication.session.OnDiskGlobalSessionTrackerState;
 import org.neo4j.coreedge.raft.state.StateMachine;
 import org.neo4j.coreedge.raft.state.StateStorage;
 import org.neo4j.coreedge.server.core.locks.LockTokenManager;

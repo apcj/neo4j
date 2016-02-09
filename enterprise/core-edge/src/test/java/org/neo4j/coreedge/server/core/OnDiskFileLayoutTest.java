@@ -27,7 +27,6 @@ import java.util.HashMap;
 
 import org.neo4j.coreedge.discovery.TestOnlyDiscoveryServiceFactory;
 import org.neo4j.coreedge.raft.log.NaiveDurableRaftLog;
-import org.neo4j.coreedge.raft.replication.session.OnDiskGlobalSessionTrackerState;
 import org.neo4j.coreedge.raft.state.id_allocation.OnDiskIdAllocationStateStorage;
 import org.neo4j.coreedge.raft.state.membership.OnDiskRaftMembershipState;
 import org.neo4j.coreedge.raft.state.term.OnDiskTermState;
@@ -67,7 +66,7 @@ public class OnDiskFileLayoutTest
         fs.fileExists( new File( baseClusterStateFile, OnDiskTermState.DIRECTORY_NAME ) );
         fs.fileExists( new File( baseClusterStateFile, OnDiskRaftMembershipState.DIRECTORY_NAME ) );
         fs.fileExists( new File( baseClusterStateFile, NaiveDurableRaftLog.DIRECTORY_NAME ) );
-        fs.fileExists( new File( baseClusterStateFile, OnDiskGlobalSessionTrackerState.DIRECTORY_NAME ) );
+        fs.fileExists( new File( baseClusterStateFile, "session-tracker-state" ) );
         fs.fileExists( new File( baseClusterStateFile, OnDiskReplicatedLockTokenState.DIRECTORY_NAME ) );
 
         assertEquals( 7, fs.listFiles( baseClusterStateFile ).length );
