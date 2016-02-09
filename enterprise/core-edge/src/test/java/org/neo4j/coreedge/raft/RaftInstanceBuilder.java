@@ -33,7 +33,7 @@ import org.neo4j.coreedge.raft.state.StateMachine;
 import org.neo4j.coreedge.raft.state.StateMachines;
 import org.neo4j.coreedge.raft.state.StateStorage;
 import org.neo4j.coreedge.raft.state.StubStateStorage;
-import org.neo4j.coreedge.raft.state.membership.InMemoryRaftMembershipState;
+import org.neo4j.coreedge.raft.state.membership.RaftMembershipState;
 import org.neo4j.coreedge.raft.state.term.TermState;
 import org.neo4j.coreedge.raft.state.vote.VoteState;
 import org.neo4j.helpers.Clock;
@@ -71,8 +71,8 @@ public class RaftInstanceBuilder<MEMBER>
     private int catchupBatchSize = 64;
     private int maxAllowedShippingLag = 256;
     private Supplier<DatabaseHealth> databaseHealthSupplier;
-    private StateStorage<InMemoryRaftMembershipState<MEMBER>> raftMembership =
-            new StubStateStorage<>( new InMemoryRaftMembershipState<>() );
+    private StateStorage<RaftMembershipState<MEMBER>> raftMembership =
+            new StubStateStorage<>( new RaftMembershipState<>() );
     private Monitors monitors  = new Monitors();
     private StateMachine stateMachine = new StateMachines();
 

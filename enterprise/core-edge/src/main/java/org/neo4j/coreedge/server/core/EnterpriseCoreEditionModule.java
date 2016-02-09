@@ -71,7 +71,7 @@ import org.neo4j.coreedge.raft.state.DurableStateStorage;
 import org.neo4j.coreedge.raft.state.StateMachines;
 import org.neo4j.coreedge.raft.state.StateStorage;
 import org.neo4j.coreedge.raft.state.id_allocation.IdAllocationState;
-import org.neo4j.coreedge.raft.state.membership.InMemoryRaftMembershipState;
+import org.neo4j.coreedge.raft.state.membership.RaftMembershipState;
 import org.neo4j.coreedge.raft.state.term.TermState;
 import org.neo4j.coreedge.raft.state.term.MonitoredTermStateStorage;
 import org.neo4j.coreedge.raft.state.vote.VoteState;
@@ -433,12 +433,12 @@ public class EnterpriseCoreEditionModule
             throw new RuntimeException( e );
         }
 
-        StateStorage<InMemoryRaftMembershipState<CoreMember>> raftMembershipState;
+        StateStorage<RaftMembershipState<CoreMember>> raftMembershipState;
         try
         {
             raftMembershipState = life.add( new DurableStateStorage<>( fileSystem,
                     new File( clusterStateDirectory, "membership-state" ), "membership-state",
-                    new InMemoryRaftMembershipState.Marshal<>( new CoreMemberMarshal() ),
+                    new RaftMembershipState.Marshal<>( new CoreMemberMarshal() ),
                     config.get( CoreEdgeClusterSettings.raft_membership_state_size ),
                     databaseHealthSupplier, logProvider
             ) );

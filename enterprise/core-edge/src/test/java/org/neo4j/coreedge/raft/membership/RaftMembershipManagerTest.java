@@ -32,7 +32,7 @@ import org.neo4j.coreedge.raft.outcome.LogCommand;
 import org.neo4j.coreedge.raft.outcome.TruncateLogCommand;
 import org.neo4j.coreedge.raft.state.StateStorage;
 import org.neo4j.coreedge.raft.state.StubStateStorage;
-import org.neo4j.coreedge.raft.state.membership.InMemoryRaftMembershipState;
+import org.neo4j.coreedge.raft.state.membership.RaftMembershipState;
 import org.neo4j.coreedge.server.RaftTestMember;
 import org.neo4j.coreedge.server.RaftTestMemberSetBuilder;
 import org.neo4j.helpers.FakeClock;
@@ -61,7 +61,7 @@ public class RaftMembershipManagerTest
         RaftMembershipManager<RaftTestMember> membershipManager = new RaftMembershipManager<>(
                 null, RaftTestMemberSetBuilder.INSTANCE, log,
                 NullLogProvider.getInstance(), 3, 1000, new FakeClock(),
-                1000, new StubStateStorage<>( new InMemoryRaftMembershipState<>() ) );
+                1000, new StubStateStorage<>( new RaftMembershipState<>() ) );
 
         // when
         membershipManager.processLog( asList(
@@ -84,7 +84,7 @@ public class RaftMembershipManagerTest
         RaftMembershipManager<RaftTestMember> membershipManager = new RaftMembershipManager<>(
                 null,
                 RaftTestMemberSetBuilder.INSTANCE, log, NullLogProvider.getInstance(), 3, 1000, new FakeClock(),
-                1000, new StubStateStorage<>( new InMemoryRaftMembershipState<>() ) );
+                1000, new StubStateStorage<>( new RaftMembershipState<>() ) );
 
         // when
         List<LogCommand> logCommands = asList(
@@ -114,7 +114,7 @@ public class RaftMembershipManagerTest
         RaftMembershipManager<RaftTestMember> membershipManager = new RaftMembershipManager<>(
                 null,
                 RaftTestMemberSetBuilder.INSTANCE, log, NullLogProvider.getInstance(), 3, 1000, new FakeClock(),
-                1000, new StubStateStorage<>( new InMemoryRaftMembershipState<>() ) );
+                1000, new StubStateStorage<>( new RaftMembershipState<>() ) );
 
         // when
         List<LogCommand> logCommands = asList(
@@ -141,10 +141,10 @@ public class RaftMembershipManagerTest
         // given
         final InMemoryRaftLog log = new InMemoryRaftLog();
 
-        InMemoryRaftMembershipState<RaftTestMember> state = new InMemoryRaftMembershipState<>();
+        RaftMembershipState<RaftTestMember> state = new RaftMembershipState<>();
         state.logIndex( 42L );
 
-        final StateStorage<InMemoryRaftMembershipState<RaftTestMember>> stateStorage = mock( StateStorage.class );
+        final StateStorage<RaftMembershipState<RaftTestMember>> stateStorage = mock( StateStorage.class );
         when( stateStorage.getInitialState() ).thenReturn( state );
 
         RaftMembershipManager<RaftTestMember> membershipManager = new RaftMembershipManager<>(

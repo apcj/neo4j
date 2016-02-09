@@ -39,7 +39,6 @@ import org.neo4j.coreedge.raft.replication.Replicator;
 import org.neo4j.coreedge.raft.roles.Role;
 import org.neo4j.coreedge.raft.state.StateStorage;
 import org.neo4j.coreedge.raft.state.follower.FollowerStates;
-import org.neo4j.coreedge.raft.state.membership.InMemoryRaftMembershipState;
 import org.neo4j.coreedge.raft.state.membership.RaftMembershipState;
 import org.neo4j.helpers.Clock;
 import org.neo4j.logging.Log;
@@ -68,14 +67,14 @@ public class RaftMembershipManager<MEMBER> implements RaftMembership<MEMBER>, Me
     private final ReadableRaftLog entryLog;
     private final Log log;
     private final int expectedClusterSize;
-    private final StateStorage<InMemoryRaftMembershipState<MEMBER>> stateStorage;
-    private final InMemoryRaftMembershipState<MEMBER> raftMembershipState;
+    private final StateStorage<RaftMembershipState<MEMBER>> stateStorage;
+    private final RaftMembershipState<MEMBER> raftMembershipState;
     private long lastApplied = -1;
 
     public RaftMembershipManager( Replicator replicator, RaftGroup.Builder<MEMBER> memberSetBuilder, RaftLog entryLog,
                                   LogProvider logProvider, int expectedClusterSize, long electionTimeout,
                                   Clock clock, long catchupTimeout,
-                                  StateStorage<InMemoryRaftMembershipState<MEMBER>> stateStorage )
+                                  StateStorage<RaftMembershipState<MEMBER>> stateStorage )
     {
         this.replicator = replicator;
         this.memberSetBuilder = memberSetBuilder;
