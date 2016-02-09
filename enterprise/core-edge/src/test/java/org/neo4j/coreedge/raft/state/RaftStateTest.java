@@ -34,7 +34,7 @@ import org.neo4j.coreedge.raft.outcome.LogCommand;
 import org.neo4j.coreedge.raft.outcome.Outcome;
 import org.neo4j.coreedge.raft.state.follower.FollowerState;
 import org.neo4j.coreedge.raft.state.follower.FollowerStates;
-import org.neo4j.coreedge.raft.state.term.InMemoryTermState;
+import org.neo4j.coreedge.raft.state.term.TermState;
 import org.neo4j.coreedge.raft.state.vote.InMemoryVoteState;
 import org.neo4j.coreedge.server.RaftTestMember;
 
@@ -51,7 +51,7 @@ public class RaftStateTest
     {
         // given
         RaftState<RaftTestMember> raftState = new RaftState<>( new RaftTestMember( 0 ),
-                new StubStateStorage<>( new InMemoryTermState() ),
+                new StubStateStorage<>( new TermState() ),
                 new FakeMembership(), new InMemoryRaftLog(),
                 new StubStateStorage<>( new InMemoryVoteState<>( ) ) );
 

@@ -19,14 +19,44 @@
  */
 package org.neo4j.coreedge.raft.state;
 
-import org.neo4j.coreedge.raft.state.term.InMemoryTermState;
+import org.junit.Test;
+
 import org.neo4j.coreedge.raft.state.term.TermState;
 
-public class InMemoryTermStateContractTest extends TermStateContractTest
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
+public class TermStateTest
 {
-    @Override
-    public TermState createTermStore()
+    @Test
+    public void shouldStoreCurrentTerm() throws Exception
     {
-        return new InMemoryTermState();
+        // given
+        TermState termState = new TermState();
+
+        // when
+        termState.update( 21 );
+
+        // then
+        assertEquals( 21, termState.currentTerm() );
+    }
+
+    @Test
+    public void rejectLowerTerm() throws Exception
+    {
+        // given
+        TermState termState = new TermState();
+        termState.update( 21 );
+
+        // when
+        try
+        {
+            termState.update( 20 );
+            fail( "Should have thrown exception" );
+        }
+        catch ( IllegalArgumentException e )
+        {
+            // expected
+        }
     }
 }

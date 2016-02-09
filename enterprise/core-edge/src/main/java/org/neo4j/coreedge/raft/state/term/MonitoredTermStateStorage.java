@@ -25,27 +25,27 @@ import org.neo4j.coreedge.raft.log.monitoring.RaftTermMonitor;
 import org.neo4j.coreedge.raft.state.StateStorage;
 import org.neo4j.kernel.monitoring.Monitors;
 
-public class MonitoredTermStateStorage implements StateStorage<InMemoryTermState>
+public class MonitoredTermStateStorage implements StateStorage<TermState>
 {
     String TERM_TAG = "term";
 
-    private final StateStorage<InMemoryTermState> delegate;
+    private final StateStorage<TermState> delegate;
     private final RaftTermMonitor termMonitor;
 
-    public MonitoredTermStateStorage( StateStorage<InMemoryTermState> delegate, Monitors monitors )
+    public MonitoredTermStateStorage( StateStorage<TermState> delegate, Monitors monitors )
     {
         this.delegate = delegate;
         this.termMonitor = monitors.newMonitor( RaftTermMonitor.class, getClass(), TERM_TAG );
     }
 
     @Override
-    public InMemoryTermState getInitialState()
+    public TermState getInitialState()
     {
         return delegate.getInitialState();
     }
 
     @Override
-    public void persistStoreData( InMemoryTermState state ) throws IOException
+    public void persistStoreData( TermState state ) throws IOException
     {
         delegate.persistStoreData( state );
         termMonitor.term( state.currentTerm() );

@@ -48,7 +48,7 @@ import org.neo4j.coreedge.raft.state.RaftState;
 import org.neo4j.coreedge.raft.state.ReadableRaftState;
 import org.neo4j.coreedge.raft.state.StateMachine;
 import org.neo4j.coreedge.raft.state.StateStorage;
-import org.neo4j.coreedge.raft.state.term.InMemoryTermState;
+import org.neo4j.coreedge.raft.state.term.TermState;
 import org.neo4j.coreedge.raft.state.vote.InMemoryVoteState;
 import org.neo4j.kernel.impl.util.Listener;
 import org.neo4j.kernel.internal.DatabaseHealth;
@@ -113,7 +113,7 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
 
     private RaftLogShippingManager<MEMBER> logShipping;
 
-    public RaftInstance( MEMBER myself, StateStorage<InMemoryTermState> termStorage,
+    public RaftInstance( MEMBER myself, StateStorage<TermState> termStorage,
                          StateStorage<InMemoryVoteState<MEMBER>> voteStorage, RaftLog entryLog,
                          StateMachine stateMachine, long electionTimeout, long heartbeatInterval,
                          RenewableTimeoutService renewableTimeoutService,

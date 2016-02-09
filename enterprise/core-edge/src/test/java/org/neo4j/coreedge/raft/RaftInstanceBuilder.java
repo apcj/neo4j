@@ -34,7 +34,7 @@ import org.neo4j.coreedge.raft.state.StateMachines;
 import org.neo4j.coreedge.raft.state.StateStorage;
 import org.neo4j.coreedge.raft.state.StubStateStorage;
 import org.neo4j.coreedge.raft.state.membership.InMemoryRaftMembershipState;
-import org.neo4j.coreedge.raft.state.term.InMemoryTermState;
+import org.neo4j.coreedge.raft.state.term.TermState;
 import org.neo4j.coreedge.raft.state.vote.InMemoryVoteState;
 import org.neo4j.helpers.Clock;
 import org.neo4j.kernel.internal.DatabaseHealth;
@@ -49,7 +49,7 @@ public class RaftInstanceBuilder<MEMBER>
     private int expectedClusterSize;
     private RaftGroup.Builder<MEMBER> memberSetBuilder;
 
-    private StateStorage<InMemoryTermState> termState = new StubStateStorage<>( new InMemoryTermState() );
+    private StateStorage<TermState> termState = new StubStateStorage<>( new TermState() );
     private StateStorage<InMemoryVoteState<MEMBER>> voteState = new StubStateStorage<>( new InMemoryVoteState<>() );
     private RaftLog raftLog = new InMemoryRaftLog();
     private RenewableTimeoutService renewableTimeoutService = new DelayedRenewableTimeoutService( Clock.SYSTEM_CLOCK,

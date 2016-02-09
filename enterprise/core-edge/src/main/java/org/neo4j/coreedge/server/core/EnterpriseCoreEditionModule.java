@@ -72,7 +72,7 @@ import org.neo4j.coreedge.raft.state.StateMachines;
 import org.neo4j.coreedge.raft.state.StateStorage;
 import org.neo4j.coreedge.raft.state.id_allocation.InMemoryIdAllocationState;
 import org.neo4j.coreedge.raft.state.membership.InMemoryRaftMembershipState;
-import org.neo4j.coreedge.raft.state.term.InMemoryTermState;
+import org.neo4j.coreedge.raft.state.term.TermState;
 import org.neo4j.coreedge.raft.state.term.MonitoredTermStateStorage;
 import org.neo4j.coreedge.raft.state.vote.InMemoryVoteState;
 import org.neo4j.coreedge.server.AdvertisedSocketAddress;
@@ -404,12 +404,12 @@ public class EnterpriseCoreEditionModule
                                                         Supplier<DatabaseHealth> databaseHealthSupplier,
                                                         Monitors monitors )
     {
-        StateStorage<InMemoryTermState> termState;
+        StateStorage<TermState> termState;
         try
         {
-            StateStorage<InMemoryTermState> durableTermState = life.add( new DurableStateStorage<>(
+            StateStorage<TermState> durableTermState = life.add( new DurableStateStorage<>(
                     fileSystem, new File( clusterStateDirectory, "term-state" ), "term-state",
-                    new InMemoryTermState.Marshal(),
+                    new TermState.Marshal(),
                     config.get( CoreEdgeClusterSettings.term_state_size ), databaseHealthSupplier, logProvider
             ) );
             termState = new MonitoredTermStateStorage( durableTermState, monitors );

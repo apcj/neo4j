@@ -36,9 +36,9 @@ public class MonitoredTermStateStorageTest
         Monitors monitors = new Monitors();
         StubRaftTermMonitor raftTermMonitor = new StubRaftTermMonitor();
         monitors.addMonitorListener( raftTermMonitor );
-        InMemoryTermState state = new InMemoryTermState();
+        TermState state = new TermState();
         MonitoredTermStateStorage monitoredTermStateStorage =
-                new MonitoredTermStateStorage( new StubStateStorage<>( new InMemoryTermState() ), monitors );
+                new MonitoredTermStateStorage( new StubStateStorage<>( new TermState() ), monitors );
 
         // when
         state.update( 7 );
