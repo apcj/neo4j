@@ -70,7 +70,7 @@ public class InMemoryTermState implements TermState
         }
     }
 
-    public static class InMemoryTermStateChannelMarshal implements StateMarshal<InMemoryTermState>
+    public static class Marshal implements StateMarshal<InMemoryTermState>
     {
         @Override
         public void marshal( InMemoryTermState inMemoryTermState, WritableChannel channel ) throws IOException

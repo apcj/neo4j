@@ -73,7 +73,8 @@ import org.neo4j.coreedge.raft.state.StateStorage;
 import org.neo4j.coreedge.raft.state.id_allocation.InMemoryIdAllocationState;
 import org.neo4j.coreedge.raft.state.membership.OnDiskRaftMembershipState;
 import org.neo4j.coreedge.raft.state.membership.RaftMembershipState;
-import org.neo4j.coreedge.raft.state.term.OnDiskTermState;
+import org.neo4j.coreedge.raft.state.term.InMemoryTermState;
+import org.neo4j.coreedge.raft.state.term.MonitoredTermStateStorage;
 import org.neo4j.coreedge.raft.state.vote.InMemoryVoteState;
 import org.neo4j.coreedge.raft.state.vote.OnDiskVoteState;
 import org.neo4j.coreedge.server.AdvertisedSocketAddress;
@@ -405,13 +406,14 @@ public class EnterpriseCoreEditionModule
                                                         Supplier<DatabaseHealth> databaseHealthSupplier,
                                                         Monitors monitors )
     {
-        OnDiskTermState termState;
+        StateStorage<InMemoryTermState> termState;
         try
         {
-            termState = life.add( new OnDiskTermState( fileSystem,
-                    new File( clusterStateDirectory, OnDiskTermState.DIRECTORY_NAME ),
+            StateStorage<InMemoryTermState> durableTermState = life.add( new DurableStateStorage<>(
+                    fileSystem, new File( clusterStateDirectory, "term-state" ), "term-state",
+                    new InMemoryTermState.Marshal(),
                     config.get( CoreEdgeClusterSettings.term_state_size ), databaseHealthSupplier, logProvider ) );
-//            termState = new MonitoredTermState( onDiskTermState, monitors );
+            termState = new MonitoredTermStateStorage( durableTermState, monitors );
         }
         catch ( IOException e )
         {
