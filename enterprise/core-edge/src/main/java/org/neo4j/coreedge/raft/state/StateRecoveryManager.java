@@ -23,8 +23,10 @@ import java.io.File;
 import java.io.IOException;
 
 import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.kernel.impl.transaction.log.ReadAheadChannel;
+import org.neo4j.storageengine.api.ReadableChannel;
 
-public abstract class StateRecoveryManager
+public class StateRecoveryManager<STATE>
 {
     public static class RecoveryStatus
     {
@@ -49,10 +51,14 @@ public abstract class StateRecoveryManager
     }
 
     protected final FileSystemAbstraction fileSystem;
+    private final ChannelMarshal<STATE> marshal;
+    private final StateStuff<STATE> stateStuff;
 
-    public StateRecoveryManager( FileSystemAbstraction fileSystem )
+    public StateRecoveryManager( FileSystemAbstraction fileSystem, ChannelMarshal<STATE> marshal, StateStuff<STATE> stateStuff )
     {
         this.fileSystem = fileSystem;
+        this.marshal = marshal;
+        this.stateStuff = stateStuff;
     }
 
     /**
@@ -94,5 +100,24 @@ public abstract class StateRecoveryManager
         }
     }
 
-    protected abstract long getOrdinalOfLastRecord( File file ) throws IOException;
+    protected long getOrdinalOfLastRecord( File file ) throws IOException
+    {
+        return stateStuff.ordinal( readLastEntryFrom( file ) );
+    }
+
+    public STATE readLastEntryFrom( File file )
+            throws IOException
+    {
+        final ReadableChannel channel = new ReadAheadChannel<>( fileSystem.open( file, "r" ) );
+
+        STATE result = stateStuff.startState();
+        STATE lastRead;
+
+        while ( (lastRead = marshal.unmarshal( channel)) != null )
+        {
+            result = lastRead;
+        }
+
+        return result;
+    }
 }

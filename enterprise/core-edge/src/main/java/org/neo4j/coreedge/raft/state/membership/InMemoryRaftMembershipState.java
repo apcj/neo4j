@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.neo4j.coreedge.raft.state.ChannelMarshal;
+import org.neo4j.coreedge.raft.state.StateStuff;
 import org.neo4j.storageengine.api.ReadPastEndException;
 import org.neo4j.storageengine.api.ReadableChannel;
 import org.neo4j.storageengine.api.WritableChannel;
@@ -134,8 +135,8 @@ public class InMemoryRaftMembershipState<MEMBER> implements RaftMembershipState<
         listeners.forEach( Listener::onMembershipChanged );
     }
 
-    public static class InMemoryRaftMembershipStateChannelMarshal<MEMBER>
-            implements ChannelMarshal<InMemoryRaftMembershipState<MEMBER>>
+    public static class InMemoryRaftMembershipStateChannelMarshal<MEMBER> implements
+            ChannelMarshal<InMemoryRaftMembershipState<MEMBER>>, StateStuff<InMemoryRaftMembershipState<MEMBER>>
     {
         private final ChannelMarshal<MEMBER> memberMarshal;
 
@@ -173,6 +174,18 @@ public class InMemoryRaftMembershipState<MEMBER> implements RaftMembershipState<
             {
                 return null;
             }
+        }
+
+        @Override
+        public InMemoryRaftMembershipState<MEMBER> startState()
+        {
+            return new InMemoryRaftMembershipState<>();
+        }
+
+        @Override
+        public long ordinal( InMemoryRaftMembershipState<MEMBER> state )
+        {
+            return state.logIndex();
         }
     }
 }

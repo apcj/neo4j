@@ -59,12 +59,12 @@ public class OnDiskIdAllocationStateStorage extends LifecycleAdapter implements 
 
         InMemoryIdAllocationStateChannelMarshal marshal = new InMemoryIdAllocationStateChannelMarshal();
 
-        IdAllocationStateRecoveryManager recoveryManager =
-                new IdAllocationStateRecoveryManager( fileSystemAbstraction, marshal );
+        StateRecoveryManager<InMemoryIdAllocationState> recoveryManager =
+                new StateRecoveryManager<>( fileSystemAbstraction, marshal, marshal );
 
         StateRecoveryManager.RecoveryStatus recoveryStatus = recoveryManager.recover( fileA, fileB );
 
-        this.initialState = recoveryManager.readLastEntryFrom( fileSystemAbstraction, recoveryStatus.previouslyActive() );
+        this.initialState = recoveryManager.readLastEntryFrom( recoveryStatus.previouslyActive() );
 
         this.statePersister = new StatePersister<>( fileA, fileB, fileSystemAbstraction, numberOfEntriesBeforeRotation,
                 marshal, recoveryStatus.previouslyInactive(), databaseHealthSupplier );

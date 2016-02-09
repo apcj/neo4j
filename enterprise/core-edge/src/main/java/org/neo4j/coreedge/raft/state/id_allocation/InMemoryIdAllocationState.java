@@ -25,6 +25,8 @@ import java.util.Arrays;
 
 import org.neo4j.coreedge.raft.replication.id.IdAllocationState;
 import org.neo4j.coreedge.raft.state.ChannelMarshal;
+import org.neo4j.coreedge.raft.state.StateStorage;
+import org.neo4j.coreedge.raft.state.StateStuff;
 import org.neo4j.storageengine.api.ReadPastEndException;
 import org.neo4j.storageengine.api.ReadableChannel;
 import org.neo4j.storageengine.api.WritableChannel;
@@ -176,7 +178,8 @@ public class InMemoryIdAllocationState implements IdAllocationState, Serializabl
         return result;
     }
 
-    static class InMemoryIdAllocationStateChannelMarshal implements ChannelMarshal<InMemoryIdAllocationState>
+    static class InMemoryIdAllocationStateChannelMarshal implements ChannelMarshal<InMemoryIdAllocationState>,
+            StateStuff<InMemoryIdAllocationState>
     {
         public static final int NUMBER_OF_BYTES_PER_WRITE =
                 3 * IdType.values().length * 8 // 3 arrays of IdType enum value length storing longs
@@ -239,6 +242,18 @@ public class InMemoryIdAllocationState implements IdAllocationState, Serializabl
             {
                 return null;
             }
+        }
+
+        @Override
+        public InMemoryIdAllocationState startState()
+        {
+            return new InMemoryIdAllocationState();
+        }
+
+        @Override
+        public long ordinal( InMemoryIdAllocationState state )
+        {
+            return state.logIndex();
         }
     }
 }

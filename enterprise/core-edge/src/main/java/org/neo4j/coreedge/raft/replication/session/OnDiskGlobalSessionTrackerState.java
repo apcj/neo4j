@@ -55,13 +55,13 @@ public class OnDiskGlobalSessionTrackerState<MEMBER> extends LifecycleAdapter
         File fileA = new File( stateDir, FILENAME + "a" );
         File fileB = new File( stateDir, FILENAME + "b" );
 
-        GlobalSessionTrackerStateRecoveryManager<MEMBER> recoveryManager =
-                new GlobalSessionTrackerStateRecoveryManager<>( fileSystemAbstraction, marshal );
+        StateRecoveryManager<InMemoryGlobalSessionTrackerState<MEMBER>> recoveryManager =
+                new StateRecoveryManager<>( fileSystemAbstraction, marshal, marshal );
 
         final StateRecoveryManager.RecoveryStatus recoveryStatus = recoveryManager.recover( fileA, fileB );
 
         this.initialState =
-                recoveryManager.readLastEntryFrom( fileSystemAbstraction, recoveryStatus.previouslyActive() );
+                recoveryManager.readLastEntryFrom( recoveryStatus.previouslyActive() );
 
         this.statePersister = new StatePersister<>( fileA, fileB, fileSystemAbstraction, numberOfEntriesBeforeRotation,
                 marshal, recoveryStatus.previouslyInactive(), databaseHealthSupplier );

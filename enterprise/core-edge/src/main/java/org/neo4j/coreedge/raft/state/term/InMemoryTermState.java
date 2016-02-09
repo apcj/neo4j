@@ -22,6 +22,7 @@ package org.neo4j.coreedge.raft.state.term;
 import java.io.IOException;
 
 import org.neo4j.coreedge.raft.state.ChannelMarshal;
+import org.neo4j.coreedge.raft.state.StateStuff;
 import org.neo4j.storageengine.api.ReadPastEndException;
 import org.neo4j.storageengine.api.ReadableChannel;
 import org.neo4j.storageengine.api.WritableChannel;
@@ -70,7 +71,8 @@ public class InMemoryTermState implements TermState
         }
     }
 
-    public static class InMemoryTermStateChannelMarshal implements ChannelMarshal<InMemoryTermState>
+    public static class InMemoryTermStateChannelMarshal implements
+            ChannelMarshal<InMemoryTermState>, StateStuff<InMemoryTermState>
     {
         @Override
         public void marshal( InMemoryTermState inMemoryTermState, WritableChannel channel ) throws IOException
@@ -89,6 +91,18 @@ public class InMemoryTermState implements TermState
             {
                 return null;
             }
+        }
+
+        @Override
+        public InMemoryTermState startState()
+        {
+            return new InMemoryTermState();
+        }
+
+        @Override
+        public long ordinal( InMemoryTermState state )
+        {
+            return state.currentTerm();
         }
     }
 }

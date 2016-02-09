@@ -52,13 +52,12 @@ public class OnDiskReplicatedLockTokenState<MEMBER> extends LifecycleAdapter imp
         InMemoryReplicatedLockStateChannelMarshal<MEMBER> marshal =
                 new InMemoryReplicatedLockStateChannelMarshal<>( channelMarshal );
 
-        ReplicatedLockTokenStateRecoveryManager<MEMBER> recoveryManager =
-                new ReplicatedLockTokenStateRecoveryManager<>( fileSystemAbstraction, marshal );
+        StateRecoveryManager<InMemoryReplicatedLockTokenState<MEMBER>> recoveryManager =
+                new StateRecoveryManager<>( fileSystemAbstraction, marshal, marshal );
 
         StateRecoveryManager.RecoveryStatus recoveryStatus = recoveryManager.recover( fileA, fileB );
 
-        this.initialState = recoveryManager.readLastEntryFrom( fileSystemAbstraction,
-                recoveryStatus.previouslyActive() );
+        this.initialState = recoveryManager.readLastEntryFrom( recoveryStatus.previouslyActive() );
 
         this.statePersister = new StatePersister<>( fileA, fileB, fileSystemAbstraction, numberOfEntriesBeforeRotation,
                 marshal, recoveryStatus.previouslyInactive(), databaseHealthSupplier );

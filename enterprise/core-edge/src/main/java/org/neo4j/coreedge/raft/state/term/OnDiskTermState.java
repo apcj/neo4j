@@ -51,12 +51,12 @@ public class OnDiskTermState extends LifecycleAdapter implements TermState
 
         InMemoryTermStateChannelMarshal marshal = new InMemoryTermStateChannelMarshal();
 
-        TermStateRecoveryManager recoveryManager = new TermStateRecoveryManager( fileSystemAbstraction, marshal );
+        StateRecoveryManager<InMemoryTermState> recoveryManager =
+                new StateRecoveryManager<>( fileSystemAbstraction, marshal, marshal );
 
         StateRecoveryManager.RecoveryStatus recoveryStatus = recoveryManager.recover( fileA, fileB );
 
-        this.inMemoryTermState = recoveryManager.readLastEntryFrom( fileSystemAbstraction, recoveryStatus
-                .previouslyActive() );
+        this.inMemoryTermState = recoveryManager.readLastEntryFrom( recoveryStatus.previouslyActive() );
 
         this.statePersister = new StatePersister<>( fileA, fileB, fileSystemAbstraction, numberOfEntriesBeforeRotation,
                 marshal, recoveryStatus.previouslyInactive(),

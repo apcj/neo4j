@@ -52,13 +52,12 @@ public class OnDiskVoteState<MEMBER> extends LifecycleAdapter implements VoteSta
         InMemoryVoteStateChannelMarshal<MEMBER> marshal =
                 new InMemoryVoteStateChannelMarshal<>( memberByteBufferMarshal );
 
-        VoteStateRecoveryManager<MEMBER> recoveryManager =
-                new VoteStateRecoveryManager<>( fileSystemAbstraction, marshal );
+        StateRecoveryManager<InMemoryVoteState<MEMBER>> recoveryManager =
+                new StateRecoveryManager<>( fileSystemAbstraction, marshal, marshal );
 
         StateRecoveryManager.RecoveryStatus recoveryStatus = recoveryManager.recover( fileA, fileB );
 
-        this.inMemoryVoteState = recoveryManager.readLastEntryFrom( fileSystemAbstraction, recoveryStatus
-                .previouslyActive() );
+        this.inMemoryVoteState = recoveryManager.readLastEntryFrom( recoveryStatus.previouslyActive() );
 
         this.statePersister = new StatePersister<>( fileA, fileB, fileSystemAbstraction, numberOfEntriesBeforeRotation,
                 marshal, recoveryStatus.previouslyInactive(), databaseHealthSupplier );

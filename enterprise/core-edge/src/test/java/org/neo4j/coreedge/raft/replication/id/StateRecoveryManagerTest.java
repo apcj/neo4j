@@ -237,7 +237,7 @@ public class StateRecoveryManagerTest
     {
         public TestOnlyStateRecoveryManager( FileSystemAbstraction fileSystem )
         {
-            super( fileSystem );
+            super( fileSystem, null, null );
         }
 
         @Override
