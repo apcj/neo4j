@@ -73,11 +73,9 @@ import org.neo4j.coreedge.raft.state.StateStorage;
 import org.neo4j.coreedge.raft.state.id_allocation.InMemoryIdAllocationState;
 import org.neo4j.coreedge.raft.state.membership.InMemoryRaftMembershipState;
 import org.neo4j.coreedge.raft.state.membership.OnDiskRaftMembershipState;
-import org.neo4j.coreedge.raft.state.membership.RaftMembershipState;
 import org.neo4j.coreedge.raft.state.term.InMemoryTermState;
 import org.neo4j.coreedge.raft.state.term.MonitoredTermStateStorage;
 import org.neo4j.coreedge.raft.state.vote.InMemoryVoteState;
-import org.neo4j.coreedge.raft.state.vote.OnDiskVoteState;
 import org.neo4j.coreedge.server.AdvertisedSocketAddress;
 import org.neo4j.coreedge.server.CoreEdgeClusterSettings;
 import org.neo4j.coreedge.server.CoreMember;
@@ -413,7 +411,8 @@ public class EnterpriseCoreEditionModule
             StateStorage<InMemoryTermState> durableTermState = life.add( new DurableStateStorage<>(
                     fileSystem, new File( clusterStateDirectory, "term-state" ), "term-state",
                     new InMemoryTermState.Marshal(),
-                    config.get( CoreEdgeClusterSettings.term_state_size ), databaseHealthSupplier, logProvider ) );
+                    config.get( CoreEdgeClusterSettings.term_state_size ), databaseHealthSupplier, logProvider
+            ) );
             termState = new MonitoredTermStateStorage( durableTermState, monitors );
         }
         catch ( IOException e )
@@ -424,16 +423,16 @@ public class EnterpriseCoreEditionModule
         StateStorage<InMemoryVoteState<CoreMember>> voteState;
         try
         {
-            voteState = life.add( new OnDiskVoteState<>( fileSystem,
-                    new File( clusterStateDirectory, OnDiskVoteState.DIRECTORY_NAME ),
-                    config.get( CoreEdgeClusterSettings.vote_state_size ), databaseHealthSupplier,
-                    new CoreMemberMarshal(), logProvider ) );
+            voteState = life.add( new DurableStateStorage<>( fileSystem,
+                    new File( clusterStateDirectory, "vote-state" ), "vote-state",
+                    new InMemoryVoteState.InMemoryVoteStateChannelMarshal<>( new CoreMember.CoreMemberMarshal() ),
+                    config.get( CoreEdgeClusterSettings.vote_state_size ), databaseHealthSupplier, logProvider
+            ) );
         }
         catch ( IOException e )
         {
             throw new RuntimeException( e );
         }
-
 
         StateStorage<InMemoryRaftMembershipState<CoreMember>> raftMembershipState;
         try
@@ -447,8 +446,6 @@ public class EnterpriseCoreEditionModule
         {
             throw new RuntimeException( e );
         }
-
-//        raftLog.registerListener( stateMachines );
 
         LoggingInbound loggingRaftInbound = new LoggingInbound( raftServer, messageLogger, myself.getRaftAddress() );
 
