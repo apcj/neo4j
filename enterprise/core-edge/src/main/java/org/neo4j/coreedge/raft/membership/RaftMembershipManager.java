@@ -19,6 +19,7 @@
  */
 package org.neo4j.coreedge.raft.membership;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -36,7 +37,9 @@ import org.neo4j.coreedge.raft.outcome.TruncateLogCommand;
 import org.neo4j.coreedge.raft.replication.ReplicatedContent;
 import org.neo4j.coreedge.raft.replication.Replicator;
 import org.neo4j.coreedge.raft.roles.Role;
+import org.neo4j.coreedge.raft.state.StateStorage;
 import org.neo4j.coreedge.raft.state.follower.FollowerStates;
+import org.neo4j.coreedge.raft.state.membership.InMemoryRaftMembershipState;
 import org.neo4j.coreedge.raft.state.membership.RaftMembershipState;
 import org.neo4j.helpers.Clock;
 import org.neo4j.logging.Log;
@@ -65,25 +68,28 @@ public class RaftMembershipManager<MEMBER> implements RaftMembership<MEMBER>, Me
     private final ReadableRaftLog entryLog;
     private final Log log;
     private final int expectedClusterSize;
-    private final RaftMembershipState<MEMBER> raftMembershipState;
+    private final StateStorage<InMemoryRaftMembershipState<MEMBER>> stateStorage;
+    private final InMemoryRaftMembershipState<MEMBER> raftMembershipState;
     private long lastApplied = -1;
 
     public RaftMembershipManager( Replicator replicator, RaftGroup.Builder<MEMBER> memberSetBuilder, RaftLog entryLog,
                                   LogProvider logProvider, int expectedClusterSize, long electionTimeout,
-                                  Clock clock, long catchupTimeout, RaftMembershipState<MEMBER> raftMembershipState )
+                                  Clock clock, long catchupTimeout,
+                                  StateStorage<InMemoryRaftMembershipState<MEMBER>> stateStorage )
     {
         this.replicator = replicator;
         this.memberSetBuilder = memberSetBuilder;
         this.entryLog = entryLog;
         this.expectedClusterSize = expectedClusterSize;
-        this.raftMembershipState = raftMembershipState;
+        this.stateStorage = stateStorage;
+        this.raftMembershipState = stateStorage.getInitialState();
         this.log = logProvider.getLog( getClass() );
 
         this.membershipStateMachine = new RaftMembershipStateMachine<>( entryLog, clock, electionTimeout, this,
                 logProvider, catchupTimeout, raftMembershipState );
     }
 
-    public void processLog(Collection<LogCommand> logCommands) throws RaftStorageException
+    public void processLog( Collection<LogCommand> logCommands ) throws RaftStorageException
     {
         for ( LogCommand logCommand : logCommands )
         {
@@ -118,7 +124,7 @@ public class RaftMembershipManager<MEMBER> implements RaftMembership<MEMBER>, Me
 
     private void onAppended( ReplicatedContent content, long logIndex )
     {
-        if ( content instanceof RaftGroup)
+        if ( content instanceof RaftGroup )
         {
             if ( logIndex > raftMembershipState.logIndex() )
             {
@@ -137,7 +143,7 @@ public class RaftMembershipManager<MEMBER> implements RaftMembership<MEMBER>, Me
         }
     }
 
-    private void onCommitted( ReplicatedContent content, long logIndex )
+    private void onCommitted( ReplicatedContent content, long logIndex ) throws RaftStorageException
     {
         if ( content instanceof RaftGroup )
         {
@@ -152,6 +158,14 @@ public class RaftMembershipManager<MEMBER> implements RaftMembership<MEMBER>, Me
                     membershipStateMachine.onRaftGroupCommitted();
                 }
                 raftMembershipState.logIndex( logIndex );
+                try
+                {
+                    stateStorage.persistStoreData( raftMembershipState );
+                }
+                catch ( IOException e )
+                {
+                    throw new RaftStorageException( e );
+                }
             }
             else
             {
@@ -161,36 +175,37 @@ public class RaftMembershipManager<MEMBER> implements RaftMembership<MEMBER>, Me
         }
     }
 
-    private void onTruncated()
+    private void onTruncated() throws RaftStorageException
     {
-        try
+        Long logIndex = findLastMembershipEntry();
+
+        if ( logIndex != null )
         {
-            Long logIndex = findLastMembershipEntry();
-
-            if ( logIndex != null )
+            RaftGroup<MEMBER> lastMembershipEntry = (RaftGroup<MEMBER>) entryLog.readEntryContent( logIndex );
+            raftMembershipState.setVotingMembers( lastMembershipEntry.getMembers() );
+            raftMembershipState.logIndex( logIndex );
+            try
             {
-                RaftGroup<MEMBER> lastMembershipEntry = (RaftGroup<MEMBER>) entryLog.readEntryContent( logIndex );
-                raftMembershipState.setVotingMembers( lastMembershipEntry.getMembers() );
-                raftMembershipState.logIndex( logIndex );
+                stateStorage.persistStoreData( raftMembershipState );
             }
-            else
+            catch ( IOException e )
             {
-                raftMembershipState.setVotingMembers( Collections.<MEMBER>emptySet() );
-            }
-
-            uncommittedMemberChanges = 0;
-            for ( long i = entryLog.commitIndex() + 1; i <= entryLog.appendIndex(); i++ )
-            {
-                ReplicatedContent content = entryLog.readEntryContent( i );
-                if ( content instanceof RaftGroup )
-                {
-                    uncommittedMemberChanges++;
-                }
+                throw new RaftStorageException( e );
             }
         }
-        catch ( RaftStorageException e )
+        else
         {
-            log.error( "Unable to find last membership entry after RAFT log truncation", e );
+            raftMembershipState.setVotingMembers( Collections.<MEMBER>emptySet() );
+        }
+
+        uncommittedMemberChanges = 0;
+        for ( long i = entryLog.commitIndex() + 1; i <= entryLog.appendIndex(); i++ )
+        {
+            ReplicatedContent content = entryLog.readEntryContent( i );
+            if ( content instanceof RaftGroup )
+            {
+                uncommittedMemberChanges++;
+            }
         }
     }
 

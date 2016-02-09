@@ -71,6 +71,7 @@ import org.neo4j.coreedge.raft.state.DurableStateStorage;
 import org.neo4j.coreedge.raft.state.StateMachines;
 import org.neo4j.coreedge.raft.state.StateStorage;
 import org.neo4j.coreedge.raft.state.id_allocation.InMemoryIdAllocationState;
+import org.neo4j.coreedge.raft.state.membership.InMemoryRaftMembershipState;
 import org.neo4j.coreedge.raft.state.membership.OnDiskRaftMembershipState;
 import org.neo4j.coreedge.raft.state.membership.RaftMembershipState;
 import org.neo4j.coreedge.raft.state.term.InMemoryTermState;
@@ -434,7 +435,7 @@ public class EnterpriseCoreEditionModule
         }
 
 
-        RaftMembershipState<CoreMember> raftMembershipState;
+        StateStorage<InMemoryRaftMembershipState<CoreMember>> raftMembershipState;
         try
         {
             raftMembershipState = life.add( new OnDiskRaftMembershipState<>( fileSystem,

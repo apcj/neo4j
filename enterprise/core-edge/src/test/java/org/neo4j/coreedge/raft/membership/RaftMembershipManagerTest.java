@@ -30,8 +30,8 @@ import org.neo4j.coreedge.raft.outcome.AppendLogEntry;
 import org.neo4j.coreedge.raft.outcome.CommitCommand;
 import org.neo4j.coreedge.raft.outcome.LogCommand;
 import org.neo4j.coreedge.raft.outcome.TruncateLogCommand;
-import org.neo4j.coreedge.raft.replication.DirectReplicator;
-import org.neo4j.coreedge.raft.state.StateMachines;
+import org.neo4j.coreedge.raft.state.StateStorage;
+import org.neo4j.coreedge.raft.state.StubStateStorage;
 import org.neo4j.coreedge.raft.state.membership.InMemoryRaftMembershipState;
 import org.neo4j.coreedge.server.RaftTestMember;
 import org.neo4j.coreedge.server.RaftTestMemberSetBuilder;
@@ -43,8 +43,7 @@ import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anySet;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -62,7 +61,7 @@ public class RaftMembershipManagerTest
         RaftMembershipManager<RaftTestMember> membershipManager = new RaftMembershipManager<>(
                 null, RaftTestMemberSetBuilder.INSTANCE, log,
                 NullLogProvider.getInstance(), 3, 1000, new FakeClock(),
-                1000, new InMemoryRaftMembershipState<>() );
+                1000, new StubStateStorage<>( new InMemoryRaftMembershipState<>() ) );
 
         // when
         membershipManager.processLog( asList(
@@ -85,7 +84,7 @@ public class RaftMembershipManagerTest
         RaftMembershipManager<RaftTestMember> membershipManager = new RaftMembershipManager<>(
                 null,
                 RaftTestMemberSetBuilder.INSTANCE, log, NullLogProvider.getInstance(), 3, 1000, new FakeClock(),
-                1000, new InMemoryRaftMembershipState<>() );
+                1000, new StubStateStorage<>( new InMemoryRaftMembershipState<>() ) );
 
         // when
         List<LogCommand> logCommands = asList(
@@ -115,7 +114,7 @@ public class RaftMembershipManagerTest
         RaftMembershipManager<RaftTestMember> membershipManager = new RaftMembershipManager<>(
                 null,
                 RaftTestMemberSetBuilder.INSTANCE, log, NullLogProvider.getInstance(), 3, 1000, new FakeClock(),
-                1000, new InMemoryRaftMembershipState<>() );
+                1000, new StubStateStorage<>( new InMemoryRaftMembershipState<>() ) );
 
         // when
         List<LogCommand> logCommands = asList(
@@ -142,20 +141,22 @@ public class RaftMembershipManagerTest
         // given
         final InMemoryRaftLog log = new InMemoryRaftLog();
 
-        final InMemoryRaftMembershipState<RaftTestMember> state = mock( InMemoryRaftMembershipState.class );
-        final long logIndex = 42l;
-        when( state.logIndex() ).thenReturn( logIndex );
+        InMemoryRaftMembershipState<RaftTestMember> state = new InMemoryRaftMembershipState<>();
+        state.logIndex( 42L );
+
+        final StateStorage<InMemoryRaftMembershipState<RaftTestMember>> stateStorage = mock( StateStorage.class );
+        when( stateStorage.getInitialState() ).thenReturn( state );
 
         RaftMembershipManager<RaftTestMember> membershipManager = new RaftMembershipManager<>(
                 null,
                 RaftTestMemberSetBuilder.INSTANCE, log, NullLogProvider.getInstance(), 3, 1000, new FakeClock(),
-                1000, state );
+                1000, stateStorage );
 
         // when
-        membershipManager.processLog( Collections.singletonList( new AppendLogEntry( 0, new RaftLogEntry( 0, new RaftTestGroup( 1, 2, 3, 4 ) ) ) ) );
+        membershipManager.processLog( Collections.singletonList( new AppendLogEntry( 0, new RaftLogEntry( 0, new
+                RaftTestGroup( 1, 2, 3, 4 ) ) ) ) );
 
         // then
-        verify( state, times( 0 ) ).logIndex( anyLong() );
-        verify( state, times( 0 ) ).setVotingMembers( anySet() );
+        verify( stateStorage, times( 0 ) ).persistStoreData( any() );
     }
 }

@@ -71,7 +71,8 @@ public class RaftInstanceBuilder<MEMBER>
     private int catchupBatchSize = 64;
     private int maxAllowedShippingLag = 256;
     private Supplier<DatabaseHealth> databaseHealthSupplier;
-    private InMemoryRaftMembershipState<MEMBER> raftMembership = new InMemoryRaftMembershipState<>();
+    private StateStorage<InMemoryRaftMembershipState<MEMBER>> raftMembership =
+            new StubStateStorage<>( new InMemoryRaftMembershipState<>() );
     private Monitors monitors  = new Monitors();
     private StateMachine stateMachine = new StateMachines();
 

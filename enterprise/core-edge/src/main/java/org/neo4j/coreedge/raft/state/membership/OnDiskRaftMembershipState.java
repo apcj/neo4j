@@ -21,27 +21,26 @@ package org.neo4j.coreedge.raft.state.membership;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Set;
 import java.util.function.Supplier;
 
 import org.neo4j.coreedge.raft.state.ChannelMarshal;
 import org.neo4j.coreedge.raft.state.StatePersister;
 import org.neo4j.coreedge.raft.state.StateRecoveryManager;
+import org.neo4j.coreedge.raft.state.StateStorage;
 import org.neo4j.coreedge.raft.state.membership.InMemoryRaftMembershipState.InMemoryRaftMembershipStateChannelMarshal;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.internal.DatabaseHealth;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.logging.LogProvider;
 
-public class OnDiskRaftMembershipState<MEMBER> extends LifecycleAdapter implements RaftMembershipState<MEMBER>
+public class OnDiskRaftMembershipState<MEMBER> extends LifecycleAdapter implements StateStorage<InMemoryRaftMembershipState<MEMBER>>
 {
     private static final String FILENAME = "membership.state.";
     public static final String DIRECTORY_NAME = "membership-state";
 
     private final StatePersister<InMemoryRaftMembershipState<MEMBER>> statePersister;
 
-
-    private InMemoryRaftMembershipState<MEMBER> inMemoryRaftMembershipState;
+    private InMemoryRaftMembershipState<MEMBER> initialState;
 
     public OnDiskRaftMembershipState( FileSystemAbstraction fileSystemAbstraction, File stateDir,
                                       int numberOfEntriesBeforeRotation, Supplier<DatabaseHealth> databaseHealthSupplier,
@@ -59,79 +58,25 @@ public class OnDiskRaftMembershipState<MEMBER> extends LifecycleAdapter implemen
 
         final StateRecoveryManager.RecoveryStatus recoveryStatus = recoveryManager.recover( fileA, fileB );
 
-        inMemoryRaftMembershipState = recoveryManager.readLastEntryFrom( recoveryStatus.previouslyActive() );
+        initialState = recoveryManager.readLastEntryFrom( recoveryStatus.previouslyActive() );
 
         this.statePersister = new StatePersister<>( fileA, fileB, fileSystemAbstraction, numberOfEntriesBeforeRotation,
                 marshal, recoveryStatus.previouslyInactive(), databaseHealthSupplier );
 
         logProvider.getLog( getClass() ).info( "State restored, last index is %d",
-                inMemoryRaftMembershipState.logIndex() );
+                initialState.logIndex() );
     }
 
     @Override
-    public void setVotingMembers( Set<MEMBER> members )
+    public InMemoryRaftMembershipState<MEMBER> getInitialState()
     {
-        inMemoryRaftMembershipState.setVotingMembers( members );
+        return initialState;
     }
 
     @Override
-    public void addAdditionalReplicationMember( MEMBER catchingUpMember )
+    public void persistStoreData( InMemoryRaftMembershipState<MEMBER> state ) throws IOException
     {
-        inMemoryRaftMembershipState.addAdditionalReplicationMember( catchingUpMember );
-    }
-
-    @Override
-    public void removeAdditionalReplicationMember( MEMBER catchingUpMember )
-    {
-        inMemoryRaftMembershipState.removeAdditionalReplicationMember( catchingUpMember );
-    }
-
-    @Override
-    public void logIndex( long index )
-    {
-        InMemoryRaftMembershipState<MEMBER> tempState = new InMemoryRaftMembershipState<>( inMemoryRaftMembershipState );
-        tempState.logIndex( index );
-
-        inMemoryRaftMembershipState.logIndex( index );
-
-        try
-        {
-            statePersister.persistStoreData( inMemoryRaftMembershipState );
-        }
-        catch ( IOException e )
-        {
-            throw new RuntimeException( e );
-        }
-    }
-
-    @Override
-    public Set<MEMBER> votingMembers()
-    {
-        return inMemoryRaftMembershipState.votingMembers();
-    }
-
-    @Override
-    public Set<MEMBER> replicationMembers()
-    {
-        return inMemoryRaftMembershipState.replicationMembers();
-    }
-
-    @Override
-    public long logIndex()
-    {
-        return inMemoryRaftMembershipState.logIndex();
-    }
-
-    @Override
-    public void registerListener( Listener listener )
-    {
-        inMemoryRaftMembershipState.registerListener( listener );
-    }
-
-    @Override
-    public void deregisterListener( Listener listener )
-    {
-        inMemoryRaftMembershipState.deregisterListener( listener );
+        statePersister.persistStoreData( state );
     }
 
     @Override
