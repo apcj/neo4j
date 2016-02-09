@@ -135,12 +135,12 @@ public class InMemoryRaftMembershipState<MEMBER> implements RaftMembershipState<
         listeners.forEach( Listener::onMembershipChanged );
     }
 
-    public static class InMemoryRaftMembershipStateChannelMarshal<MEMBER> implements
+    public static class Marshal<MEMBER> implements
             StateMarshal<InMemoryRaftMembershipState<MEMBER>>
     {
         private final ChannelMarshal<MEMBER> memberMarshal;
 
-        public InMemoryRaftMembershipStateChannelMarshal( ChannelMarshal<MEMBER> marshal )
+        public Marshal( ChannelMarshal<MEMBER> marshal )
         {
             this.memberMarshal = marshal;
         }

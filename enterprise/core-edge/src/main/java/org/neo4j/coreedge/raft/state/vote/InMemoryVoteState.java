@@ -89,14 +89,14 @@ public class InMemoryVoteState<MEMBER> implements VoteState<MEMBER>
         return term;
     }
 
-    public static class InMemoryVoteStateChannelMarshal<CoreMember> implements
+    public static class Marshal<CoreMember> implements
             StateMarshal<InMemoryVoteState<CoreMember>>
 
     {
         public static final int NUMBER_OF_BYTES_PER_VOTE = 100_000; // 100kB URI max
         private final ChannelMarshal<CoreMember> memberMarshal;
 
-        public InMemoryVoteStateChannelMarshal( ChannelMarshal<CoreMember> memberMarshal )
+        public Marshal( ChannelMarshal<CoreMember> memberMarshal )
         {
             this.memberMarshal = memberMarshal;
         }

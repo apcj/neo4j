@@ -36,7 +36,7 @@ public class InMemoryRaftMembershipStateTest
     {
         // given
         InMemoryRaftMembershipState<CoreMember> state = new InMemoryRaftMembershipState<>();
-        InMemoryRaftMembershipState.InMemoryRaftMembershipStateChannelMarshal<CoreMember> marshal = new InMemoryRaftMembershipState.InMemoryRaftMembershipStateChannelMarshal<>( new CoreMember.CoreMemberMarshal() );
+        InMemoryRaftMembershipState.Marshal<CoreMember> marshal = new InMemoryRaftMembershipState.Marshal<>( new CoreMember.CoreMemberMarshal() );
 
         // when
         InMemoryClosableChannel channel = new InMemoryClosableChannel();
@@ -52,7 +52,7 @@ public class InMemoryRaftMembershipStateTest
     {
         // given
         InMemoryRaftMembershipState<RaftTestMember> state = new InMemoryRaftMembershipState<>();
-        InMemoryRaftMembershipState.InMemoryRaftMembershipStateChannelMarshal<RaftTestMember> serializer = new InMemoryRaftMembershipState.InMemoryRaftMembershipStateChannelMarshal<>( new RaftTestMarshal() );
+        InMemoryRaftMembershipState.Marshal<RaftTestMember> serializer = new InMemoryRaftMembershipState.Marshal<>( new RaftTestMarshal() );
 
         RaftTestGroup coreMembers = new RaftTestGroup( 1, 2, 3 ,4 );
 

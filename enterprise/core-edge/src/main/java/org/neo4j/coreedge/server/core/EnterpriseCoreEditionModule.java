@@ -72,7 +72,6 @@ import org.neo4j.coreedge.raft.state.StateMachines;
 import org.neo4j.coreedge.raft.state.StateStorage;
 import org.neo4j.coreedge.raft.state.id_allocation.InMemoryIdAllocationState;
 import org.neo4j.coreedge.raft.state.membership.InMemoryRaftMembershipState;
-import org.neo4j.coreedge.raft.state.membership.OnDiskRaftMembershipState;
 import org.neo4j.coreedge.raft.state.term.InMemoryTermState;
 import org.neo4j.coreedge.raft.state.term.MonitoredTermStateStorage;
 import org.neo4j.coreedge.raft.state.vote.InMemoryVoteState;
@@ -425,7 +424,7 @@ public class EnterpriseCoreEditionModule
         {
             voteState = life.add( new DurableStateStorage<>( fileSystem,
                     new File( clusterStateDirectory, "vote-state" ), "vote-state",
-                    new InMemoryVoteState.InMemoryVoteStateChannelMarshal<>( new CoreMember.CoreMemberMarshal() ),
+                    new InMemoryVoteState.Marshal<>( new CoreMemberMarshal() ),
                     config.get( CoreEdgeClusterSettings.vote_state_size ), databaseHealthSupplier, logProvider
             ) );
         }
@@ -437,10 +436,12 @@ public class EnterpriseCoreEditionModule
         StateStorage<InMemoryRaftMembershipState<CoreMember>> raftMembershipState;
         try
         {
-            raftMembershipState = life.add( new OnDiskRaftMembershipState<>( fileSystem,
-                    new File( clusterStateDirectory, OnDiskRaftMembershipState.DIRECTORY_NAME ),
+            raftMembershipState = life.add( new DurableStateStorage<>( fileSystem,
+                    new File( clusterStateDirectory, "membership-state" ), "membership-state",
+                    new InMemoryRaftMembershipState.Marshal<>( new CoreMemberMarshal() ),
                     config.get( CoreEdgeClusterSettings.raft_membership_state_size ),
-                    databaseHealthSupplier, new CoreMemberMarshal(), logProvider ) );
+                    databaseHealthSupplier, logProvider
+            ) );
         }
         catch ( IOException e )
         {
