@@ -22,7 +22,6 @@ package org.neo4j.coreedge.raft.replication.tx;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.RETURNS_MOCKS;
 import static org.mockito.Mockito.doThrow;
@@ -31,17 +30,15 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.UUID;
 
 import org.junit.Test;
-import org.mockito.stubbing.Stubber;
+
 import org.neo4j.coreedge.raft.replication.session.GlobalSession;
 import org.neo4j.coreedge.raft.replication.session.GlobalSessionTrackerState;
-import org.neo4j.coreedge.raft.replication.session.InMemoryGlobalSessionTrackerState;
 import org.neo4j.coreedge.raft.replication.session.LocalOperationId;
 import org.neo4j.coreedge.raft.state.StubStateStorage;
 import org.neo4j.coreedge.server.RaftTestMember;
@@ -62,7 +59,7 @@ public class ReplicatedTransactionStateMachinePersistenceTest
         when( commitProcess.commit( any(), any(), any() ) ).thenThrow( new TransactionFailureException( "testing" ) )
                 .thenReturn( 123L );
 
-        ReplicatedTransactionStateMachine<RaftTestMember> stateMachine = stateMachine( commitProcess, new InMemoryGlobalSessionTrackerState<RaftTestMember>() );
+        ReplicatedTransactionStateMachine<RaftTestMember> stateMachine = stateMachine( commitProcess, new GlobalSessionTrackerState<RaftTestMember>() );
 
         ReplicatedTransaction<RaftTestMember> rtx = replicatedTx();
         stateMachine.setLastCommittedIndex( 99 );
@@ -136,8 +133,8 @@ public class ReplicatedTransactionStateMachinePersistenceTest
         // given
         TransactionCommitProcess commitProcess = mock( TransactionCommitProcess.class );
 
-        InMemoryGlobalSessionTrackerState<RaftTestMember> sessionTrackerState = spy( new
-                InMemoryGlobalSessionTrackerState<>() );
+        GlobalSessionTrackerState<RaftTestMember> sessionTrackerState = spy( new
+                GlobalSessionTrackerState<>() );
         ReplicatedTransactionStateMachine<RaftTestMember> stateMachine = stateMachine( commitProcess, sessionTrackerState );
 
         ReplicatedTransaction<RaftTestMember> rtx = replicatedTx();
@@ -159,7 +156,7 @@ public class ReplicatedTransactionStateMachinePersistenceTest
     }
 
     public ReplicatedTransactionStateMachine<RaftTestMember> stateMachine( TransactionCommitProcess commitProcess,
-                                                                           InMemoryGlobalSessionTrackerState<RaftTestMember> sessionTrackerState )
+                                                                           GlobalSessionTrackerState<RaftTestMember> sessionTrackerState )
     {
         return new ReplicatedTransactionStateMachine<>(
                 commitProcess,

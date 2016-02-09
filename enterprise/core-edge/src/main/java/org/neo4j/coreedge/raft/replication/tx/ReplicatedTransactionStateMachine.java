@@ -24,7 +24,7 @@ import java.util.Optional;
 
 import org.neo4j.coreedge.raft.replication.ReplicatedContent;
 import org.neo4j.coreedge.raft.replication.session.GlobalSession;
-import org.neo4j.coreedge.raft.replication.session.InMemoryGlobalSessionTrackerState;
+import org.neo4j.coreedge.raft.replication.session.GlobalSessionTrackerState;
 import org.neo4j.coreedge.raft.state.StateMachine;
 import org.neo4j.coreedge.raft.state.StateStorage;
 import org.neo4j.coreedge.server.core.locks.LockTokenManager;
@@ -45,12 +45,12 @@ import static org.neo4j.kernel.api.exceptions.Status.Transaction.LockSessionInva
 
 public class ReplicatedTransactionStateMachine<MEMBER> implements StateMachine
 {
-    private final InMemoryGlobalSessionTrackerState<MEMBER> sessionTracker;
+    private final GlobalSessionTrackerState<MEMBER> sessionTracker;
     private final GlobalSession myGlobalSession;
     private final LockTokenManager lockTokenManager;
     private final TransactionCommitProcess commitProcess;
     private final CommittingTransactions transactionFutures;
-    private final StateStorage<InMemoryGlobalSessionTrackerState<MEMBER>> storage;
+    private final StateStorage<GlobalSessionTrackerState<MEMBER>> storage;
     private final Log log;
 
     private long lastCommittedIndex = -1;
@@ -59,7 +59,7 @@ public class ReplicatedTransactionStateMachine<MEMBER> implements StateMachine
                                               GlobalSession myGlobalSession,
                                               LockTokenManager lockTokenManager,
                                               CommittingTransactions transactionFutures,
-                                              StateStorage<InMemoryGlobalSessionTrackerState<MEMBER>> storage,
+                                              StateStorage<GlobalSessionTrackerState<MEMBER>> storage,
                                               LogProvider logProvider )
     {
         this.commitProcess = commitProcess;

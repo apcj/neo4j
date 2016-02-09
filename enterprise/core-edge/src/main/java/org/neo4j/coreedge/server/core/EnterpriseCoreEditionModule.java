@@ -56,7 +56,7 @@ import org.neo4j.coreedge.raft.replication.Replicator;
 import org.neo4j.coreedge.raft.replication.id.ReplicatedIdAllocationStateMachine;
 import org.neo4j.coreedge.raft.replication.id.ReplicatedIdGeneratorFactory;
 import org.neo4j.coreedge.raft.replication.id.ReplicatedIdRangeAcquirer;
-import org.neo4j.coreedge.raft.replication.session.InMemoryGlobalSessionTrackerState;
+import org.neo4j.coreedge.raft.replication.session.GlobalSessionTrackerState;
 import org.neo4j.coreedge.raft.replication.session.LocalSessionPool;
 import org.neo4j.coreedge.raft.replication.shipping.RaftLogShippingManager;
 import org.neo4j.coreedge.raft.replication.token.ReplicatedLabelTokenHolder;
@@ -221,12 +221,12 @@ public class EnterpriseCoreEditionModule
                 new ReplicatedLockTokenStateMachine<>( lockTokenState );
         stateMachines.add( replicatedLockTokenStateMachine );
 
-        StateStorage<InMemoryGlobalSessionTrackerState<CoreMember>> onDiskGlobalSessionTrackerState;
+        StateStorage<GlobalSessionTrackerState<CoreMember>> onDiskGlobalSessionTrackerState;
         try
         {
             onDiskGlobalSessionTrackerState = life.add( new DurableStateStorage<>(
                     fileSystem, new File( clusterStateDirectory, "session-tracker-state" ), "session-tracker",
-                    new InMemoryGlobalSessionTrackerState.Marshal<>( new CoreMemberMarshal() ),
+                    new GlobalSessionTrackerState.Marshal<>( new CoreMemberMarshal() ),
                     config.get( CoreEdgeClusterSettings.global_session_tracker_state_size ),
                     databaseHealthSupplier, logProvider
             ) );
@@ -364,7 +364,7 @@ public class EnterpriseCoreEditionModule
             final Replicator replicator, final LocalSessionPool localSessionPool,
             final LockTokenManager currentReplicatedLockState, final Dependencies dependencies,
             final LogService logging, Monitors monitors,
-            StateStorage<InMemoryGlobalSessionTrackerState<CoreMember>> globalSessionTrackerState,
+            StateStorage<GlobalSessionTrackerState<CoreMember>> globalSessionTrackerState,
             StateMachines stateMachines )
     {
         return ( appender, applier, config ) -> {
