@@ -35,7 +35,7 @@ import org.neo4j.coreedge.raft.state.StateStorage;
 import org.neo4j.coreedge.raft.state.StubStateStorage;
 import org.neo4j.coreedge.raft.state.membership.InMemoryRaftMembershipState;
 import org.neo4j.coreedge.raft.state.term.TermState;
-import org.neo4j.coreedge.raft.state.vote.InMemoryVoteState;
+import org.neo4j.coreedge.raft.state.vote.VoteState;
 import org.neo4j.helpers.Clock;
 import org.neo4j.kernel.internal.DatabaseHealth;
 import org.neo4j.kernel.monitoring.Monitors;
@@ -50,7 +50,7 @@ public class RaftInstanceBuilder<MEMBER>
     private RaftGroup.Builder<MEMBER> memberSetBuilder;
 
     private StateStorage<TermState> termState = new StubStateStorage<>( new TermState() );
-    private StateStorage<InMemoryVoteState<MEMBER>> voteState = new StubStateStorage<>( new InMemoryVoteState<>() );
+    private StateStorage<VoteState<MEMBER>> voteState = new StubStateStorage<>( new VoteState<>() );
     private RaftLog raftLog = new InMemoryRaftLog();
     private RenewableTimeoutService renewableTimeoutService = new DelayedRenewableTimeoutService( Clock.SYSTEM_CLOCK,
             NullLogProvider.getInstance() );

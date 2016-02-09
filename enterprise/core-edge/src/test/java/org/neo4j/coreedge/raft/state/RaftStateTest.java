@@ -35,7 +35,7 @@ import org.neo4j.coreedge.raft.outcome.Outcome;
 import org.neo4j.coreedge.raft.state.follower.FollowerState;
 import org.neo4j.coreedge.raft.state.follower.FollowerStates;
 import org.neo4j.coreedge.raft.state.term.TermState;
-import org.neo4j.coreedge.raft.state.vote.InMemoryVoteState;
+import org.neo4j.coreedge.raft.state.vote.VoteState;
 import org.neo4j.coreedge.server.RaftTestMember;
 
 import static java.util.Collections.emptySet;
@@ -53,7 +53,7 @@ public class RaftStateTest
         RaftState<RaftTestMember> raftState = new RaftState<>( new RaftTestMember( 0 ),
                 new StubStateStorage<>( new TermState() ),
                 new FakeMembership(), new InMemoryRaftLog(),
-                new StubStateStorage<>( new InMemoryVoteState<>( ) ) );
+                new StubStateStorage<>( new VoteState<>( ) ) );
 
         raftState.update( new Outcome<>( CANDIDATE, 1, null, -1, null, new HashSet<>(), -1, initialFollowerStates(), true, emptyLogCommands(),
                 emptyOutgoingMessages(), Collections.emptySet() ) );

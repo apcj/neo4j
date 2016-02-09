@@ -31,25 +31,25 @@ import org.neo4j.coreedge.raft.outcome.LogCommand;
 import org.neo4j.coreedge.raft.outcome.Outcome;
 import org.neo4j.coreedge.raft.state.follower.FollowerStates;
 import org.neo4j.coreedge.raft.state.term.TermState;
-import org.neo4j.coreedge.raft.state.vote.InMemoryVoteState;
+import org.neo4j.coreedge.raft.state.vote.VoteState;
 
 public class RaftState<MEMBER> implements ReadableRaftState<MEMBER>
 {
     private final MEMBER myself;
     private final StateStorage<TermState> termStorage;
-    private final StateStorage<InMemoryVoteState<MEMBER>> voteStorage;
+    private final StateStorage<VoteState<MEMBER>> voteStorage;
     private final RaftMembership<MEMBER> membership;
     private final TermState termState;
     private MEMBER leader;
     private long leaderCommit = -1;
-    private final InMemoryVoteState<MEMBER> voteState;
+    private final VoteState<MEMBER> voteState;
     private Set<MEMBER> votesForMe = new HashSet<>();
     private long lastLogIndexBeforeWeBecameLeader = -1;
     private FollowerStates<MEMBER> followerStates = new FollowerStates<>();
     private final RaftLog entryLog;
 
     public RaftState( MEMBER myself, StateStorage<TermState> termStorage, RaftMembership<MEMBER> membership,
-                      RaftLog entryLog, StateStorage<InMemoryVoteState<MEMBER>> voteStorage )
+                      RaftLog entryLog, StateStorage<VoteState<MEMBER>> voteStorage )
     {
         this.myself = myself;
         this.termStorage = termStorage;
