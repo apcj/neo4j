@@ -28,25 +28,25 @@ import org.neo4j.storageengine.api.ReadableChannel;
 
 public class StateRecoveryManager<STATE>
 {
-    public static class RecoveryStatus
+    public static class RecoveryStatus<STATE>
     {
-        private File previouslyInactive;
-        private File previouslyActive;
+        private final File activeFile;
+        private final STATE recoveredState;
 
-        public File previouslyActive()
+        public RecoveryStatus( File activeFile, STATE recoveredState )
         {
-            return previouslyActive;
+            this.activeFile = activeFile;
+            this.recoveredState = recoveredState;
         }
 
-        public File previouslyInactive()
+        public STATE recoveredState()
         {
-            return previouslyInactive;
+            return recoveredState;
         }
 
-        public void setFileStatus( File active, File inactive )
+        public File activeFile()
         {
-            this.previouslyActive = active;
-            this.previouslyInactive = inactive;
+            return activeFile;
         }
     }
 
@@ -65,28 +65,24 @@ public class StateRecoveryManager<STATE>
      * safe to become the new state holder.
      * @throws IOException if any IO goes wrong.
      */
-    public RecoveryStatus recover( File fileA, File fileB ) throws IOException
+    public RecoveryStatus<STATE> recover( File fileA, File fileB ) throws IOException
     {
         assert fileA != null && fileB != null;
-
-        RecoveryStatus recoveryStatus = new RecoveryStatus();
 
         ensureExists( fileA );
         ensureExists( fileB );
 
-        long a = getOrdinalOfLastRecord( fileA );
-        long b = getOrdinalOfLastRecord( fileB );
+        STATE a = readLastEntryFrom( fileA );
+        STATE b = readLastEntryFrom( fileB );
 
-        if ( a > b )
+        if ( marshal.ordinal( a ) > marshal.ordinal( b ) )
         {
-            recoveryStatus.setFileStatus( fileA, fileB );
+            return new RecoveryStatus<>( fileB, a );
         }
         else
         {
-            recoveryStatus.setFileStatus( fileB, fileA );
+            return new RecoveryStatus<>( fileA, b );
         }
-
-        return recoveryStatus;
     }
 
     private void ensureExists( File file ) throws IOException
@@ -96,11 +92,6 @@ public class StateRecoveryManager<STATE>
             fileSystem.mkdirs( file.getParentFile() );
             fileSystem.create( file ).close();
         }
-    }
-
-    protected long getOrdinalOfLastRecord( File file ) throws IOException
-    {
-        return marshal.ordinal( readLastEntryFrom( file ) );
     }
 
     public STATE readLastEntryFrom( File file )
