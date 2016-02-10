@@ -72,8 +72,8 @@ import org.neo4j.coreedge.raft.state.StateMachines;
 import org.neo4j.coreedge.raft.state.StateStorage;
 import org.neo4j.coreedge.raft.state.id_allocation.IdAllocationState;
 import org.neo4j.coreedge.raft.state.membership.RaftMembershipState;
-import org.neo4j.coreedge.raft.state.term.TermState;
 import org.neo4j.coreedge.raft.state.term.MonitoredTermStateStorage;
+import org.neo4j.coreedge.raft.state.term.TermState;
 import org.neo4j.coreedge.raft.state.vote.VoteState;
 import org.neo4j.coreedge.server.AdvertisedSocketAddress;
 import org.neo4j.coreedge.server.CoreEdgeClusterSettings;
@@ -192,9 +192,11 @@ public class EnterpriseCoreEditionModule
 
         StateMachines stateMachines = new StateMachines();
 
+        int flushAfter = config.get( CoreEdgeClusterSettings.state_machine_flush_window_size );
+
         raft = createRaft( life, loggingOutbound, discoveryService, config, messageLogger, monitoredRaftLog,
                 stateMachines, fileSystem, clusterStateDirectory, myself, logProvider, raftServer, raftTimeoutService,
-                databaseHealthSupplier, platformModule.monitors );
+                databaseHealthSupplier, platformModule.monitors, flushAfter );
 
         dependencies.satisfyDependency( raft );
 
@@ -281,9 +283,9 @@ public class EnterpriseCoreEditionModule
         ReplicatedLabelTokenHolder labelTokenHolder = new ReplicatedLabelTokenHolder(
                 replicator, this.idGeneratorFactory, dependencies, tokenCreationTimeout, logProvider );
 
-        stateMachines.add(labelTokenHolder);
-        stateMachines.add(relationshipTypeTokenHolder);
-        stateMachines.add(propertyKeyTokenHolder);
+        stateMachines.add( labelTokenHolder );
+        stateMachines.add( relationshipTypeTokenHolder );
+        stateMachines.add( propertyKeyTokenHolder );
 
         LifeSupport tokenLife = new LifeSupport();
         this.relationshipTypeTokenHolder = tokenLife.add( relationshipTypeTokenHolder );
@@ -326,13 +328,13 @@ public class EnterpriseCoreEditionModule
                 config.get( CoreEdgeClusterSettings.transaction_listen_address ),
                 platformModule.monitors );
 
+        long joinCatchupTimeout = config.get( CoreEdgeClusterSettings.join_catch_up_timeout );
+
         life.add( CoreServerStartupProcess.createLifeSupport(
-                platformModule.dataSourceManager, replicatedIdGeneratorFactory, raft, new RaftLogReplay(
-                        stateMachines,
-                        monitoredRaftLog,
-                        logProvider ), raftServer,
+                platformModule.dataSourceManager, replicatedIdGeneratorFactory, raft,
+                new RaftLogReplay( stateMachines, monitoredRaftLog, logProvider, flushAfter ), raftServer,
                 catchupServer, raftTimeoutService, membershipWaiter,
-                config.get( CoreEdgeClusterSettings.join_catch_up_timeout ),
+                joinCatchupTimeout,
                 new RecoverTransactionLogState( dependencies, logProvider,
                         relationshipTypeTokenHolder, propertyKeyTokenHolder, labelTokenHolder ),
                 tokenLife
@@ -373,7 +375,8 @@ public class EnterpriseCoreEditionModule
             dependencies.satisfyDependencies( localCommit );
 
             CommittingTransactions committingTransactions = new CommittingTransactionsRegistry();
-            ReplicatedTransactionStateMachine<CoreMember> replicatedTxStateMachine = new ReplicatedTransactionStateMachine<>(
+            ReplicatedTransactionStateMachine<CoreMember> replicatedTxStateMachine = new
+                    ReplicatedTransactionStateMachine<>(
                     localCommit, localSessionPool.getGlobalSession(), currentReplicatedLockState,
                     committingTransactions, globalSessionTrackerState, logging.getInternalLogProvider() );
 
@@ -402,7 +405,7 @@ public class EnterpriseCoreEditionModule
                                                         RaftServer<CoreMember> raftServer,
                                                         DelayedRenewableTimeoutService raftTimeoutService,
                                                         Supplier<DatabaseHealth> databaseHealthSupplier,
-                                                        Monitors monitors )
+                                                        Monitors monitors, int flushAfter )
     {
         StateStorage<TermState> termState;
         try
@@ -475,11 +478,12 @@ public class EnterpriseCoreEditionModule
                 myself, termState, voteState, raftLog, stateMachines, electionTimeout, heartbeatInterval,
                 raftTimeoutService, loggingRaftInbound,
                 new RaftOutbound( outbound ), leaderWaitTimeout, logProvider,
-                raftMembershipManager, logShipping, databaseHealthSupplier, monitors );
+                raftMembershipManager, logShipping, databaseHealthSupplier, monitors, flushAfter );
 
         life.add( new RaftDiscoveryServiceConnector( discoveryService, raftInstance ) );
 
-        life.add( new LifecycleAdapter() {
+        life.add( new LifecycleAdapter()
+        {
             @Override
             public void shutdown() throws Throwable
             {

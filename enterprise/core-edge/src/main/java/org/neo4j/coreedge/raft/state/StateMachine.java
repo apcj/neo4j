@@ -35,7 +35,7 @@ public interface StateMachine
     void applyCommand( ReplicatedContent content, long logIndex );
 
     /**
-     * Flushes state to durable storage. Once
+     * Flushes state to durable storage.
      * @throws IOException
      */
     void flush() throws IOException;

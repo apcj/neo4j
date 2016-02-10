@@ -26,23 +26,28 @@ import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.logging.Log;
 import org.neo4j.logging.LogProvider;
 
+import static java.lang.Math.max;
+import static java.lang.System.currentTimeMillis;
+
 public class RaftLogReplay extends LifecycleAdapter
 {
     private final StateMachine stateMachine;
     private final RaftLog raftLog;
+    private final int flushAfter;
     private final Log log;
 
-    public RaftLogReplay( StateMachine stateMachine, RaftLog raftLog, LogProvider logProvider )
+    public RaftLogReplay( StateMachine stateMachine, RaftLog raftLog, LogProvider logProvider, int flushAfter )
     {
         this.stateMachine = stateMachine;
         this.raftLog = raftLog;
+        this.flushAfter = flushAfter;
         this.log = logProvider.getLog( getClass() );
     }
 
     @Override
     public void start() throws Throwable
     {
-        long start = System.currentTimeMillis();
+        long start = currentTimeMillis();
         /*
          * Since all state machines and replicated content listeners persist their state, we can skip all entries that
          * have been committed successfully.
@@ -53,7 +58,7 @@ public class RaftLogReplay extends LifecycleAdapter
          * that has not been applied against all listeners.
          * This change is effectively equivalent to truncating/compacting the raft log.
          */
-        long index = Math.max( 0, raftLog.commitIndex() - 1 ); // new instances have a commit index of -1, which should be ignored
+        long index = max( 0, raftLog.commitIndex() - 1 - flushAfter ); // new instances have a commit index of -1, which should be ignored
         log.info( "Starting replay at index %d", index );
         for(; index <= raftLog.commitIndex(); index++ )
         {
@@ -62,6 +67,6 @@ public class RaftLogReplay extends LifecycleAdapter
             log.info( "Index %d replayed as committed", index );
         }
 
-        log.info( "Replay done, took %d ms", System.currentTimeMillis() - start );
+        log.info( "Replay done, took %d ms", currentTimeMillis() - start );
     }
 }

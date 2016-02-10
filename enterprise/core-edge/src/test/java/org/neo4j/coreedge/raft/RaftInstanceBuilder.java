@@ -73,8 +73,9 @@ public class RaftInstanceBuilder<MEMBER>
     private Supplier<DatabaseHealth> databaseHealthSupplier;
     private StateStorage<RaftMembershipState<MEMBER>> raftMembership =
             new StubStateStorage<>( new RaftMembershipState<>() );
-    private Monitors monitors  = new Monitors();
+    private Monitors monitors = new Monitors();
     private StateMachine stateMachine = new StateMachines();
+    private int flushAfter = 1;
 
     public RaftInstanceBuilder( MEMBER member, int expectedClusterSize, RaftGroup.Builder<MEMBER> memberSetBuilder )
     {
@@ -93,9 +94,10 @@ public class RaftInstanceBuilder<MEMBER>
         RaftLogShippingManager<MEMBER> logShipping = new RaftLogShippingManager<>( outbound, logProvider, raftLog,
                 clock, member, membershipManager, retryTimeMillis, catchupBatchSize, maxAllowedShippingLag );
 
-        return new RaftInstance<>( member, termState, voteState, raftLog, stateMachine, electionTimeout, heartbeatInterval,
+        return new RaftInstance<>( member, termState, voteState, raftLog, stateMachine, electionTimeout,
+                heartbeatInterval,
                 renewableTimeoutService, inbound, outbound, leaderWaitTimeout, logProvider, membershipManager,
-                logShipping, databaseHealthSupplier, monitors );
+                logShipping, databaseHealthSupplier, monitors, flushAfter );
     }
 
     public RaftInstanceBuilder<MEMBER> leaderWaitTimeout( long leaderWaitTimeout )
@@ -155,6 +157,12 @@ public class RaftInstanceBuilder<MEMBER>
     public RaftInstanceBuilder<MEMBER> monitors( Monitors monitors )
     {
         this.monitors = monitors;
+        return this;
+    }
+
+    public RaftInstanceBuilder<MEMBER> flushAfter( int flushAfter )
+    {
+        this.flushAfter = flushAfter;
         return this;
     }
 }
