@@ -86,6 +86,11 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
     private final LeaderNotFoundMonitor leaderNotFoundMonitor;
     private int flushAfter;
 
+    public void setLastApplied( long lastApplied )
+    {
+        this.lastApplied = lastApplied;
+    }
+
     public enum Timeouts implements RenewableTimeoutService.TimeoutName
     {
         ELECTION, HEARTBEAT

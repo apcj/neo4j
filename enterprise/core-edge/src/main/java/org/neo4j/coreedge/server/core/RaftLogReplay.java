@@ -19,9 +19,11 @@
  */
 package org.neo4j.coreedge.server.core;
 
+import org.neo4j.coreedge.raft.RaftInstance;
 import org.neo4j.coreedge.raft.log.RaftLog;
 import org.neo4j.coreedge.raft.replication.ReplicatedContent;
 import org.neo4j.coreedge.raft.state.StateMachine;
+import org.neo4j.coreedge.server.CoreMember;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.logging.Log;
 import org.neo4j.logging.LogProvider;
@@ -31,13 +33,15 @@ import static java.lang.System.currentTimeMillis;
 
 public class RaftLogReplay extends LifecycleAdapter
 {
+    private final RaftInstance<CoreMember> raft;
     private final StateMachine stateMachine;
     private final RaftLog raftLog;
     private final int flushAfter;
     private final Log log;
 
-    public RaftLogReplay( StateMachine stateMachine, RaftLog raftLog, LogProvider logProvider, int flushAfter )
+    public RaftLogReplay( RaftInstance<CoreMember> raft, StateMachine stateMachine, RaftLog raftLog, LogProvider logProvider, int flushAfter )
     {
+        this.raft = raft;
         this.stateMachine = stateMachine;
         this.raftLog = raftLog;
         this.flushAfter = flushAfter;
@@ -66,6 +70,7 @@ public class RaftLogReplay extends LifecycleAdapter
             stateMachine.applyCommand( content, index );
             log.info( "Index %d replayed as committed", index );
         }
+        raft.setLastApplied( index );
 
         log.info( "Replay done, took %d ms", currentTimeMillis() - start );
     }

@@ -44,7 +44,7 @@ public class RaftLogReplayTest
         raftLog.commit( 2 );
         raftLog.append( new RaftLogEntry( 0, ReplicatedInteger.valueOf( 3 ) ) );
 
-        RaftLogReplay replayer = new RaftLogReplay( stateMachine, raftLog, NullLogProvider.getInstance(), 1 );
+        RaftLogReplay replayer = new RaftLogReplay( null, stateMachine, raftLog, NullLogProvider.getInstance(), 1 );
 
         // when
         replayer.start();

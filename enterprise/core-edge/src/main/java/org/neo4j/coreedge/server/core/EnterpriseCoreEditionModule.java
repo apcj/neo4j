@@ -333,7 +333,7 @@ public class EnterpriseCoreEditionModule
 
         life.add( CoreServerStartupProcess.createLifeSupport(
                 platformModule.dataSourceManager, replicatedIdGeneratorFactory, raft,
-                new RaftLogReplay( stateMachines, monitoredRaftLog, logProvider, flushAfter ), raftServer,
+                new RaftLogReplay( raft, stateMachines, monitoredRaftLog, logProvider, flushAfter ), raftServer,
                 catchupServer, raftTimeoutService, membershipWaiter,
                 joinCatchupTimeout,
                 new RecoverTransactionLogState( dependencies, logProvider,
