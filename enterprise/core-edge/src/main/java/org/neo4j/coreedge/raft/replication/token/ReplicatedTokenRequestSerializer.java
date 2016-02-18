@@ -24,12 +24,15 @@ import io.netty.buffer.Unpooled;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.neo4j.coreedge.raft.net.NetworkFlushableChannelNetty4;
 import org.neo4j.coreedge.raft.net.NetworkReadableClosableChannelNetty4;
 import org.neo4j.coreedge.raft.replication.StringMarshal;
+import org.neo4j.kernel.impl.core.TokenType;
 import org.neo4j.kernel.impl.storageengine.impl.recordstorage.RecordStorageCommandReaderFactory;
 import org.neo4j.kernel.impl.transaction.log.ReadableClosablePositionAwareChannel;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommand;
@@ -40,11 +43,19 @@ import org.neo4j.storageengine.api.ReadableChannel;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.WritableChannel;
 
+import static java.util.Arrays.asList;
+
+import static org.neo4j.kernel.impl.core.TokenType.*;
+import static org.neo4j.kernel.impl.core.TokenType.PROPERTY_KEY;
+import static org.neo4j.kernel.impl.core.TokenType.RELATIONSHIP_TYPE;
+
 public class ReplicatedTokenRequestSerializer
 {
+    static List<TokenType> tokenTypes = asList( RELATIONSHIP_TYPE, PROPERTY_KEY, LABEL );
+
     public static void marshal( ReplicatedTokenRequest content, WritableChannel channel ) throws IOException
     {
-        channel.putInt( content.type().ordinal() );
+        channel.putInt( tokenTypes.indexOf( content.type() ) );
         StringMarshal.marshal( channel, content.tokenName() );
 
         channel.putInt( content.commandBytes().length );
@@ -53,7 +64,7 @@ public class ReplicatedTokenRequestSerializer
 
     public static ReplicatedTokenRequest unmarshal( ReadableChannel channel ) throws IOException
     {
-        TokenType type = TokenType.values()[ channel.getInt() ];
+        TokenType type = tokenTypes.get( channel.getInt() );
         String tokenName = StringMarshal.unmarshal( channel );
 
         int commandBytesLength = channel.getInt();
@@ -65,7 +76,7 @@ public class ReplicatedTokenRequestSerializer
 
     public static void marshal( ReplicatedTokenRequest content, ByteBuf buffer )
     {
-        buffer.writeInt( content.type().ordinal() );
+        buffer.writeInt( tokenTypes.indexOf( content.type() ) );
         StringMarshal.marshal( buffer, content.tokenName() );
 
         buffer.writeInt( content.commandBytes().length );
@@ -74,7 +85,7 @@ public class ReplicatedTokenRequestSerializer
 
     public static ReplicatedTokenRequest unmarshal( ByteBuf buffer )
     {
-        TokenType type = TokenType.values()[ buffer.readInt() ];
+        TokenType type = tokenTypes.get( buffer.readInt() );
         String tokenName = StringMarshal.unmarshal( buffer );
 
         int commandBytesLength = buffer.readInt();

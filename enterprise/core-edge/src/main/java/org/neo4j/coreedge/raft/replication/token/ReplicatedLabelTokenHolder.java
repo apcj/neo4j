@@ -23,16 +23,16 @@ import org.neo4j.coreedge.raft.replication.RaftReplicator;
 import org.neo4j.coreedge.server.CoreMember;
 import org.neo4j.kernel.api.txstate.TransactionState;
 import org.neo4j.kernel.impl.core.LabelTokenHolder;
+import org.neo4j.kernel.impl.core.TokenType;
 import org.neo4j.kernel.impl.store.id.IdGeneratorFactory;
 import org.neo4j.kernel.impl.store.id.IdType;
-import org.neo4j.kernel.impl.store.record.LabelTokenRecord;
 import org.neo4j.kernel.impl.util.Dependencies;
 import org.neo4j.storageengine.api.Token;
 
-public class ReplicatedLabelTokenHolder extends ReplicatedTokenHolder<Token,LabelTokenRecord> implements LabelTokenHolder
+public class ReplicatedLabelTokenHolder extends ReplicatedTokenHolder<Token> implements LabelTokenHolder
 {
     public ReplicatedLabelTokenHolder(
-            TokenRegistry<Token, LabelTokenRecord> registry,
+            TokenRegistry<Token> registry,
             RaftReplicator<CoreMember> replicator,
             IdGeneratorFactory idGeneratorFactory, Dependencies dependencies, Long timeoutMillis )
     {

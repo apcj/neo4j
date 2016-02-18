@@ -24,21 +24,21 @@ import org.neo4j.coreedge.server.CoreMember;
 import org.neo4j.kernel.api.txstate.TransactionState;
 import org.neo4j.kernel.impl.core.RelationshipTypeToken;
 import org.neo4j.kernel.impl.core.RelationshipTypeTokenHolder;
+import org.neo4j.kernel.impl.core.TokenType;
 import org.neo4j.kernel.impl.store.id.IdGeneratorFactory;
 import org.neo4j.kernel.impl.store.id.IdType;
-import org.neo4j.kernel.impl.store.record.RelationshipTypeTokenRecord;
 import org.neo4j.kernel.impl.util.Dependencies;
 
-public class ReplicatedRelationshipTypeTokenHolder extends
-        ReplicatedTokenHolder<RelationshipTypeToken, RelationshipTypeTokenRecord> implements RelationshipTypeTokenHolder
+public class ReplicatedRelationshipTypeTokenHolder extends ReplicatedTokenHolder<RelationshipTypeToken>
+        implements RelationshipTypeTokenHolder
 {
     public ReplicatedRelationshipTypeTokenHolder(
-            TokenRegistry<RelationshipTypeToken, RelationshipTypeTokenRecord> registry,
+            TokenRegistry<RelationshipTypeToken> registry,
             RaftReplicator<CoreMember> replicator,
             IdGeneratorFactory idGeneratorFactory, Dependencies dependencies, Long timeoutMillis )
     {
         super( registry, replicator, idGeneratorFactory, IdType.RELATIONSHIP_TYPE_TOKEN, dependencies,
-                TokenType.RELATIONSHIP, timeoutMillis );
+                TokenType.RELATIONSHIP_TYPE, timeoutMillis );
     }
 
     @Override

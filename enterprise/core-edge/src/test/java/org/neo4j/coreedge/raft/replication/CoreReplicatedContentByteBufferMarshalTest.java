@@ -34,7 +34,7 @@ import org.neo4j.coreedge.raft.replication.session.GlobalSession;
 import org.neo4j.coreedge.raft.replication.session.LocalOperationId;
 import org.neo4j.coreedge.raft.replication.token.ReplicatedTokenRequest;
 import org.neo4j.coreedge.raft.replication.token.ReplicatedTokenRequestSerializer;
-import org.neo4j.coreedge.raft.replication.token.TokenType;
+import org.neo4j.kernel.impl.core.TokenType;
 import org.neo4j.coreedge.raft.replication.tx.ReplicatedTransactionFactory;
 import org.neo4j.coreedge.server.AdvertisedSocketAddress;
 import org.neo4j.coreedge.server.ByteBufMarshal;

@@ -23,21 +23,21 @@ import org.neo4j.coreedge.raft.replication.RaftReplicator;
 import org.neo4j.coreedge.server.CoreMember;
 import org.neo4j.kernel.api.txstate.TransactionState;
 import org.neo4j.kernel.impl.core.PropertyKeyTokenHolder;
+import org.neo4j.kernel.impl.core.TokenType;
 import org.neo4j.kernel.impl.store.id.IdGeneratorFactory;
 import org.neo4j.kernel.impl.store.id.IdType;
-import org.neo4j.kernel.impl.store.record.PropertyKeyTokenRecord;
 import org.neo4j.kernel.impl.util.Dependencies;
 import org.neo4j.storageengine.api.Token;
 
-public class ReplicatedPropertyKeyTokenHolder extends ReplicatedTokenHolder<Token, PropertyKeyTokenRecord> implements
-        PropertyKeyTokenHolder
+public class ReplicatedPropertyKeyTokenHolder extends ReplicatedTokenHolder<Token> implements PropertyKeyTokenHolder
 {
     public ReplicatedPropertyKeyTokenHolder(
-            TokenRegistry<Token, PropertyKeyTokenRecord> registry,
+            TokenRegistry<Token> registry,
             RaftReplicator<CoreMember> replicator,
             IdGeneratorFactory idGeneratorFactory, Dependencies dependencies, Long timeoutMillis )
     {
-        super( registry, replicator, idGeneratorFactory, IdType.PROPERTY_KEY_TOKEN, dependencies, TokenType.PROPERTY,
+        super( registry, replicator, idGeneratorFactory, IdType.PROPERTY_KEY_TOKEN, dependencies,
+                TokenType.PROPERTY_KEY,
                 timeoutMillis );
     }
 

@@ -36,10 +36,10 @@ public class RecoverTransactionLogState extends LifecycleAdapter
 {
     private final Dependencies dependencies;
     private final LogProvider logProvider;
-    private final ReplicatedTokenStateMachine<?, ?>[] tokenStateMachines;
+    private final ReplicatedTokenStateMachine<?>[] tokenStateMachines;
 
     public RecoverTransactionLogState( Dependencies dependencies, LogProvider logProvider,
-                                       ReplicatedTokenStateMachine<?, ?>... tokenStateMachines )
+                                       ReplicatedTokenStateMachine<?>... tokenStateMachines )
     {
         this.dependencies = dependencies;
         this.logProvider = logProvider;
@@ -54,7 +54,7 @@ public class RecoverTransactionLogState extends LifecycleAdapter
         dependencies.resolveDependency( ReplicatedTransactionStateMachine.class )
                 .setLastCommittedIndex( lastCommittedIndex );
 
-        for ( ReplicatedTokenStateMachine<?, ?> tokenStateMachine : tokenStateMachines )
+        for ( ReplicatedTokenStateMachine<?> tokenStateMachine : tokenStateMachines )
         {
             tokenStateMachine.setLastCommittedIndex( lastCommittedIndex );
         }

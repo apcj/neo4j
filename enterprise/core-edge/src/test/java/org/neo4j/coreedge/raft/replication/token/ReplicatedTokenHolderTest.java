@@ -19,61 +19,12 @@
  */
 package org.neo4j.coreedge.raft.replication.token;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Matchers;
-
-import org.neo4j.coreedge.raft.log.RaftLog;
-import org.neo4j.coreedge.raft.replication.DirectReplicator;
-import org.neo4j.coreedge.raft.replication.ReplicatedContent;
-import org.neo4j.coreedge.raft.replication.Replicator;
-import org.neo4j.coreedge.raft.state.StateMachine;
-import org.neo4j.coreedge.raft.state.StateMachines;
-import org.neo4j.graphdb.TransactionFailureException;
-import org.neo4j.kernel.impl.api.TransactionRepresentationCommitProcess;
-import org.neo4j.kernel.impl.api.TransactionToApply;
-import org.neo4j.kernel.impl.store.LabelTokenStore;
-import org.neo4j.kernel.impl.store.NeoStores;
-import org.neo4j.kernel.impl.store.id.IdGenerator;
-import org.neo4j.kernel.impl.store.id.IdGeneratorFactory;
-import org.neo4j.kernel.impl.store.id.IdType;
-import org.neo4j.kernel.impl.store.record.DynamicRecord;
-import org.neo4j.kernel.impl.store.record.LabelTokenRecord;
-import org.neo4j.kernel.impl.transaction.TransactionRepresentation;
-import org.neo4j.kernel.impl.transaction.command.Command;
-import org.neo4j.kernel.impl.transaction.log.TransactionAppender;
-import org.neo4j.kernel.impl.transaction.tracing.CommitEvent;
-import org.neo4j.kernel.impl.util.Dependencies;
-import org.neo4j.logging.NullLogProvider;
-import org.neo4j.storageengine.api.StorageCommand;
-import org.neo4j.storageengine.api.StorageEngine;
-import org.neo4j.storageengine.api.Token;
-import org.neo4j.storageengine.api.TransactionApplicationMode;
-import org.neo4j.storageengine.api.lock.ResourceLocker;
-import org.neo4j.storageengine.api.txstate.ReadableTransactionState;
-import org.neo4j.storageengine.api.txstate.TxStateVisitor;
-
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
-
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyCollection;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import static org.neo4j.coreedge.raft.replication.token.ReplicatedTokenRequestSerializer.createCommandBytes;
-import static org.neo4j.coreedge.raft.replication.token.TokenType.LABEL;
-import static org.neo4j.coreedge.raft.replication.tx.LogIndexTxHeaderEncoding.decodeLogIndexFromTxHeader;
 
 public class ReplicatedTokenHolderTest
 {

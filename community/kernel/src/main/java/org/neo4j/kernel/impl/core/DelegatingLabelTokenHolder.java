@@ -25,6 +25,6 @@ public class DelegatingLabelTokenHolder extends DelegatingTokenHolder<Token> imp
 {
     public DelegatingLabelTokenHolder( TokenCreator tokenCreator )
     {
-        super( tokenCreator, new Token.Factory() );
+        super( tokenCreator, TokenType.LABEL );
     }
 }

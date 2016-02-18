@@ -38,7 +38,7 @@ public class TokenHolderTest
     {
         // GIVEN
         TokenCreator creator = mock( TokenCreator.class );
-        TokenHolder<Token> holder = new DelegatingTokenHolder<Token>( creator, new Token.Factory() ) {};
+        TokenHolder<Token> holder = new DelegatingTokenHolder<Token>( creator, TokenType.PROPERTY_KEY ) {};
         holder.setInitialTokens(
                 asList( token( "one", 1 ),
                         token( "two", 2 ) ));

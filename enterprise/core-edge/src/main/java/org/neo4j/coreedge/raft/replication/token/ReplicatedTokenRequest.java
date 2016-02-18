@@ -22,6 +22,7 @@ package org.neo4j.coreedge.raft.replication.token;
 import java.util.Arrays;
 
 import org.neo4j.coreedge.raft.replication.ReplicatedContent;
+import org.neo4j.kernel.impl.core.TokenType;
 
 public class ReplicatedTokenRequest implements ReplicatedContent
 {

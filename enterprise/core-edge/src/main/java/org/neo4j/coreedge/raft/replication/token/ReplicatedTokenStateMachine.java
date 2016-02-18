@@ -28,6 +28,7 @@ import org.neo4j.kernel.api.exceptions.TransactionFailureException;
 import org.neo4j.kernel.impl.api.TransactionCommitProcess;
 import org.neo4j.kernel.impl.api.TransactionRepresentationCommitProcess;
 import org.neo4j.kernel.impl.api.TransactionToApply;
+import org.neo4j.kernel.impl.core.TokenType;
 import org.neo4j.kernel.impl.locking.LockGroup;
 import org.neo4j.kernel.impl.store.record.TokenRecord;
 import org.neo4j.kernel.impl.transaction.command.Command;
@@ -45,12 +46,11 @@ import org.neo4j.storageengine.api.TransactionApplicationMode;
 
 import static org.neo4j.coreedge.raft.replication.tx.LogIndexTxHeaderEncoding.encodeLogIndexAsTxHeader;
 
-public class ReplicatedTokenStateMachine<TOKEN extends Token, RECORD extends TokenRecord>
-        extends LifecycleAdapter implements StateMachine
+public class ReplicatedTokenStateMachine<TOKEN extends Token> extends LifecycleAdapter implements StateMachine
 {
     protected final Dependencies dependencies;
 
-    private final TokenRegistry<TOKEN, RECORD> tokenRegistry;
+    private final TokenRegistry<TOKEN> tokenRegistry;
     private final TokenFactory<TOKEN> tokenFactory;
     private final TokenType type;
 
@@ -59,13 +59,13 @@ public class ReplicatedTokenStateMachine<TOKEN extends Token, RECORD extends Tok
 
     // TODO: Clean up all the resolving, which now happens every time with special selection strategies.
 
-    public ReplicatedTokenStateMachine( TokenRegistry<TOKEN, RECORD> tokenRegistry,
-                                        Dependencies dependencies, TokenFactory<TOKEN> tokenFactory, TokenType type,
+    public ReplicatedTokenStateMachine( TokenRegistry<TOKEN> tokenRegistry,
+                                        Dependencies dependencies, TokenType<TOKEN> type,
                                         LogProvider logProvider )
     {
         this.tokenRegistry = tokenRegistry;
         this.dependencies = dependencies;
-        this.tokenFactory = tokenFactory;
+        this.tokenFactory = type.factory();
         this.type = type;
         this.log = logProvider.getLog( getClass() );
     }

@@ -35,14 +35,15 @@ import org.neo4j.storageengine.api.TokenFactory;
  */
 public class DelegatingTokenHolder<TOKEN extends Token> extends LifecycleAdapter implements TokenHolder<TOKEN>
 {
-    protected InMemoryTokenCache<TOKEN> tokenCache = new InMemoryTokenCache<>( this.getClass() );
+    protected InMemoryTokenCache<TOKEN> tokenCache;
     private final TokenCreator tokenCreator;
     private final TokenFactory<TOKEN> tokenFactory;
 
-    public DelegatingTokenHolder( TokenCreator tokenCreator, TokenFactory<TOKEN> tokenFactory )
+    public DelegatingTokenHolder( TokenCreator tokenCreator, TokenType<TOKEN> tokenType )
     {
         this.tokenCreator = tokenCreator;
-        this.tokenFactory = tokenFactory;
+        this.tokenFactory = tokenType.factory();
+        this.tokenCache = new InMemoryTokenCache<>( tokenType );
     }
 
     @Override

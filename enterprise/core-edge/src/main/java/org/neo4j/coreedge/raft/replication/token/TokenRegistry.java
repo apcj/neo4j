@@ -22,18 +22,17 @@ package org.neo4j.coreedge.raft.replication.token;
 import java.util.List;
 
 import org.neo4j.kernel.impl.core.InMemoryTokenCache;
-import org.neo4j.kernel.impl.store.record.TokenRecord;
+import org.neo4j.kernel.impl.core.TokenType;
 import org.neo4j.storageengine.api.Token;
 
-public class TokenRegistry<TOKEN extends Token, RECORD extends TokenRecord>
+public class TokenRegistry<TOKEN extends Token>
 {
     private final InMemoryTokenCache<TOKEN> tokenCache;
     private final TokenFutures tokenFutures = new TokenFutures();
 
-    public TokenRegistry()
+    public TokenRegistry( TokenType tokenType )
     {
-        // TODO null!
-        this.tokenCache = new InMemoryTokenCache<>( null );
+        this.tokenCache = new InMemoryTokenCache<>( tokenType );
     }
 
     public TokenFutures.CompletableFutureTokenId createFuture( String tokenName )

@@ -23,6 +23,6 @@ public class DelegatingRelationshipTypeTokenHolder extends DelegatingTokenHolder
 {
     public DelegatingRelationshipTypeTokenHolder( TokenCreator tokenCreator )
     {
-        super( tokenCreator, new RelationshipTypeToken.Factory() );
+        super( tokenCreator, TokenType.RELATIONSHIP_TYPE );
     }
 }

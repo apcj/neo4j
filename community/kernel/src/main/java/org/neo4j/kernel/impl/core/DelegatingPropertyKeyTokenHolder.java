@@ -25,6 +25,6 @@ public class DelegatingPropertyKeyTokenHolder extends DelegatingTokenHolder<Toke
 {
     public DelegatingPropertyKeyTokenHolder( TokenCreator tokenCreator )
     {
-        super( tokenCreator, new Token.Factory() );
+        super( tokenCreator, TokenType.PROPERTY_KEY );
     }
 }

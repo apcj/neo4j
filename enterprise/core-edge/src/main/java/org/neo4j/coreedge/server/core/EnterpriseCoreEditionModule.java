@@ -64,7 +64,7 @@ import org.neo4j.coreedge.raft.replication.token.ReplicatedPropertyKeyTokenHolde
 import org.neo4j.coreedge.raft.replication.token.ReplicatedRelationshipTypeTokenHolder;
 import org.neo4j.coreedge.raft.replication.token.ReplicatedTokenStateMachine;
 import org.neo4j.coreedge.raft.replication.token.TokenRegistry;
-import org.neo4j.coreedge.raft.replication.token.TokenType;
+import org.neo4j.kernel.impl.core.TokenType;
 import org.neo4j.coreedge.raft.replication.tx.CommittingTransactions;
 import org.neo4j.coreedge.raft.replication.tx.CommittingTransactionsRegistry;
 import org.neo4j.coreedge.raft.replication.tx.ExponentialBackoffStrategy;
@@ -118,9 +118,6 @@ import org.neo4j.kernel.impl.factory.GraphDatabaseFacade;
 import org.neo4j.kernel.impl.factory.PlatformModule;
 import org.neo4j.kernel.impl.locking.Locks;
 import org.neo4j.kernel.impl.logging.LogService;
-import org.neo4j.kernel.impl.store.record.LabelTokenRecord;
-import org.neo4j.kernel.impl.store.record.PropertyKeyTokenRecord;
-import org.neo4j.kernel.impl.store.record.RelationshipTypeTokenRecord;
 import org.neo4j.kernel.impl.store.stats.IdBasedStoreEntityCounters;
 import org.neo4j.kernel.impl.transaction.TransactionHeaderInformationFactory;
 import org.neo4j.kernel.impl.transaction.log.LogicalTransactionStore;
@@ -137,13 +134,15 @@ import org.neo4j.storageengine.api.Token;
 import org.neo4j.udc.UsageData;
 
 import static org.neo4j.helpers.Clock.SYSTEM_CLOCK;
+import static org.neo4j.kernel.impl.core.TokenType.LABEL;
+import static org.neo4j.kernel.impl.core.TokenType.PROPERTY_KEY;
+import static org.neo4j.kernel.impl.core.TokenType.RELATIONSHIP_TYPE;
 
 /**
  * This implementation of {@link org.neo4j.kernel.impl.factory.EditionModule} creates the implementations of services
  * that are specific to the Enterprise Core edition that provides a core cluster.
  */
-public class EnterpriseCoreEditionModule
-        extends EditionModule
+public class EnterpriseCoreEditionModule extends EditionModule
 {
     public static final String CLUSTER_STATE_DIRECTORY_NAME = "cluster-state";
     private final RaftInstance<CoreMember> raft;
@@ -288,29 +287,23 @@ public class EnterpriseCoreEditionModule
 
         Long tokenCreationTimeout = config.get( CoreEdgeClusterSettings.token_creation_timeout );
 
-        TokenRegistry<RelationshipTypeToken, RelationshipTypeTokenRecord> relationshipTypeTokenRegistry = new TokenRegistry<>();
+        TokenRegistry<RelationshipTypeToken> relationshipTypeTokenRegistry = new TokenRegistry<>( RELATIONSHIP_TYPE );
         ReplicatedRelationshipTypeTokenHolder relationshipTypeTokenHolder = new ReplicatedRelationshipTypeTokenHolder(
                 relationshipTypeTokenRegistry, replicator, this.idGeneratorFactory, dependencies, tokenCreationTimeout );
-        ReplicatedTokenStateMachine<RelationshipTypeToken, RelationshipTypeTokenRecord>
-                relationshipTypeTokenStateMachine = new ReplicatedTokenStateMachine<>(
-                relationshipTypeTokenRegistry, dependencies, new RelationshipTypeToken.Factory(),
-                TokenType.RELATIONSHIP, logProvider );
+        ReplicatedTokenStateMachine<?> relationshipTypeTokenStateMachine = new ReplicatedTokenStateMachine<>(
+                relationshipTypeTokenRegistry, dependencies, RELATIONSHIP_TYPE, logProvider );
 
-        TokenRegistry<Token, PropertyKeyTokenRecord> propertyKeyTokenRegistry = new TokenRegistry<>();
+        TokenRegistry<Token> propertyKeyTokenRegistry = new TokenRegistry<>( PROPERTY_KEY );
         ReplicatedPropertyKeyTokenHolder propertyKeyTokenHolder = new ReplicatedPropertyKeyTokenHolder(
                 propertyKeyTokenRegistry, replicator, this.idGeneratorFactory, dependencies, tokenCreationTimeout );
-        ReplicatedTokenStateMachine<Token, PropertyKeyTokenRecord>
-                propertyKeyTokenStateMachine = new ReplicatedTokenStateMachine<>(
-                propertyKeyTokenRegistry, dependencies, new Token.Factory(),
-                TokenType.PROPERTY, logProvider );
+        ReplicatedTokenStateMachine<?> propertyKeyTokenStateMachine = new ReplicatedTokenStateMachine<>(
+                propertyKeyTokenRegistry, dependencies, PROPERTY_KEY, logProvider );
 
-        TokenRegistry<Token, LabelTokenRecord> labelTokenRegistry = new TokenRegistry<>();
+        TokenRegistry<Token> labelTokenRegistry = new TokenRegistry<>( LABEL );
         ReplicatedLabelTokenHolder labelTokenHolder = new ReplicatedLabelTokenHolder(
                 labelTokenRegistry, replicator, this.idGeneratorFactory, dependencies, tokenCreationTimeout );
-        ReplicatedTokenStateMachine<Token, LabelTokenRecord>
-                labelTokenStateMachine = new ReplicatedTokenStateMachine<>(
-                labelTokenRegistry, dependencies, new Token.Factory(),
-                TokenType.LABEL, logProvider );
+        ReplicatedTokenStateMachine<?> labelTokenStateMachine = new ReplicatedTokenStateMachine<>(
+                labelTokenRegistry, dependencies, LABEL, logProvider );
 
         LifeSupport tokenLife = new LifeSupport();
         stateMachines.add( tokenLife.add( relationshipTypeTokenStateMachine ) );
