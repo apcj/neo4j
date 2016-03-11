@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.neo4j.coreedge.raft.log.RaftLog;
+import org.neo4j.coreedge.raft.log.RaftLogCompactedException;
 import org.neo4j.coreedge.raft.log.RaftLogEntry;
 import org.neo4j.coreedge.raft.log.ReadableRaftLog;
 import org.neo4j.coreedge.raft.outcome.AppendLogEntry;
@@ -89,7 +90,7 @@ public class RaftMembershipManager<MEMBER> implements RaftMembership<MEMBER>, Me
                 logProvider, catchupTimeout, raftMembershipState );
     }
 
-    public void processLog( Collection<LogCommand> logCommands ) throws IOException
+    public void processLog( Collection<LogCommand> logCommands ) throws IOException, RaftLogCompactedException
     {
         for ( LogCommand logCommand : logCommands )
         {
@@ -177,7 +178,7 @@ public class RaftMembershipManager<MEMBER> implements RaftMembership<MEMBER>, Me
         }
     }
 
-    private void onTruncated() throws IOException
+    private void onTruncated() throws IOException, RaftLogCompactedException
     {
         Pair<Long,RaftGroup<MEMBER>> lastMembershipEntry = findLastMembershipEntry();
 
@@ -195,7 +196,7 @@ public class RaftMembershipManager<MEMBER> implements RaftMembership<MEMBER>, Me
         }
     }
 
-    private Pair<Long,RaftGroup<MEMBER>> findLastMembershipEntry() throws IOException
+    private Pair<Long,RaftGroup<MEMBER>> findLastMembershipEntry() throws IOException, RaftLogCompactedException
     {
         Pair<Long,RaftGroup<MEMBER>> lastMembershipEntry = null;
         long index = 0;

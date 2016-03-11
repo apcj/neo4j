@@ -21,17 +21,19 @@ package org.neo4j.coreedge.discovery;
 
 import java.util.Set;
 
+import org.neo4j.coreedge.raft.RaftInstance.BootstrapException;
+import org.neo4j.coreedge.raft.log.RaftLogCompactedException;
 import org.neo4j.coreedge.server.CoreMember;
 import org.neo4j.coreedge.raft.RaftInstance;
 import org.neo4j.coreedge.raft.membership.CoreMemberSet;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 
-public class RaftDiscoveryServiceConnector extends LifecycleAdapter implements CoreDiscoveryService.Listener
+public class RaftDiscoveryServiceConnector extends LifecycleAdapter implements CoreDiscovery.Listener
 {
-    private final CoreDiscoveryService discoveryService;
+    private final CoreDiscovery discoveryService;
     private final RaftInstance<CoreMember> raftInstance;
 
-    public RaftDiscoveryServiceConnector( CoreDiscoveryService discoveryService,
+    public RaftDiscoveryServiceConnector( CoreDiscovery discoveryService,
                                             RaftInstance<CoreMember> raftInstance )
     {
         this.discoveryService = discoveryService;
@@ -39,7 +41,7 @@ public class RaftDiscoveryServiceConnector extends LifecycleAdapter implements C
     }
 
     @Override
-    public void start() throws RaftInstance.BootstrapException
+    public void start() throws BootstrapException
     {
         discoveryService.addMembershipListener( this );
 
@@ -48,7 +50,14 @@ public class RaftDiscoveryServiceConnector extends LifecycleAdapter implements C
 
         if ( clusterTopology.bootstrappable() )
         {
-            raftInstance.bootstrapWithInitialMembers( new CoreMemberSet( initialMembers ) );
+            try
+            {
+                raftInstance.bootstrapWithInitialMembers( new CoreMemberSet( initialMembers ) );
+            }
+            catch ( RaftLogCompactedException e )
+            {
+                throw new BootstrapException( e );
+            }
         }
 
         onTopologyChange( clusterTopology );

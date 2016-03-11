@@ -24,7 +24,6 @@ import org.junit.Test;
 import org.neo4j.coreedge.raft.log.RaftLogEntry;
 import org.neo4j.coreedge.raft.log.ReadableRaftLog;
 import org.neo4j.coreedge.raft.state.follower.FollowerState;
-import org.neo4j.coreedge.raft.replication.ReplicatedContent;
 import org.neo4j.cursor.IOCursor;
 import org.neo4j.helpers.FakeClock;
 
@@ -73,6 +72,12 @@ public class CatchupGoalTest
         public long appendIndex()
         {
             return appendIndex;
+        }
+
+        @Override
+        public long prevIndex()
+        {
+            return 0;
         }
 
         @Override public long commitIndex()

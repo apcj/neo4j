@@ -27,12 +27,12 @@ import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import static org.neo4j.helpers.Listeners.notifyListeners;
 import static org.neo4j.helpers.collection.Iterables.firstOrNull;
 
-public class TestOnlyCoreDiscoveryService extends LifecycleAdapter implements CoreDiscoveryService
+public class TestOnlyCoreDiscovery extends LifecycleAdapter implements CoreDiscovery
 {
     private final CoreMember me;
     private final TestOnlyDiscoveryServiceFactory cluster;
 
-    public TestOnlyCoreDiscoveryService( Config config, TestOnlyDiscoveryServiceFactory cluster )
+    public TestOnlyCoreDiscovery( Config config, TestOnlyDiscoveryServiceFactory cluster )
     {
         this.cluster = cluster;
         synchronized ( cluster )

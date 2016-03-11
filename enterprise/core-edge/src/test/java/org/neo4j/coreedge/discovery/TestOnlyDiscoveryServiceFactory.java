@@ -60,20 +60,20 @@ public class TestOnlyDiscoveryServiceFactory implements DiscoveryServiceFactory
         }
     } );
 
-    protected Set<CoreDiscoveryService.Listener> membershipListeners = new CopyOnWriteArraySet<>();
+    protected Set<CoreDiscovery.Listener> membershipListeners = new CopyOnWriteArraySet<>();
     protected CoreMember bootstrappable;
 
     protected final Set<InstanceId> edgeMembers = new CopyOnWriteArraySet<>();
 
     @Override
-    public CoreDiscoveryService coreDiscoveryService( Config config )
+    public CoreDiscovery coreDiscoveryService( Config config )
     {
-        return new TestOnlyCoreDiscoveryService( config, this );
+        return new TestOnlyCoreDiscovery( config, this );
     }
 
     @Override
-    public EdgeDiscoveryService edgeDiscoveryService( Config config, LogProvider logProvider )
+    public TopologyDiscovery edgeDiscoveryService( Config config, LogProvider logProvider )
     {
-        return new TestOnlyEdgeDiscoveryService( config, this );
+        return new TestOnlyTopologyDiscovery( config, this );
     }
 }

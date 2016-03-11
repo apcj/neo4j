@@ -23,29 +23,29 @@ import java.util.Iterator;
 import java.util.Random;
 
 import org.neo4j.coreedge.discovery.ClusterTopology;
-import org.neo4j.coreedge.discovery.EdgeDiscoveryService;
-import org.neo4j.coreedge.discovery.EdgeServerConnectionException;
+import org.neo4j.coreedge.discovery.TopologyDiscovery;
+import org.neo4j.coreedge.discovery.CoreServerSelectionException;
 import org.neo4j.coreedge.server.AdvertisedSocketAddress;
 import org.neo4j.coreedge.server.CoreMember;
 
-public class ConnectToRandomCoreServer implements EdgeToCoreConnectionStrategy
+public class ConnectToRandomCoreServer implements CoreServerSelectionStrategy
 {
-    private final EdgeDiscoveryService discoveryService;
+    private final TopologyDiscovery discoveryService;
     private final Random random = new Random();
 
-    public ConnectToRandomCoreServer( EdgeDiscoveryService discoveryService )
+    public ConnectToRandomCoreServer( TopologyDiscovery discoveryService )
     {
         this.discoveryService = discoveryService;
     }
 
     @Override
-    public AdvertisedSocketAddress coreServer() throws EdgeServerConnectionException
+    public AdvertisedSocketAddress coreServer() throws CoreServerSelectionException
     {
         final ClusterTopology clusterTopology = discoveryService.currentTopology();
 
         if ( clusterTopology.getMembers().size() == 0 )
         {
-            throw new EdgeServerConnectionException( "Unable to connect to any core server" );
+            throw new CoreServerSelectionException( "No core servers available" );
         }
 
         int skippedServers = random.nextInt( clusterTopology.getMembers().size() );

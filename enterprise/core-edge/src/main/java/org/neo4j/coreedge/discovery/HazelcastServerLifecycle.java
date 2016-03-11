@@ -45,7 +45,7 @@ import org.neo4j.helpers.Listeners;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 
-public class HazelcastServerLifecycle extends LifecycleAdapter implements CoreDiscoveryService
+public class HazelcastServerLifecycle extends LifecycleAdapter implements CoreDiscovery
 {
     public static final String CLUSTER_SERVER = "cluster_server";
     public static final String TRANSACTION_SERVER = "transaction_server";

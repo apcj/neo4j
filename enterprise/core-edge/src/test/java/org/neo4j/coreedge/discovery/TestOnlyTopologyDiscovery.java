@@ -24,12 +24,12 @@ import org.neo4j.cluster.InstanceId;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 
-public class TestOnlyEdgeDiscoveryService extends LifecycleAdapter implements EdgeDiscoveryService
+public class TestOnlyTopologyDiscovery extends LifecycleAdapter implements TopologyDiscovery
 {
     private final InstanceId edgeMe;
     private final TestOnlyDiscoveryServiceFactory cluster;
 
-    public TestOnlyEdgeDiscoveryService( Config config, TestOnlyDiscoveryServiceFactory cluster )
+    public TestOnlyTopologyDiscovery( Config config, TestOnlyDiscoveryServiceFactory cluster )
     {
         this.cluster = cluster;
         this.edgeMe = toEdge( config );

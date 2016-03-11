@@ -28,26 +28,47 @@ import static org.neo4j.coreedge.raft.log.PhysicalRaftLog.RecordType.CONTINUATIO
 
 public class RaftLogContinuationRecord extends RaftLogRecord
 {
-    RaftLogContinuationRecord( long fromLogIndex )
+    private final long prevLogIndex;
+    private final long prevLogTerm;
+
+    RaftLogContinuationRecord( long prevLogIndex, long prevLogTerm )
     {
-        super( CONTINUATION, fromLogIndex );
+        super( CONTINUATION );
+        this.prevLogIndex = prevLogIndex;
+        this.prevLogTerm = prevLogTerm;
+    }
+
+    public long prevLogIndex()
+    {
+        return prevLogIndex;
+    }
+
+    public long prevLogTerm()
+    {
+        return prevLogTerm;
     }
 
     public static RaftLogContinuationRecord read( ReadableChannel channel ) throws IOException
     {
-        long fromIndex = channel.getLong();
-        return new RaftLogContinuationRecord( fromIndex );
+        long prevLogIndex = channel.getLong();
+        long prevLogTerm = channel.getLong();
+
+        return new RaftLogContinuationRecord( prevLogIndex, prevLogTerm );
     }
 
-    public static void write( WritableChannel channel, long fromIndex ) throws IOException
+    public static void write( WritableChannel channel, long prevLogIndex, long prevLogTerm ) throws IOException
     {
         channel.put( CONTINUATION.value() );
-        channel.putLong( fromIndex );
+        channel.putLong( prevLogIndex );
+        channel.putLong( prevLogTerm );
     }
 
     @Override
     public String toString()
     {
-        return String.format( "RaftLogContinuationRecord{%s}", super.toString() );
+        return "RaftLogContinuationRecord{" +
+               "prevLogIndex=" + prevLogIndex +
+               ", prevLogTerm=" + prevLogTerm +
+               '}';
     }
 }

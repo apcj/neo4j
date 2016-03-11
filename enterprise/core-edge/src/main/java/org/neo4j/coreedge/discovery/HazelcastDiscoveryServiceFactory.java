@@ -25,13 +25,13 @@ import org.neo4j.logging.LogProvider;
 public class HazelcastDiscoveryServiceFactory implements DiscoveryServiceFactory
 {
     @Override
-    public CoreDiscoveryService coreDiscoveryService( Config config )
+    public CoreDiscovery coreDiscoveryService( Config config )
     {
         return new HazelcastServerLifecycle( config );
     }
 
     @Override
-    public EdgeDiscoveryService edgeDiscoveryService( Config config, LogProvider logProvider )
+    public TopologyDiscovery edgeDiscoveryService( Config config, LogProvider logProvider )
     {
         return new HazelcastClient( new HazelcastClientConnector( config ), logProvider );
     }

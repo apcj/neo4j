@@ -17,11 +17,20 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.coreedge.discovery;
+package org.neo4j.coreedge.server.core;
 
-import org.neo4j.kernel.lifecycle.Lifecycle;
+import org.neo4j.coreedge.raft.roles.Role;
+import org.neo4j.coreedge.server.AdvertisedSocketAddress;
+import org.neo4j.coreedge.server.CoreMember;
+import org.neo4j.kernel.impl.factory.EditionModule;
 
-public interface EdgeDiscoveryService extends Lifecycle
+interface CoreEditionSPI extends EditionModule.SPI
 {
-    ClusterTopology currentTopology();
+    CoreMember id();
+
+    Role currentRole();
+
+    void downloadSnapshot( AdvertisedSocketAddress source );
+
+    void compact();
 }

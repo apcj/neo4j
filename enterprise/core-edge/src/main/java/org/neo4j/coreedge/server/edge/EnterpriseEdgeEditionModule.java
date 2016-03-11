@@ -35,7 +35,7 @@ import org.neo4j.coreedge.catchup.tx.edge.TransactionLogCatchUpFactory;
 import org.neo4j.coreedge.catchup.tx.edge.TxPollingClient;
 import org.neo4j.coreedge.catchup.tx.edge.TxPullClient;
 import org.neo4j.coreedge.discovery.DiscoveryServiceFactory;
-import org.neo4j.coreedge.discovery.EdgeDiscoveryService;
+import org.neo4j.coreedge.discovery.TopologyDiscovery;
 import org.neo4j.coreedge.raft.replication.tx.ExponentialBackoffStrategy;
 import org.neo4j.coreedge.server.CoreEdgeClusterSettings;
 import org.neo4j.coreedge.server.Expiration;
@@ -46,6 +46,7 @@ import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.kernel.DatabaseAvailability;
+import org.neo4j.kernel.internal.DatabaseHealth;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.kernel.internal.KernelData;
 import org.neo4j.kernel.NeoStoreDataSource;
@@ -133,7 +134,7 @@ public class EnterpriseEdgeEditionModule extends EditionModule
 
         LogProvider logProvider = platformModule.logging.getInternalLogProvider();
 
-        EdgeDiscoveryService discoveryService = discoveryServiceFactory.edgeDiscoveryService( config, logProvider);
+        TopologyDiscovery discoveryService = discoveryServiceFactory.edgeDiscoveryService( config, logProvider);
         life.add(dependencies.satisfyDependency( discoveryService ));
 
         Supplier<TransactionApplier> transactionApplierSupplier =
@@ -166,13 +167,15 @@ public class EnterpriseEdgeEditionModule extends EditionModule
                 new StoreCopyClient( edgeToCoreClient ), new TxPullClient( edgeToCoreClient ),
                 new TransactionLogCatchUpFactory() );
 
+        final Supplier<DatabaseHealth> databaseHealthSupplier = dependencies.provideDependency( DatabaseHealth.class );
+
         life.add( new EdgeServerStartupProcess( storeFetcher,
                 new LocalDatabase( platformModule.storeDir,
-                        new CopiedStoreRecovery( config, platformModule.kernelExtensions.listFactories(),
-                                platformModule.pageCache ),
+                        new CopiedStoreRecovery( config, platformModule.kernelExtensions.listFactories(), platformModule.pageCache ),
                         new StoreFiles( new DefaultFileSystemAbstraction() ),
-                        dependencies.provideDependency( NeoStoreDataSource.class ), platformModule.dependencies
-                        .provideDependency( TransactionIdStore.class ) ),
+                        dependencies.provideDependency( NeoStoreDataSource.class ),
+                        dependencies.provideDependency( TransactionIdStore.class ),
+                        databaseHealthSupplier ),
                 txPollingClient, platformModule.dataSourceManager, new ConnectToRandomCoreServer( discoveryService ),
                 new ExponentialBackoffStrategy( 1, TimeUnit.SECONDS ), logProvider ) );
     }

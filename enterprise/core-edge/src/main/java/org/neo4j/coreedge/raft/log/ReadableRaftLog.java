@@ -31,6 +31,11 @@ public interface ReadableRaftLog
     long appendIndex();
 
     /**
+     * @return The index immediately preceding entries in the log.
+     */
+    long prevIndex();
+
+    /**
      * @return The index of the last committed entry.
      */
     long commitIndex();
@@ -41,11 +46,11 @@ public interface ReadableRaftLog
      * @param logIndex The index of the log entry.
      * @return The term of the entry, or -1 if the entry does not exist
      */
-    long readEntryTerm( long logIndex ) throws IOException;
+    long readEntryTerm( long logIndex ) throws IOException, RaftLogCompactedException;
 
     /**
      * Returns an {@link IOCursor} of {@link RaftLogEntry}s from the specified index until the end of the log
      * @param fromIndex The log index at which the cursor should be positioned
      */
-    IOCursor<RaftLogEntry> getEntryCursor( long fromIndex ) throws IOException;
+    IOCursor<RaftLogEntry> getEntryCursor( long fromIndex ) throws IOException, RaftLogCompactedException;
 }

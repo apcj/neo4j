@@ -17,16 +17,24 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.coreedge.discovery;
+package org.neo4j.coreedge.catchup.storecopy.core;
 
-public interface CoreDiscoveryService extends EdgeDiscoveryService
+import org.neo4j.coreedge.raft.replication.session.GlobalSessionTrackerState;
+import org.neo4j.coreedge.raft.state.StateMarshal;
+import org.neo4j.coreedge.raft.state.id_allocation.IdAllocationState;
+import org.neo4j.coreedge.server.CoreMember;
+import org.neo4j.coreedge.server.core.locks.ReplicatedLockTokenState;
+
+public enum RaftStateType
 {
-    void addMembershipListener( Listener listener );
+    LOCK_TOKEN( new ReplicatedLockTokenState.Marshal<>( new CoreMember.CoreMemberMarshal() ) ),
+    SESSION_TRACKER( new GlobalSessionTrackerState.Marshal<>( new CoreMember.CoreMemberMarshal() ) ),
+    ID_ALLOCATION( new IdAllocationState.Marshal() );
 
-    void removeMembershipListener( Listener listener );
+    public final StateMarshal marshal;
 
-    interface Listener
+    RaftStateType( StateMarshal marshal )
     {
-        void onTopologyChange( ClusterTopology clusterTopology );
+        this.marshal = marshal;
     }
 }

@@ -24,7 +24,7 @@ import org.junit.Test;
 import org.neo4j.coreedge.catchup.storecopy.LocalDatabase;
 import org.neo4j.coreedge.catchup.storecopy.edge.StoreFetcher;
 import org.neo4j.coreedge.catchup.tx.edge.TxPollingClient;
-import org.neo4j.coreedge.discovery.CoreDiscoveryService;
+import org.neo4j.coreedge.discovery.CoreDiscovery;
 import org.neo4j.coreedge.discovery.HazelcastClusterTopology;
 import org.neo4j.coreedge.raft.replication.tx.ConstantTimeRetryStrategy;
 import org.neo4j.coreedge.server.AdvertisedSocketAddress;
@@ -49,7 +49,7 @@ public class EdgeServerStartupProcessTest
         LocalDatabase localDatabase = mock( LocalDatabase.class );
 
         AdvertisedSocketAddress coreServerAddress = new AdvertisedSocketAddress( "localhost:1999" );
-        CoreDiscoveryService hazelcastTopology = mock( CoreDiscoveryService.class );
+        CoreDiscovery hazelcastTopology = mock( CoreDiscovery.class );
 
         HazelcastClusterTopology clusterTopology = mock( HazelcastClusterTopology.class );
         when( hazelcastTopology.currentTopology() ).thenReturn( clusterTopology );
@@ -80,7 +80,7 @@ public class EdgeServerStartupProcessTest
         LocalDatabase localDatabase = mock( LocalDatabase.class );
 
         AdvertisedSocketAddress coreServerAddress = new AdvertisedSocketAddress( "localhost:1999" );
-        CoreDiscoveryService hazelcastTopology = mock( CoreDiscoveryService.class );
+        CoreDiscovery hazelcastTopology = mock( CoreDiscovery.class );
         HazelcastClusterTopology clusterTopology = mock( HazelcastClusterTopology.class );
         when( clusterTopology.firstTransactionServer() ).thenReturn( coreServerAddress );
 

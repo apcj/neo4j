@@ -23,7 +23,7 @@ import java.io.IOException;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
-import org.neo4j.coreedge.raft.ConsensusListener;
+import org.neo4j.coreedge.raft.log.RaftLogCompactedException;
 import org.neo4j.coreedge.raft.log.RaftLogEntry;
 import org.neo4j.coreedge.raft.log.ReadableRaftLog;
 import org.neo4j.cursor.IOCursor;
@@ -34,9 +34,9 @@ import org.neo4j.logging.LogProvider;
 
 import static java.lang.System.currentTimeMillis;
 
-public class StateMachineApplier extends LifecycleAdapter implements ConsensusListener
+public class StateMachineApplier extends LifecycleAdapter implements Supplier<StateMachine>
 {
-    public static final long NOTHING_APPLIED = -1;
+    public static final long NOTHING = -1;
 
     private StateMachine stateMachine;
     private final ReadableRaftLog raftLog;
@@ -44,11 +44,12 @@ public class StateMachineApplier extends LifecycleAdapter implements ConsensusLi
     private final int flushEvery;
     private final Supplier<DatabaseHealth> dbHealth;
     private final Log log;
-    private long lastApplied = NOTHING_APPLIED;
+    private long lastApplied = NOTHING;
 
     private Executor executor;
 
-    private long commitIndex = NOTHING_APPLIED;
+    private long commitIndex = NOTHING;
+    private long lastFlushed = NOTHING;
 
     public StateMachineApplier(
             ReadableRaftLog raftLog,
@@ -66,13 +67,19 @@ public class StateMachineApplier extends LifecycleAdapter implements ConsensusLi
         this.executor = executor;
     }
 
-    public void setStateMachine( StateMachine stateMachine )
+    public void setStateMachine( StateMachine stateMachine, long lastApplied )
     {
         this.stateMachine = stateMachine;
+        this.lastApplied = this.lastFlushed = lastApplied;
     }
 
     @Override
-    public synchronized void notifyCommitted()
+    public StateMachine get()
+    {
+        return stateMachine;
+    }
+
+    public synchronized void notifyUpdate()
     {
         long commitIndex = raftLog.commitIndex();
         if ( this.commitIndex != commitIndex )
@@ -92,7 +99,7 @@ public class StateMachineApplier extends LifecycleAdapter implements ConsensusLi
         }
     }
 
-    private void applyUpTo( long commitIndex ) throws IOException
+    private void applyUpTo( long commitIndex ) throws IOException, RaftLogCompactedException
     {
         try ( IOCursor<RaftLogEntry> cursor = raftLog.getEntryCursor( lastApplied + 1 ) )
         {
@@ -107,19 +114,25 @@ public class StateMachineApplier extends LifecycleAdapter implements ConsensusLi
                 {
                     stateMachine.flush();
                     lastAppliedStorage.persistStoreData( new LastAppliedState( lastApplied ) );
+                    lastFlushed = lastApplied;
                 }
             }
         }
     }
 
     @Override
-    public synchronized void start() throws IOException
+    public synchronized void start() throws IOException, RaftLogCompactedException
     {
-        lastApplied = lastAppliedStorage.getInitialState().get();
+        lastFlushed = lastApplied = lastAppliedStorage.getInitialState().get();
         log.info( "Replaying commands from index %d to index %d", lastApplied, raftLog.commitIndex() );
 
         long start = currentTimeMillis();
         applyUpTo( raftLog.commitIndex() );
         log.info( "Replay done, took %d ms", currentTimeMillis() - start );
+    }
+
+    public long lastFlushed()
+    {
+        return lastFlushed;
     }
 }

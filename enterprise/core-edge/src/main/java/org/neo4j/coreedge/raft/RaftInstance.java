@@ -31,6 +31,7 @@ import java.util.function.Supplier;
 import org.neo4j.coreedge.helper.VolatileFuture;
 import org.neo4j.coreedge.network.Message;
 import org.neo4j.coreedge.raft.log.RaftLog;
+import org.neo4j.coreedge.raft.log.RaftLogCompactedException;
 import org.neo4j.coreedge.raft.log.RaftLogEntry;
 import org.neo4j.coreedge.raft.membership.RaftGroup;
 import org.neo4j.coreedge.raft.membership.RaftMembershipManager;
@@ -55,7 +56,6 @@ import org.neo4j.logging.LogProvider;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
-
 import static org.neo4j.coreedge.raft.roles.Role.LEADER;
 
 /**
@@ -96,7 +96,7 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
     private RenewableTimeoutService.RenewableTimeout electionTimer;
     private RaftMembershipManager<MEMBER> membershipManager;
 
-    private final ConsensusListener consensusListener;
+    private final RaftStateMachine raftStateMachine;
     private final long electionTimeout;
     private final long leaderWaitTimeout;
 
@@ -111,7 +111,7 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
 
     public RaftInstance( MEMBER myself, StateStorage<TermState> termStorage,
             StateStorage<VoteState<MEMBER>> voteStorage, RaftLog entryLog,
-            ConsensusListener consensusListener, long electionTimeout, long heartbeatInterval,
+            RaftStateMachine raftStateMachine, long electionTimeout, long heartbeatInterval,
             RenewableTimeoutService renewableTimeoutService,
             final Inbound inbound, final Outbound<MEMBER> outbound, long leaderWaitTimeout,
             LogProvider logProvider, RaftMembershipManager<MEMBER> membershipManager,
@@ -121,7 +121,7 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
     {
         this.myself = myself;
         this.entryLog = entryLog;
-        this.consensusListener = consensusListener;
+        this.raftStateMachine = raftStateMachine;
         this.electionTimeout = electionTimeout;
         this.heartbeatInterval = heartbeatInterval;
 
@@ -164,7 +164,7 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
      *
      * @param memberSet The other members.
      */
-    public synchronized void bootstrapWithInitialMembers( RaftGroup<MEMBER> memberSet ) throws BootstrapException
+    public synchronized void bootstrapWithInitialMembers( RaftGroup<MEMBER> memberSet ) throws BootstrapException, RaftLogCompactedException
     {
         if ( entryLog.appendIndex() >= 0 )
         {
@@ -248,8 +248,17 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
         return state;
     }
 
-    private void handleOutcome( Outcome<MEMBER> outcome ) throws IOException
+    public void downloadSnapshot()
     {
+        raftStateMachine.downloadSnapshot();
+    }
+
+    private void checkForSnapshotNeed( Outcome<MEMBER> outcome )
+    {
+        if( outcome.needsFreshSnapshot() )
+        {
+            downloadSnapshot();
+        }
     }
 
     private void notifyLeaderChanges( Outcome<MEMBER> outcome )
@@ -302,7 +311,7 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
             Outcome<MEMBER> outcome = currentRole.handler.handle(
                     (RaftMessages.RaftMessage<MEMBER>) incomingMessage, state, log );
 
-            state.update( outcome );
+            state.update( outcome ); // updates to raft log happen within
             sendMessages( outcome );
 
             handleTimers( outcome );
@@ -315,6 +324,8 @@ public class RaftInstance<MEMBER> implements LeaderLocator<MEMBER>, Inbound.Mess
 
             raftStateMachine.notifyUpdate();
             notifyLeaderChanges( outcome );
+
+            checkForSnapshotNeed( outcome );
         }
         catch ( Throwable e )
         {

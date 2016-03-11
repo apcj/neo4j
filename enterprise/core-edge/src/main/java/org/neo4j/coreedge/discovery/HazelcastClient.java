@@ -30,7 +30,7 @@ import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.logging.Log;
 import org.neo4j.logging.LogProvider;
 
-public class HazelcastClient extends LifecycleAdapter implements EdgeDiscoveryService
+public class HazelcastClient extends LifecycleAdapter implements TopologyDiscovery
 {
     private final Log log;
     private HazelcastConnector connector;
