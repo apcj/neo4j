@@ -54,6 +54,7 @@ import org.neo4j.coreedge.raft.log.MonitoredRaftLog;
 import org.neo4j.coreedge.raft.log.NaiveDurableRaftLog;
 import org.neo4j.coreedge.raft.log.PhysicalRaftLog;
 import org.neo4j.coreedge.raft.log.RaftLog;
+import org.neo4j.coreedge.raft.log.physical.PhysicalRaftLogFile;
 import org.neo4j.coreedge.raft.membership.CoreMemberSetBuilder;
 import org.neo4j.coreedge.raft.membership.MembershipWaiter;
 import org.neo4j.coreedge.raft.membership.RaftMembershipManager;
@@ -523,6 +524,7 @@ public class EnterpriseCoreEditionModule
                 return new InMemoryRaftLog();
             case PHYSICAL:
                 long rotateAtSize = config.get( CoreEdgeClusterSettings.raft_log_rotation_size );
+                String pruneConf = config.get( CoreEdgeClusterSettings.raft_log_pruning );
                 int entryCacheSize = config.get( CoreEdgeClusterSettings.raft_log_entry_cache_size );
                 int metaDataCacheSize = config.get( CoreEdgeClusterSettings.raft_log_meta_data_cache_size );
                 int headerCacheSize = config.get( CoreEdgeClusterSettings.raft_log_header_cache_size );
@@ -530,8 +532,8 @@ public class EnterpriseCoreEditionModule
                 return life.add( new PhysicalRaftLog(
                         fileSystem,
                         new File( clusterStateDirectory, PhysicalRaftLog.DIRECTORY_NAME ),
-                        rotateAtSize, entryCacheSize, metaDataCacheSize, headerCacheSize,
-                        new PhysicalLogFile.Monitor.Adapter(), marshal, databaseHealthSupplier, logProvider ) );
+                        rotateAtSize, pruneConf, entryCacheSize, metaDataCacheSize, headerCacheSize,
+                        new PhysicalRaftLogFile.Monitor.Adapter(), marshal, databaseHealthSupplier, logProvider ) );
             case NAIVE:
             default:
                 return life.add( new NaiveDurableRaftLog(

@@ -28,10 +28,10 @@ import org.junit.After;
 import org.junit.Test;
 
 import org.neo4j.coreedge.raft.ReplicatedInteger;
+import org.neo4j.coreedge.raft.log.physical.PhysicalRaftLogFile;
 import org.neo4j.graphdb.mockfs.EphemeralFileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.StoreChannel;
-import org.neo4j.kernel.impl.transaction.log.PhysicalLogFile;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.ReadAheadLogChannel;
 import org.neo4j.kernel.impl.transaction.log.ReadableLogChannel;
@@ -78,9 +78,9 @@ public class PhysicalRaftLogContractTest extends RaftLogContractTest
         File directory = new File( "raft-log" );
         fileSystem.mkdir( directory );
 
-        PhysicalRaftLog newRaftLog = new PhysicalRaftLog( fileSystem, directory, 10 * 1024, cacheSize, 10, 10,
-                new PhysicalLogFile.Monitor.Adapter(), new DummyRaftableContentSerializer(), () -> mock( DatabaseHealth.class ),
-                NullLogProvider.getInstance() );
+        PhysicalRaftLog newRaftLog = new PhysicalRaftLog( fileSystem, directory, 10 * 1024, "1 files", cacheSize, 10, 10,
+                new PhysicalRaftLogFile.Monitor.Adapter(), new DummyRaftableContentSerializer(),
+                () -> mock( DatabaseHealth.class ), NullLogProvider.getInstance() );
         life.add( newRaftLog );
         life.init();
         life.start();

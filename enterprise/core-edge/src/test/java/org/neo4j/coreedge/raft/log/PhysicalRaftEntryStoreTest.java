@@ -19,24 +19,24 @@
  */
 package org.neo4j.coreedge.raft.log;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-
 import java.io.File;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 import org.junit.Test;
+
 import org.neo4j.coreedge.raft.ReplicatedInteger;
+import org.neo4j.coreedge.raft.log.physical.PhysicalRaftLogFile;
+import org.neo4j.coreedge.raft.log.physical.PhysicalRaftLogFiles;
 import org.neo4j.cursor.IOCursor;
 import org.neo4j.graphdb.mockfs.EphemeralFileSystemAbstraction;
 import org.neo4j.kernel.impl.transaction.log.LogFile;
 import org.neo4j.kernel.impl.transaction.log.LogHeaderCache;
-import org.neo4j.kernel.impl.transaction.log.LogVersionRepository;
-import org.neo4j.kernel.impl.transaction.log.PhysicalLogFile;
-import org.neo4j.kernel.impl.transaction.log.PhysicalLogFiles;
 import org.neo4j.logging.NullLogProvider;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 public class PhysicalRaftEntryStoreTest
 {
@@ -48,8 +48,9 @@ public class PhysicalRaftEntryStoreTest
 
         File baseDirectory = new File( "raft-logs" );
         fsa.mkdir( baseDirectory );
-        PhysicalRaftLog log = new PhysicalRaftLog( fsa, baseDirectory, 10000, 1, 10, 10, mock( PhysicalLogFile.Monitor.class),
-                new DummyRaftableContentSerializer(), mock( Supplier.class ), NullLogProvider.getInstance() );
+        PhysicalRaftLog log = new PhysicalRaftLog( fsa, baseDirectory, 10000, "1 files", 1, 10, 10,
+                mock( PhysicalRaftLogFile.Monitor.class), new DummyRaftableContentSerializer(), mock( Supplier.class ),
+                NullLogProvider.getInstance() );
         AtomicLong appendIndex = new AtomicLong( 0 );
 
         log.init();
@@ -64,10 +65,9 @@ public class PhysicalRaftEntryStoreTest
         log.shutdown();
 
 
-        PhysicalLogFiles logFiles = new PhysicalLogFiles( baseDirectory, PhysicalRaftLog.BASE_FILE_NAME, fsa );
-        LogVersionRepository repo = new FilenameBasedLogVersionRepository( logFiles );
-        LogFile logFile = new PhysicalLogFile( fsa, logFiles, 100000, appendIndex::get, repo, mock( PhysicalLogFile.Monitor.class ), new LogHeaderCache( 1 ) );
-
+        PhysicalRaftLogFiles logFiles = new PhysicalRaftLogFiles( baseDirectory, fsa );
+        LogFile logFile = new PhysicalRaftLogFile( fsa, logFiles, 100000, appendIndex::get,
+                mock( PhysicalRaftLogFile.Monitor.class ), new LogHeaderCache( 1 ) );
 
         PhysicalRaftEntryStore theStore = new PhysicalRaftEntryStore( logFile, mock( RaftLogMetadataCache.class ),
                 new DummyRaftableContentSerializer() );
@@ -79,6 +79,5 @@ public class PhysicalRaftEntryStoreTest
         // then
         assertTrue( cursor.next() );
         assertEquals( indexToStartFrom, cursor.get().logIndex() );
-
     }
 }
