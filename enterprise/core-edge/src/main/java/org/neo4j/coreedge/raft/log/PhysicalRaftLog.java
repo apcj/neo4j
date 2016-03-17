@@ -27,7 +27,6 @@ import java.util.function.Supplier;
 import org.neo4j.coreedge.raft.log.physical.PhysicalRaftLogFile;
 import org.neo4j.coreedge.raft.log.physical.PhysicalRaftLogFileInformation;
 import org.neo4j.coreedge.raft.log.physical.PhysicalRaftLogFiles;
-import org.neo4j.coreedge.raft.log.physical.RaftLogPruneStrategyFactory;
 import org.neo4j.coreedge.raft.replication.ReplicatedContent;
 import org.neo4j.coreedge.raft.state.ChannelMarshal;
 import org.neo4j.cursor.IOCursor;
@@ -115,7 +114,7 @@ public class PhysicalRaftLog implements RaftLog, Lifecycle
 
         directory.mkdirs();
 
-        logFiles = new PhysicalRaftLogFiles( directory, fileSystem );
+        logFiles = new PhysicalRaftLogFiles( directory, fileSystem, marshal );
 
         LogHeaderCache logHeaderCache = new LogHeaderCache( headerCacheSize );
         logFile = new PhysicalRaftLogFile( fileSystem, logFiles, rotateAtSize,

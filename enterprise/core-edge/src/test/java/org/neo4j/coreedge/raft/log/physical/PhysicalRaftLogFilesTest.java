@@ -23,26 +23,30 @@ import java.io.File;
 
 import org.junit.Test;
 
+import org.neo4j.coreedge.raft.state.ChannelMarshal;
+import org.neo4j.graphdb.mockfs.EphemeralFileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import static org.neo4j.coreedge.raft.log.physical.PhysicalRaftLogFile.DEFAULT_VERSION_SUFFIX;
 import static org.neo4j.coreedge.raft.log.physical.PhysicalRaftLogFiles.BASE_FILE_NAME;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogHeaderReader.readLogHeader;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogHeaderWriter.writeLogHeader;
 
 public class PhysicalRaftLogFilesTest
 {
-    private final FileSystemAbstraction fs = mock( FileSystemAbstraction.class );
+    private final FileSystemAbstraction fs = new EphemeralFileSystemAbstraction();
     private final File tmpDirectory = new File( "." );
 
     @Test
     public void shouldGetTheFileNameForAGivenVersion()
     {
         // given
-        final PhysicalRaftLogFiles files = new PhysicalRaftLogFiles( tmpDirectory, fs );
+        final PhysicalRaftLogFiles files = new PhysicalRaftLogFiles( tmpDirectory, fs, mock( ChannelMarshal.class ) );
         final int version = 12;
 
         // when
@@ -54,19 +58,17 @@ public class PhysicalRaftLogFilesTest
     }
 
     @Test
-    public void shouldBeAbleToRetrieveTheHighestLogVersion()
+    public void shouldBeAbleToRetrieveTheHighestLogVersionWithOtherFilesPresent() throws Exception
     {
         // given
-        PhysicalRaftLogFiles files = new PhysicalRaftLogFiles( tmpDirectory, fs );
+        fs.mkdir( tmpDirectory );
+        PhysicalRaftLogFiles files = new PhysicalRaftLogFiles( tmpDirectory, fs, mock( ChannelMarshal.class )  );
 
-        final File[] filesOnDisk = new File[]{
-                new File( tmpDirectory, BASE_FILE_NAME + DEFAULT_VERSION_SUFFIX + "1" ),
-                new File( tmpDirectory, "crap" + DEFAULT_VERSION_SUFFIX + "4" ),
-                new File( tmpDirectory, BASE_FILE_NAME + DEFAULT_VERSION_SUFFIX + "3" ),
-                new File( tmpDirectory, BASE_FILE_NAME )
-        };
+        writeLogHeader( fs, new File( tmpDirectory, BASE_FILE_NAME + DEFAULT_VERSION_SUFFIX + "1" ), 1, -1 );
+        writeLogHeader( fs, new File( tmpDirectory, "unknown" + DEFAULT_VERSION_SUFFIX + "4" ), 1, -1 );
+        writeLogHeader( fs, new File( tmpDirectory, BASE_FILE_NAME + DEFAULT_VERSION_SUFFIX + "3" ), 3, -1 );
+        writeLogHeader( fs, new File( tmpDirectory, BASE_FILE_NAME ), 1, -1 );
 
-        when( fs.listFiles( tmpDirectory ) ).thenReturn( filesOnDisk );
         files.init();
 
         // when
@@ -77,10 +79,34 @@ public class PhysicalRaftLogFilesTest
     }
 
     @Test
+    public void shouldBeAbleToRetrieveTheHighestLogVersionWithEmptyFilePresent() throws Exception
+    {
+        // given
+        fs.mkdir( tmpDirectory );
+        PhysicalRaftLogFiles files = new PhysicalRaftLogFiles( tmpDirectory, fs, mock( ChannelMarshal.class )  );
+
+        writeLogHeader( fs, new File( tmpDirectory, BASE_FILE_NAME + DEFAULT_VERSION_SUFFIX + "1" ), 1, -1 );
+        writeLogHeader( fs, new File( tmpDirectory, BASE_FILE_NAME + DEFAULT_VERSION_SUFFIX + "3" ), 3, 42 );
+        File emptyFile = new File( tmpDirectory, BASE_FILE_NAME + DEFAULT_VERSION_SUFFIX + "4" );
+        fs.create( emptyFile );
+
+        files.init();
+
+        // when
+        final long highestLogVersion = files.getHighestLogVersion();
+
+        // then
+        assertEquals( 4, highestLogVersion );
+        LogHeader logHeader = readLogHeader( fs, emptyFile );
+        assertEquals( 4, logHeader.logVersion );
+        assertEquals( 42, logHeader.lastCommittedTxId );
+    }
+
+    @Test
     public void shouldIncrementVersionOnRegisterNewVersion() throws Exception
     {
         // given
-        PhysicalRaftLogFiles files = new PhysicalRaftLogFiles( tmpDirectory, fs );
+        PhysicalRaftLogFiles files = new PhysicalRaftLogFiles( tmpDirectory, fs, mock( ChannelMarshal.class )  );
 
         // when
         long initialVersion = files.getHighestLogVersion();

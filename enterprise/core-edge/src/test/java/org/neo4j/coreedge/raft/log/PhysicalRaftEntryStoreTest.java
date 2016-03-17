@@ -28,6 +28,7 @@ import org.junit.Test;
 import org.neo4j.coreedge.raft.ReplicatedInteger;
 import org.neo4j.coreedge.raft.log.physical.PhysicalRaftLogFile;
 import org.neo4j.coreedge.raft.log.physical.PhysicalRaftLogFiles;
+import org.neo4j.coreedge.raft.state.ChannelMarshal;
 import org.neo4j.cursor.IOCursor;
 import org.neo4j.graphdb.mockfs.EphemeralFileSystemAbstraction;
 import org.neo4j.kernel.impl.transaction.log.LogFile;
@@ -65,7 +66,7 @@ public class PhysicalRaftEntryStoreTest
         log.shutdown();
 
 
-        PhysicalRaftLogFiles logFiles = new PhysicalRaftLogFiles( baseDirectory, fsa );
+        PhysicalRaftLogFiles logFiles = new PhysicalRaftLogFiles( baseDirectory, fsa, mock( ChannelMarshal.class ) );
         LogFile logFile = new PhysicalRaftLogFile( fsa, logFiles, 100000, appendIndex::get,
                 mock( PhysicalRaftLogFile.Monitor.class ), new LogHeaderCache( 1 ) );
 

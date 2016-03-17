@@ -8,27 +8,27 @@ public class RaftLogVersionRanges
 {
     private final LinkedList<FileIndexRange> ranges = new LinkedList<>();
 
-    public void add( LogHeader logHeader )
+    public void add( long version, long prevIndex )
     {
-        if ( !ranges.isEmpty() && ranges.peekLast().version >= logHeader.version )
+        if ( !ranges.isEmpty() && ranges.peekLast().version >= version )
         {
             throw new IllegalArgumentException( format( "Cannot accept range for version %d while having " +
-                    "already accepted %d", logHeader.version, ranges.peek().version ) );
+                    "already accepted %d", version, ranges.peek().version ) );
         }
         while ( !ranges.isEmpty() )
         {
             FileIndexRange range = ranges.peekLast();
-            if ( range.prevIndex >= logHeader.prevIndex )
+            if ( range.prevIndex >= prevIndex )
             {
                 ranges.removeLast();
             }
             else
             {
-                range.lastIndex = logHeader.prevIndex;
+                range.lastIndex = prevIndex;
                 break;
             }
         }
-        ranges.add( new FileIndexRange( logHeader.version, logHeader.prevIndex ) );
+        ranges.add( new FileIndexRange( version, prevIndex ) );
     }
 
     public void pruneVersion( long version )

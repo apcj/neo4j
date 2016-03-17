@@ -17,17 +17,17 @@ public class RaftLogVersionRangesTest
         assertEquals( -1, ranges.versionForIndex( 0 ) );
         assertEquals( -1, ranges.versionForIndex( 1 ) );
 
-        ranges.add( new LogHeader( 0, -1 ) );
+        ranges.add( 0, -1 );
         assertEquals( 0, ranges.versionForIndex( 0 ) );
         assertEquals( 0, ranges.versionForIndex( Long.MAX_VALUE ) );
 
-        ranges.add( new LogHeader( 1, 24 ) );
+        ranges.add( 1, 24 );
         assertEquals( 0, ranges.versionForIndex( 0 ) );
         assertEquals( 0, ranges.versionForIndex( 24 ) );
         assertEquals( 1, ranges.versionForIndex( 25 ) );
         assertEquals( 1, ranges.versionForIndex( Long.MAX_VALUE ) );
 
-        ranges.add( new LogHeader( 2, 68 ) );
+        ranges.add( 2, 68 );
         assertEquals( 0, ranges.versionForIndex( 0 ) );
         assertEquals( 0, ranges.versionForIndex( 24 ) );
         assertEquals( 1, ranges.versionForIndex( 25 ) );
@@ -35,7 +35,7 @@ public class RaftLogVersionRangesTest
         assertEquals( 2, ranges.versionForIndex( 69 ) );
         assertEquals( 2, ranges.versionForIndex( Long.MAX_VALUE ) );
 
-        ranges.add( new LogHeader( 3, 48 ) );
+        ranges.add( 3, 48 );
         assertEquals( 0, ranges.versionForIndex( 0 ) );
         assertEquals( 0, ranges.versionForIndex( 24 ) );
         assertEquals( 1, ranges.versionForIndex( 25 ) );
@@ -44,7 +44,7 @@ public class RaftLogVersionRangesTest
         assertEquals( 3, ranges.versionForIndex( 69 ) );
         assertEquals( 3, ranges.versionForIndex( Long.MAX_VALUE ) );
 
-        ranges.add( new LogHeader( 4, 62 ) );
+        ranges.add( 4, 62 );
         assertEquals( 0, ranges.versionForIndex( 0 ) );
         assertEquals( 0, ranges.versionForIndex( 24 ) );
         assertEquals( 1, ranges.versionForIndex( 25 ) );
@@ -55,7 +55,7 @@ public class RaftLogVersionRangesTest
         assertEquals( 4, ranges.versionForIndex( 69 ) );
         assertEquals( 4, ranges.versionForIndex( Long.MAX_VALUE ) );
 
-        ranges.add( new LogHeader( 5, 2 ) );
+        ranges.add( 5, 2 );
         assertEquals( 0, ranges.versionForIndex( 0 ) );
         assertEquals( 5, ranges.versionForIndex( 24 ) );
         assertEquals( 5, ranges.versionForIndex( 25 ) );
@@ -72,9 +72,9 @@ public class RaftLogVersionRangesTest
     {
         RaftLogVersionRanges ranges = new RaftLogVersionRanges();
 
-        ranges.add( new LogHeader( 0, 2 ) );
-        ranges.add( new LogHeader( 1, 24 ) );
-        ranges.add( new LogHeader( 2, 68 ) );
+        ranges.add( 0, 2 );
+        ranges.add( 1, 24 );
+        ranges.add( 2, 68 );
 
         ranges.pruneVersion( 1 );
 
@@ -88,7 +88,7 @@ public class RaftLogVersionRangesTest
     {
         // given
         RaftLogVersionRanges ranges = new RaftLogVersionRanges();
-        ranges.add( new LogHeader( 0, 2 ) );
+        ranges.add( 0, 2 );
 
         // when
         ranges.pruneVersion( 0 );
@@ -102,15 +102,15 @@ public class RaftLogVersionRangesTest
     {
         RaftLogVersionRanges ranges = new RaftLogVersionRanges();
 
-        ranges.add( new LogHeader( 0, 2 ) );
-        ranges.add( new LogHeader( 1, 24 ) );
-        ranges.add( new LogHeader( 2, 68 ) );
+        ranges.add( 0, 2 );
+        ranges.add( 1, 24 );
+        ranges.add( 2, 68 );
 
-        assertThat( ranges, rejectsHeader( new LogHeader( 1, 2 ) ) );
-        assertThat( ranges, rejectsHeader( new LogHeader( 2, 2 ) ) );
+        assertThat( ranges, rejectsVersion( 1, 2 ) );
+        assertThat( ranges, rejectsVersion( 2, 2 ) );
     }
 
-    private Matcher<? super RaftLogVersionRanges> rejectsHeader( LogHeader logHeader )
+    private Matcher<? super RaftLogVersionRanges> rejectsVersion( long version, long prevIndex )
     {
         return new TypeSafeMatcher<RaftLogVersionRanges>()
         {
@@ -119,7 +119,7 @@ public class RaftLogVersionRangesTest
             {
                 try
                 {
-                    ranges.add( logHeader );
+                    ranges.add( version, prevIndex );
                     return false;
                 }
                 catch ( Exception e )
@@ -131,7 +131,7 @@ public class RaftLogVersionRangesTest
             @Override
             public void describeTo( Description description )
             {
-                description.appendText( "Ranges that rejects header: " ).appendValue( logHeader );
+                description.appendText( "Ranges that rejects version: " ).appendValue( version );
             }
         };
     }

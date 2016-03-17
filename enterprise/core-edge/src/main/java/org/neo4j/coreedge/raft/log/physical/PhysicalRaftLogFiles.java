@@ -21,17 +21,32 @@ package org.neo4j.coreedge.raft.log.physical;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.regex.Pattern;
 
+import org.neo4j.coreedge.raft.log.PhysicalRaftLog;
+import org.neo4j.coreedge.raft.log.RaftLogAppendRecord;
+import org.neo4j.coreedge.raft.log.RaftLogRecord;
+import org.neo4j.coreedge.raft.log.RaftRecordCursor;
+import org.neo4j.coreedge.raft.replication.ReplicatedContent;
+import org.neo4j.coreedge.raft.state.ChannelMarshal;
 import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.io.fs.StoreChannel;
+import org.neo4j.kernel.impl.transaction.log.LogVersionBridge;
+import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
+import org.neo4j.kernel.impl.transaction.log.ReadAheadLogChannel;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 
 import static java.lang.Math.max;
 import static java.lang.Math.min;
 
+import static org.neo4j.coreedge.raft.log.physical.PhysicalRaftLogFile.openForVersion;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogHeader.LOG_HEADER_SIZE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogHeaderReader.readLogHeader;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogHeaderWriter.writeLogHeader;
 
 /**
  * Used to figure out what logical log file to open when the database
@@ -41,16 +56,23 @@ public class PhysicalRaftLogFiles extends LifecycleAdapter
 {
     private final File logBaseName;
     private final Pattern logFilePattern;
-    private final FileSystemAbstraction fileSystem;
     private long highestVersion;
     private long lowestVersion;
+    private long appendIndex;
+
+    private final FileSystemAbstraction fileSystem;
+    private final ChannelMarshal<ReplicatedContent> marshal;
+    private final RaftLogVersionRanges versionRanges = new RaftLogVersionRanges();
+    private final ByteBuffer headerBuffer = ByteBuffer.allocate( LOG_HEADER_SIZE );
 
     public static final String BASE_FILE_NAME = "raft.log";
     public static final String REGEX_DEFAULT_VERSION_SUFFIX = "\\.";
     public static final String DEFAULT_VERSION_SUFFIX = ".";
 
-    public PhysicalRaftLogFiles( File directory, FileSystemAbstraction fileSystem )
+    public PhysicalRaftLogFiles(
+            File directory, FileSystemAbstraction fileSystem, ChannelMarshal<ReplicatedContent> marshal )
     {
+        this.marshal = marshal;
         this.logBaseName = new File( directory, BASE_FILE_NAME );
         this.logFilePattern = Pattern.compile( BASE_FILE_NAME + REGEX_DEFAULT_VERSION_SUFFIX + "\\d+" );
         this.fileSystem = fileSystem;
@@ -58,22 +80,81 @@ public class PhysicalRaftLogFiles extends LifecycleAdapter
     }
 
     @Override
-    public void init()
+    public void init() throws IOException
     {
         long lowest = -1;
         long highest = -1;
+
+        SortedSet<Long> versions = new TreeSet<>();
+
         for ( File file : fileSystem.listFiles( logBaseName.getParentFile() ) )
         {
             if ( logFilePattern.matcher( file.getName() ).matches() )
             {
                 // Get version based on the name
                 long logVersion = getLogVersion( file.getName() );
+                versions.add( logVersion );
                 highest = max( highest, logVersion );
                 lowest = lowest == -1 ? logVersion : min( lowest, logVersion );
             }
         }
+        long appendIndex = -1;
+        Long previousVersion = null;
+        for ( Long version : versions )
+        {
+            File file = getLogFileForVersion( version );
+            LogHeader logHeader = readLogHeader( fileSystem, file, false );
+            if ( logHeader == null )
+            {
+                if ( previousVersion != null )
+                {
+                    appendIndex = readLastIndex( previousVersion, appendIndex );
+                }
+                writeHeader( file, version, appendIndex );
+            }
+            else
+            {
+                appendIndex = logHeader.lastCommittedTxId;
+            }
+            versionRanges.add( version, appendIndex );
+            previousVersion = version;
+        }
+        if ( previousVersion != null )
+        {
+            appendIndex = readLastIndex( versions.last(), appendIndex );
+        }
+        this.appendIndex = appendIndex;
+
         highestVersion = Math.max( highest, 0 );
         lowestVersion = Math.max( lowest, 0 );
+    }
+
+    private void writeHeader( File file, long version, long prevIndex ) throws IOException
+    {
+        // Either the header is not there in full or the file was new. Don't care
+        StoreChannel storeChannel = fileSystem.open( file, "rw" );
+        writeLogHeader( headerBuffer, version, prevIndex );
+        storeChannel.writeAll( headerBuffer );
+    }
+
+    private long readLastIndex( Long version, long previousAppendIndex ) throws IOException
+    {
+        long lastIndex = previousAppendIndex;
+        PhysicalLogVersionedStoreChannel logChannel = openForVersion( this, fileSystem, version );
+        try ( RaftRecordCursor<ReadAheadLogChannel> cursor = new RaftRecordCursor<>( new
+                ReadAheadLogChannel( logChannel, LogVersionBridge.NO_MORE_CHANNELS ), marshal ))
+        {
+            while ( cursor.next() )
+            {
+                RaftLogRecord raftLogRecord = cursor.get();
+                if ( raftLogRecord.getType() == PhysicalRaftLog.RecordType.APPEND )
+                {
+                    lastIndex = ((RaftLogAppendRecord) raftLogRecord).logIndex();
+                }
+            }
+        }
+
+        return lastIndex;
     }
 
     public File getLogFileForVersion( long version )
