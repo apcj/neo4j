@@ -74,9 +74,6 @@ public class RaftLogAppendRecord extends RaftLogRecord
     @Override
     public String toString()
     {
-        return "RaftLogAppendRecord{" +
-               "appendIndex=" + appendIndex +
-               ", logEntry=" + logEntry +
-               '}';
+        return String.format( "%d: %s", appendIndex, logEntry );
     }
 }

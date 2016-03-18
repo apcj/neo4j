@@ -26,6 +26,7 @@ import org.neo4j.coreedge.raft.replication.ReplicatedContent;
 import org.neo4j.coreedge.raft.state.ChannelMarshal;
 import org.neo4j.cursor.IOCursor;
 import org.neo4j.kernel.impl.transaction.log.LogFile;
+
 import org.neo4j.kernel.impl.transaction.log.LogHeaderVisitor;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 

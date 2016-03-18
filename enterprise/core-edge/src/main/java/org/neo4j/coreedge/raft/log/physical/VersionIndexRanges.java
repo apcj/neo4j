@@ -4,9 +4,9 @@ import java.util.LinkedList;
 
 import static java.lang.String.format;
 
-public class RaftLogVersionRanges
+public class VersionIndexRanges
 {
-    private final LinkedList<FileIndexRange> ranges = new LinkedList<>();
+    private final LinkedList<VersionIndexRange> ranges = new LinkedList<>();
 
     public void add( long version, long prevIndex )
     {
@@ -17,18 +17,18 @@ public class RaftLogVersionRanges
         }
         while ( !ranges.isEmpty() )
         {
-            FileIndexRange range = ranges.peekLast();
+            VersionIndexRange range = ranges.peekLast();
             if ( range.prevIndex >= prevIndex )
             {
                 ranges.removeLast();
             }
             else
             {
-                range.lastIndex = prevIndex;
+                range.endAt( prevIndex );
                 break;
             }
         }
-        ranges.add( new FileIndexRange( version, prevIndex ) );
+        ranges.add( new VersionIndexRange( version, prevIndex ) );
     }
 
     public void pruneVersion( long version )
@@ -39,17 +39,17 @@ public class RaftLogVersionRanges
         }
     }
 
-    public long versionForIndex( long index )
+    public VersionIndexRange versionForIndex( long index )
     {
         for ( int i = ranges.size() - 1; i >= 0; i-- )
         {
-            FileIndexRange range = ranges.get( i );
+            VersionIndexRange range = ranges.get( i );
             if ( range.includes( index ) )
             {
-                return range.version;
+                return range;
             }
         }
-        return -1;
+        return VersionIndexRange.OUT_OF_RANGE;
     }
 
     @Override
@@ -58,27 +58,4 @@ public class RaftLogVersionRanges
         return format( "RaftLogVersionRanges{ranges=%s}", ranges );
     }
 
-    private static class FileIndexRange
-    {
-        final long version;
-        final long prevIndex;
-        long lastIndex = Long.MAX_VALUE;
-
-        FileIndexRange( long version, long prevIndex )
-        {
-            this.version = version;
-            this.prevIndex = prevIndex;
-        }
-
-        boolean includes( long index )
-        {
-            return index <= lastIndex && index > prevIndex;
-        }
-
-        @Override
-        public String toString()
-        {
-            return format( "%d: %d < index <= %d", version, prevIndex, lastIndex );
-        }
-    }
 }

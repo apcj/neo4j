@@ -62,7 +62,7 @@ public class PhysicalRaftLogFiles extends LifecycleAdapter
 
     private final FileSystemAbstraction fileSystem;
     private final ChannelMarshal<ReplicatedContent> marshal;
-    private final RaftLogVersionRanges versionRanges = new RaftLogVersionRanges();
+    private final VersionIndexRanges versionRanges = new VersionIndexRanges();
     private final ByteBuffer headerBuffer = ByteBuffer.allocate( LOG_HEADER_SIZE );
 
     public static final String BASE_FILE_NAME = "raft.log";
