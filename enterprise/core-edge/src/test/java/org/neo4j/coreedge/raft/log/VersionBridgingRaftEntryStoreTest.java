@@ -43,7 +43,7 @@ public class VersionBridgingRaftEntryStoreTest
     public void shouldReadEntriesFromSingleVersion() throws Exception
     {
         // given
-        VersionBridgingRaftEntryStore.SingleVersionReader versionReader = mock( VersionBridgingRaftEntryStore.SingleVersionReader
+        EntryReader versionReader = mock( EntryReader
                 .class );
 
 
@@ -66,7 +66,7 @@ public class VersionBridgingRaftEntryStoreTest
     public void shouldReadEntriesFromMiddleOfFile() throws Exception
     {
         // given
-        VersionBridgingRaftEntryStore.SingleVersionReader versionReader = mock( VersionBridgingRaftEntryStore.SingleVersionReader
+        EntryReader versionReader = mock( EntryReader
                 .class );
 
         when( versionReader.readEntriesInVersion( 0 ) ).thenReturn( cursor( entry0, entry1, entry2, entry3 ) );
@@ -88,8 +88,8 @@ public class VersionBridgingRaftEntryStoreTest
     public void shouldReadAcrossVersionBoundary() throws Exception
     {
         // given
-        VersionBridgingRaftEntryStore.SingleVersionReader versionReader =
-                mock( VersionBridgingRaftEntryStore.SingleVersionReader.class );
+        EntryReader versionReader =
+                mock( EntryReader.class );
 
         RaftLogAppendRecord truncatedEntry4 = new RaftLogAppendRecord( 3, new RaftLogEntry( 10, valueOf( -1 ) ) );
         when( versionReader.readEntriesInVersion( 0 ) ).thenReturn(
@@ -119,7 +119,7 @@ public class VersionBridgingRaftEntryStoreTest
     public void shouldCloseUnderlyingCursors() throws Exception
     {
         // given
-        VersionBridgingRaftEntryStore.SingleVersionReader versionReader = mock( VersionBridgingRaftEntryStore.SingleVersionReader
+        EntryReader versionReader = mock( EntryReader
                 .class );
 
         VersionIndexRanges ranges = new VersionIndexRanges();
@@ -151,7 +151,7 @@ public class VersionBridgingRaftEntryStoreTest
     public void shouldReadNoEntriesFromEmptyLog() throws Exception
     {
         // given
-        VersionBridgingRaftEntryStore.SingleVersionReader versionReader = mock( VersionBridgingRaftEntryStore.SingleVersionReader
+        EntryReader versionReader = mock( EntryReader
                 .class );
 
         VersionIndexRanges ranges = new VersionIndexRanges(); // empty

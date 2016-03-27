@@ -58,4 +58,13 @@ public class VersionIndexRanges
         return format( "RaftLogVersionRanges{ranges=%s}", ranges );
     }
 
+    public long lowestVersion()
+    {
+        return ranges.peekFirst().version;
+    }
+
+    public long highestVersion()
+    {
+        return ranges.peekLast().version;
+    }
 }

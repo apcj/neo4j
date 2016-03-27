@@ -35,7 +35,7 @@ public class VersionBridgingRaftEntryStoreIT
         // then
     }
 
-    private static class Reader implements VersionBridgingRaftEntryStore.SingleVersionReader
+    private static class Reader implements EntryReader
     {
         private final VersionedLogFiles files;
         private final FileSystemAbstraction fileSystem;

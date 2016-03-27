@@ -10,9 +10,9 @@ import org.neo4j.cursor.IOCursor;
 public class VersionBridgingRaftEntryStore implements RaftEntryStore
 {
     private final VersionIndexRanges ranges;
-    private final SingleVersionReader reader;
+    private final EntryReader reader;
 
-    public VersionBridgingRaftEntryStore( VersionIndexRanges ranges, SingleVersionReader reader )
+    public VersionBridgingRaftEntryStore( VersionIndexRanges ranges, EntryReader reader )
     {
         this.ranges = ranges;
         this.reader = reader;
@@ -70,10 +70,5 @@ public class VersionBridgingRaftEntryStore implements RaftEntryStore
                 return cursorValue.get();
             }
         };
-    }
-
-    interface SingleVersionReader
-    {
-        IOCursor<RaftLogAppendRecord> readEntriesInVersion( long version ) throws IOException;
     }
 }
