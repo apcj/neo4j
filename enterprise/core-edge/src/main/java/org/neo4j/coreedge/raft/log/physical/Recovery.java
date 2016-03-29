@@ -19,9 +19,10 @@
  */
 package org.neo4j.coreedge.raft.log.physical;
 
-import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 import org.neo4j.coreedge.raft.log.EntryReader;
 import org.neo4j.coreedge.raft.log.RaftLogAppendRecord;
@@ -50,7 +51,7 @@ public class Recovery
      * effects: current version file starts with a valid header and contains no extra bytes beyond the last entry at
      * appendIndex
      */
-    public LogState recover() throws IOException
+    public LogState recover() throws IOException, DamagedLogStorageException
     {
         long currentVersion = -1;
         long prevIndex = -1;
@@ -59,15 +60,15 @@ public class Recovery
         long term = -1;
         VersionIndexRanges ranges = new VersionIndexRanges();
 
-        Iterator<File> versionFiles = files.filesInVersionOrder().iterator();
+        Iterator<VersionFiles.VersionFile> versionFiles = files.filesInVersionOrder().iterator();
         boolean encounteredMissingHeader = false;
 
-        File file = null;
+        VersionFiles.VersionFile file = null;
         while ( versionFiles.hasNext() && !encounteredMissingHeader )
         {
             file = versionFiles.next();
 
-            Header header = headerReader.readHeader( file );
+            Header header = headerReader.readHeader( file.file );
             if ( header == null )
             {
                 encounteredMissingHeader = true;
@@ -83,9 +84,13 @@ public class Recovery
 
                 appendIndex = header.prevIndex;
                 term = header.prevTerm;
+
+                verifyVersion( currentVersion, file, header );
                 currentVersion = header.version;
             }
         }
+
+        verifyNoOrphanFiles( versionFiles, file );
 
         if ( noVersionsFoundYet( currentVersion ) )
         {
@@ -110,11 +115,43 @@ public class Recovery
 
             Header header = new Header( currentVersion, appendIndex, term );
             ranges.add( header.version, header.prevIndex );
-            headerWriter.write( file, header );
+            headerWriter.write( file.file, header );
         }
 
         return new LogState( currentVersion, prevIndex, prevTerm, appendIndex, term, ranges );
+    }
 
+    public void verifyNoOrphanFiles( Iterator<VersionFiles.VersionFile> versionFiles, VersionFiles.VersionFile file ) throws DamagedLogStorageException
+    {
+        if ( versionFiles.hasNext() )
+        {
+            throw new DamagedLogStorageException(
+                    "Found empty file [%s] but there are files with higher version numbers: %s",
+                    file.file, collectOrphans( versionFiles ) );
+        }
+    }
+
+    public void verifyVersion( long currentVersion, VersionFiles.VersionFile file, Header header ) throws DamagedLogStorageException
+    {
+        if ( header.version != file.version )
+        {
+            throw new DamagedLogStorageException( "Expected file [%s] to contain log version %d, but " +
+                    "contained log version %d", file.file, file.version, header.version );
+        }
+        if ( currentVersion >= 0 && currentVersion + 1 != header.version )
+        {
+            throw new DamagedLogStorageException( "Missing expected log file version %d amongst series of files %s", currentVersion + 1, files.filesInVersionOrder() );
+        }
+    }
+
+    public List<VersionFiles.VersionFile> collectOrphans( Iterator<VersionFiles.VersionFile> versionFiles )
+    {
+        List<VersionFiles.VersionFile> orphans = new ArrayList<>();
+        while ( versionFiles.hasNext() )
+        {
+            orphans.add( versionFiles.next() );
+        }
+        return orphans;
     }
 
     public boolean noVersionsFoundYet( long currentVersion )

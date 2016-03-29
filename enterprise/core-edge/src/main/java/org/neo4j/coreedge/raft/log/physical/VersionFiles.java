@@ -21,15 +21,34 @@ package org.neo4j.coreedge.raft.log.physical;
 
 import java.io.File;
 
+import static java.lang.String.format;
+
 public class VersionFiles
 {
-    public Iterable<File> filesInVersionOrder()
+    public Iterable<VersionFile> filesInVersionOrder()
     {
         return null;
     }
 
-    public File createNewVersionFile( long version )
+    public VersionFile createNewVersionFile( long version )
     {
         return null;
+    }
+
+    public static class VersionFile
+    {
+        public final long version;
+        public final File file;
+
+        public VersionFile( long version, File file )
+        {
+            this.version = version;
+            this.file = file;
+        }
+
+        @Override public String toString()
+        {
+            return format( "%d: %s", version, file );
+        }
     }
 }
