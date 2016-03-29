@@ -20,6 +20,7 @@
 package org.neo4j.coreedge.raft.log.physical;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Collections;
 
 import org.junit.Test;
@@ -31,6 +32,7 @@ import org.neo4j.coreedge.raft.log.RaftLogEntry;
 import static java.util.Arrays.asList;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -167,6 +169,50 @@ public class RecoveryTest
         assertEquals( 0, state.ranges.lowestVersion() );
         assertEquals( 2, state.ranges.highestVersion() );
 
-        verify(headerWriter).write( new File("v2"), new Header( 2, 10, 0 ) );
+        verify( headerWriter ).write( new File( "v2" ), new Header( 2, 10, 0 ) );
+    }
+
+    @Test
+    public void shouldFailRecoveryIfThereAreMissingVersionFiles() throws Exception
+    {
+        // given
+        VersionFiles versionFiles = mock( VersionFiles.class );
+        when( versionFiles.filesInVersionOrder() )
+                .thenReturn( asList( new File( "v0" ), new File( "v1" ), new File( "v2" ) ) );
+
+        HeaderReader headerReader = mock( HeaderReader.class );
+        when( headerReader.readHeader( new File( "v0" ) ) ).thenReturn( new Header( 0, -1, -1 ) );
+        when( headerReader.readHeader( new File( "v1" ) ) ).thenReturn( new Header( 1, 9, 0 ) );
+        when( headerReader.readHeader( new File( "v2" ) ) ).thenReturn( null );
+
+        EntryReader entryReader = mock( EntryReader.class );
+        when( entryReader.readEntriesInVersion( 1 ) ).thenReturn( cursor(
+                new RaftLogAppendRecord( 10, new RaftLogEntry( 0, valueOf( 110 ) ) )
+        ) );
+
+        HeaderWriter headerWriter = mock( HeaderWriter.class );
+        Recovery recovery = new Recovery( versionFiles, headerReader, entryReader, headerWriter );
+
+        // when
+        try
+        {
+            Recovery.LogState state = recovery.recover();
+            fail();
+        }
+        catch ( IOException e )
+        {
+            throw new RuntimeException( e );
+        }
+    }
+
+    @Test
+    public void shouldFailRecoveryIfVersionNumberDoesNotMatchVersionInHeader() throws Exception
+    {
+        // given
+
+
+        // when
+
+        // then
     }
 }

@@ -47,7 +47,8 @@ public class Recovery
 
     /**
      * output: currentVersion, prevIndex, prevTerm, appendIndex
-     * effects: current version file starts with a valid header and contains no extra bytes beyond the last entry at appendIndex
+     * effects: current version file starts with a valid header and contains no extra bytes beyond the last entry at
+     * appendIndex
      */
     public LogState recover() throws IOException
     {
@@ -59,48 +60,38 @@ public class Recovery
         VersionIndexRanges ranges = new VersionIndexRanges();
 
         Iterator<File> versionFiles = files.filesInVersionOrder().iterator();
-//        boolean encounteredMissingHeader = false;
-//        while( versionFiles.hasNext() && !encounteredMissingHeader )
+        boolean encounteredMissingHeader = false;
 
-        for ( File file : files.filesInVersionOrder() )
+        File file = null;
+        while ( versionFiles.hasNext() && !encounteredMissingHeader )
         {
+            file = versionFiles.next();
+
             Header header = headerReader.readHeader( file );
             if ( header == null )
             {
-                if ( currentVersion >= 0 )
-                {
-                    try ( IOCursor<RaftLogAppendRecord> entryCursor = reader.readEntriesInVersion( currentVersion ) )
-                    {
-                        while ( entryCursor.next() )
-                        {
-                            RaftLogAppendRecord record = entryCursor.get();
-                            appendIndex = record.logIndex();
-                            term = record.logEntry().term();
-                        }
-                    }
-                }
-                currentVersion++;
-
-                header = new Header( currentVersion, appendIndex, term );
-                ranges.add( header.version, header.prevIndex );
-                headerWriter.write( file, header );
-
-                return new LogState( currentVersion, prevIndex, prevTerm, appendIndex, term, ranges );
+                encounteredMissingHeader = true;
             }
             else
             {
-                if ( currentVersion < 0 )
+                if ( noVersionsFoundYet( currentVersion ) )
                 {
                     prevIndex = header.prevIndex;
                     prevTerm = header.prevTerm;
                 }
                 ranges.add( header.version, header.prevIndex );
+
                 appendIndex = header.prevIndex;
                 term = header.prevTerm;
                 currentVersion = header.version;
             }
         }
-        if ( currentVersion >= 0 )
+
+        if ( noVersionsFoundYet( currentVersion ) )
+        {
+            file = files.createNewVersionFile( 0 );
+        }
+        else
         {
             try ( IOCursor<RaftLogAppendRecord> entryCursor = reader.readEntriesInVersion( currentVersion ) )
             {
@@ -111,18 +102,24 @@ public class Recovery
                     term = record.logEntry().term();
                 }
             }
-            return new LogState( currentVersion, prevIndex, prevTerm, appendIndex, term, ranges );
         }
-        else
+
+        if ( noVersionsFoundYet( currentVersion ) || encounteredMissingHeader )
         {
-            currentVersion = 0;
+            currentVersion++;
 
-            Header header = new Header( currentVersion, prevIndex, prevTerm );
+            Header header = new Header( currentVersion, appendIndex, term );
             ranges.add( header.version, header.prevIndex );
-            headerWriter.write( files.createNewVersionFile( currentVersion ), header );
-            return new LogState( currentVersion, prevIndex, prevTerm, appendIndex, term, ranges );
+            headerWriter.write( file, header );
         }
 
+        return new LogState( currentVersion, prevIndex, prevTerm, appendIndex, term, ranges );
+
+    }
+
+    public boolean noVersionsFoundYet( long currentVersion )
+    {
+        return currentVersion < 0;
     }
 
     static class LogState
