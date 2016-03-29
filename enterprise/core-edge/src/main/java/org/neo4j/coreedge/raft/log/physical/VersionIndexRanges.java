@@ -105,11 +105,11 @@ public class VersionIndexRanges
 
     public long highestVersion()
     {
-        return ranges.isEmpty() ? 0 : Math.max(0, ranges.peekLast().version);
+        return ranges.isEmpty() ? -1 : ranges.peekLast().version;
     }
 
     public long lowestVersion()
     {
-        return ranges.isEmpty() ? 0 :  Math.max(0, ranges.peekFirst().version);
+        return ranges.isEmpty() ? -1 : ranges.peekFirst().version;
     }
 }

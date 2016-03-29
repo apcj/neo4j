@@ -21,15 +21,10 @@ package org.neo4j.coreedge.raft.log.physical;
 
 import java.io.File;
 
-public class VersionFiles
+public class HeaderWriter
 {
-    public Iterable<File> filesInVersionOrder()
+    public void write( File file, Header header )
     {
-        return null;
-    }
 
-    public File createNewVersionFile( long version )
-    {
-        return null;
     }
 }

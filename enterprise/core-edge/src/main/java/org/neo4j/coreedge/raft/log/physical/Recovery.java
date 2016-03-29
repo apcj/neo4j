@@ -21,6 +21,7 @@ package org.neo4j.coreedge.raft.log.physical;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Iterator;
 
 import org.neo4j.coreedge.raft.log.EntryReader;
 import org.neo4j.coreedge.raft.log.RaftLogAppendRecord;
@@ -34,12 +35,14 @@ public class Recovery
     private final VersionFiles files;
     private final HeaderReader headerReader;
     private final EntryReader reader;
+    private final HeaderWriter headerWriter;
 
-    public Recovery( VersionFiles files, HeaderReader headerReader, EntryReader reader )
+    public Recovery( VersionFiles files, HeaderReader headerReader, EntryReader reader, HeaderWriter headerWriter )
     {
         this.files = files;
         this.headerReader = headerReader;
         this.reader = reader;
+        this.headerWriter = headerWriter;
     }
 
     /**
@@ -52,19 +55,50 @@ public class Recovery
         long prevIndex = -1;
         long prevTerm = -1;
         long appendIndex = -1;
+        long term = -1;
         VersionIndexRanges ranges = new VersionIndexRanges();
+
+        Iterator<File> versionFiles = files.filesInVersionOrder().iterator();
+//        boolean encounteredMissingHeader = false;
+//        while( versionFiles.hasNext() && !encounteredMissingHeader )
 
         for ( File file : files.filesInVersionOrder() )
         {
             Header header = headerReader.readHeader( file );
-            if ( currentVersion < 0 )
+            if ( header == null )
             {
-                prevIndex = header.prevIndex;
-                prevTerm = header.prevTerm;
+                if ( currentVersion >= 0 )
+                {
+                    try ( IOCursor<RaftLogAppendRecord> entryCursor = reader.readEntriesInVersion( currentVersion ) )
+                    {
+                        while ( entryCursor.next() )
+                        {
+                            RaftLogAppendRecord record = entryCursor.get();
+                            appendIndex = record.logIndex();
+                            term = record.logEntry().term();
+                        }
+                    }
+                }
+                currentVersion++;
+
+                header = new Header( currentVersion, appendIndex, term );
+                ranges.add( header.version, header.prevIndex );
+                headerWriter.write( file, header );
+
+                return new LogState( currentVersion, prevIndex, prevTerm, appendIndex, term, ranges );
             }
-            ranges.add( header.version, header.prevIndex );
-            appendIndex = header.prevIndex;
-            currentVersion = header.version;
+            else
+            {
+                if ( currentVersion < 0 )
+                {
+                    prevIndex = header.prevIndex;
+                    prevTerm = header.prevTerm;
+                }
+                ranges.add( header.version, header.prevIndex );
+                appendIndex = header.prevIndex;
+                term = header.prevTerm;
+                currentVersion = header.version;
+            }
         }
         if ( currentVersion >= 0 )
         {
@@ -72,11 +106,23 @@ public class Recovery
             {
                 while ( entryCursor.next() )
                 {
-                    appendIndex = entryCursor.get().logIndex();
+                    RaftLogAppendRecord record = entryCursor.get();
+                    appendIndex = record.logIndex();
+                    term = record.logEntry().term();
                 }
             }
+            return new LogState( currentVersion, prevIndex, prevTerm, appendIndex, term, ranges );
         }
-        return new LogState( currentVersion, prevIndex, prevTerm, appendIndex, ranges );
+        else
+        {
+            currentVersion = 0;
+
+            Header header = new Header( currentVersion, prevIndex, prevTerm );
+            ranges.add( header.version, header.prevIndex );
+            headerWriter.write( files.createNewVersionFile( currentVersion ), header );
+            return new LogState( currentVersion, prevIndex, prevTerm, appendIndex, term, ranges );
+        }
+
     }
 
     static class LogState
@@ -84,16 +130,18 @@ public class Recovery
         public final long prevIndex;
         public final long prevTerm;
         public final long appendIndex;
+        public final long term;
         public final long currentVersion;
         public final VersionIndexRanges ranges;
 
-        public LogState(
-                long currentVersion, long prevIndex, long prevTerm, long appendIndex, VersionIndexRanges ranges )
+        public LogState( long currentVersion, long prevIndex, long prevTerm,
+                         long appendIndex, long term, VersionIndexRanges ranges )
         {
             this.currentVersion = currentVersion;
             this.prevIndex = prevIndex;
             this.prevTerm = prevTerm;
             this.appendIndex = appendIndex;
+            this.term = term;
             this.ranges = ranges;
         }
     }

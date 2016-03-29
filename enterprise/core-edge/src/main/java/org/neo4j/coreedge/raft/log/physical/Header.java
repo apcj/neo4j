@@ -19,6 +19,8 @@
  */
 package org.neo4j.coreedge.raft.log.physical;
 
+import java.util.Objects;
+
 public class Header
 {
     public final long version;
@@ -30,5 +32,37 @@ public class Header
         this.version = version;
         this.prevIndex = prevIndex;
         this.prevTerm = prevTerm;
+    }
+
+    @Override
+    public boolean equals( Object o )
+    {
+        if ( this == o )
+        {
+            return true;
+        }
+        if ( o == null || getClass() != o.getClass() )
+        {
+            return false;
+        }
+        Header header = (Header) o;
+        return Objects.equals( version, header.version ) &&
+                Objects.equals( prevIndex, header.prevIndex ) &&
+                Objects.equals( prevTerm, header.prevTerm );
+    }
+
+    @Override
+    public int hashCode()
+    {
+        return Objects.hash( version, prevIndex, prevTerm );
+    }
+
+    @Override public String toString()
+    {
+        return "Header{" +
+                "version=" + version +
+                ", prevIndex=" + prevIndex +
+                ", prevTerm=" + prevTerm +
+                '}';
     }
 }
