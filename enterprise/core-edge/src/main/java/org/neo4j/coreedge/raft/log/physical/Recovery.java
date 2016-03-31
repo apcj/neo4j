@@ -35,19 +35,18 @@ import org.neo4j.cursor.IOCursor;
 public class Recovery
 {
     private final VersionFiles files;
-    private final HeaderReader headerReader;
-    private final EntryReader reader;
-    private final HeaderWriter headerWriter;
-    private final LogFileTruncater logFileTruncater;
+//    private final HeaderReader headerReader;
+//    private final EntryReader reader;
+//    private final HeaderWriter headerWriter;
+//    private final LogFileTruncater logFileTruncater;
 
-    public Recovery( VersionFiles files, HeaderReader headerReader, EntryReader reader, HeaderWriter headerWriter,
-                     LogFileTruncater logFileTruncater )
+    public Recovery( VersionFiles files )
     {
         this.files = files;
-        this.headerReader = headerReader;
-        this.reader = reader;
-        this.headerWriter = headerWriter;
-        this.logFileTruncater = logFileTruncater;
+//        this.headerReader = headerReader;
+//        this.reader = reader;
+//        this.headerWriter = headerWriter;
+//        this.logFileTruncater = logFileTruncater;
     }
 
     /**
@@ -67,12 +66,14 @@ public class Recovery
         Iterator<VersionFiles.VersionFile> versionFiles = files.filesInVersionOrder().iterator();
         boolean encounteredMissingHeader = false;
 
-        VersionFiles.VersionFile file = null;
+        VersionFiles.VersionFile versionFile = null;
         while ( versionFiles.hasNext() && !encounteredMissingHeader )
         {
-            file = versionFiles.next();
+            versionFile = versionFiles.next();
 
-            Header header = headerReader.readHeader( file.file );
+            Header header = versionFile.header();
+
+//            Header header = headerReader.readHeader( versionFile.file );
             if ( header == null )
             {
                 encounteredMissingHeader = true;
@@ -89,23 +90,24 @@ public class Recovery
                 appendIndex = header.prevIndex;
                 term = header.prevTerm;
 
-                verifyVersion( currentVersion, file, header );
+                verifyVersion( currentVersion, versionFile, header );
                 currentVersion = header.version;
             }
         }
 
-        verifyNoOrphanFiles( versionFiles, file );
+        verifyNoOrphanFiles( versionFiles, versionFile );
 
         if ( noVersionsFoundYet( currentVersion ) )
         {
-            file = files.createNewVersionFile( 0 );
+            versionFile = files.createNewVersionFile( 0 );
         }
         else
         {
 
             PositionAwareRaftLogAppendRecord positionAwareRecord = null;
 
-            try ( IOCursor<PositionAwareRaftLogAppendRecord> entryCursor = reader.readEntriesInVersion( currentVersion ) )
+            try ( IOCursor<PositionAwareRaftLogAppendRecord> entryCursor = versionFile.readEntries() )
+//            try ( IOCursor<PositionAwareRaftLogAppendRecord> entryCursor = reader.readEntriesInVersion( currentVersion ) )
             {
                 while ( entryCursor.next() )
                 {
@@ -117,9 +119,10 @@ public class Recovery
                 }
             }
             long lastValidByte = positionAwareRecord == null ? HeaderReader.HEADER_LENGTH : positionAwareRecord.endPosition();
-            if ( file.size > lastValidByte )
+            if ( versionFile.size() > lastValidByte )
             {
-                logFileTruncater.truncate( file.file, lastValidByte );
+                versionFile.truncate(lastValidByte);
+//                logFileTruncater.truncate( versionFile.file, lastValidByte );
             }
         }
 
@@ -129,7 +132,9 @@ public class Recovery
 
             Header header = new Header( currentVersion, appendIndex, term );
             ranges.add( header.version, header.prevIndex );
-            headerWriter.write( file.file, header );
+            versionFile.writeHeader( header );
+
+//            headerWriter.write( versionFile.file, header );
         }
 
         return new LogState( currentVersion, prevIndex, prevTerm, appendIndex, term, ranges );
@@ -141,16 +146,16 @@ public class Recovery
         {
             throw new DamagedLogStorageException(
                     "Found empty file [%s] but there are files with higher version numbers: %s",
-                    file.file, collectOrphans( versionFiles ) );
+                    file.file(), collectOrphans( versionFiles ) );
         }
     }
 
     public void verifyVersion( long currentVersion, VersionFiles.VersionFile file, Header header ) throws DamagedLogStorageException
     {
-        if ( header.version != file.version )
+        if ( header.version != file.version() )
         {
             throw new DamagedLogStorageException( "Expected file [%s] to contain log version %d, but " +
-                    "contained log version %d", file.file, file.version, header.version );
+                    "contained log version %d", file.file(), file.version(), header.version );
         }
         if ( currentVersion >= 0 && currentVersion + 1 != header.version )
         {

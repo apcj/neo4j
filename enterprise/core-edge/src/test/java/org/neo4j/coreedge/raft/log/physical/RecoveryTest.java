@@ -24,7 +24,6 @@ import java.util.Collections;
 
 import org.junit.Test;
 
-import org.neo4j.coreedge.raft.log.EntryReader;
 import org.neo4j.coreedge.raft.log.PositionAwareRaftLogAppendRecord;
 import org.neo4j.coreedge.raft.log.RaftLogAppendRecord;
 import org.neo4j.coreedge.raft.log.RaftLogEntry;
@@ -54,23 +53,22 @@ public class RecoveryTest
     {
         // given
         VersionFiles versionFiles = mock( VersionFiles.class );
-        when( versionFiles.filesInVersionOrder() )
-                .thenReturn( asList( file( 0, "v0", 30 ), file( 1, "v1", 30 ), file( 2, "v2", 30 ) ) );
+        VersionFiles.VersionFile v0 = file( 0, "v0", 30 );
+        VersionFiles.VersionFile v1 = file( 1, "v1", 30 );
+        VersionFiles.VersionFile v2 = file( 2, "v2", 30 );
+        when( versionFiles.filesInVersionOrder() ).thenReturn( asList( v0, v1, v2 ) );
 
-        HeaderReader headerReader = mock( HeaderReader.class );
-        when( headerReader.readHeader( new File( "v0" ) ) ).thenReturn( version( 0 ).prevIndex( -1 ).prevTerm( -1 ) );
-        when( headerReader.readHeader( new File( "v1" ) ) ).thenReturn( version( 1 ).prevIndex( 9 ).prevTerm( 0 ) );
-        when( headerReader.readHeader( new File( "v2" ) ) ).thenReturn( version( 2 ).prevIndex( 19 ).prevTerm( 0 ) );
+        when( v0.header() ).thenReturn( version( 0 ).prevIndex( -1 ).prevTerm( -1 ) );
+        when( v1.header() ).thenReturn( version( 1 ).prevIndex( 9 ).prevTerm( 0 ) );
+        when( v2.header() ).thenReturn( version( 2 ).prevIndex( 19 ).prevTerm( 0 ) );
 
-        EntryReader entryReader = mock( EntryReader.class );
-        when( entryReader.readEntriesInVersion( 2 ) ).thenReturn( cursor(
+        when( v2.readEntries(  ) ).thenReturn( cursor(
                 offset( 0, 10 ).index( 20 ).term( 0 ).content( valueOf( 120 ) ),
                 offset( 10, 20 ).index( 21 ).term( 0 ).content( valueOf( 121 ) ),
                 offset( 20, 30 ).index( 22 ).term( 0 ).content( valueOf( 122 ) )
         ) );
 
-        Recovery recovery = new Recovery( versionFiles, headerReader, entryReader, mock( HeaderWriter.class ), mock(
-                LogFileTruncater.class ) );
+        Recovery recovery = new Recovery( versionFiles );
 
         // when
         Recovery.LogState state = recovery.recover();
@@ -90,17 +88,16 @@ public class RecoveryTest
     {
         // given
         VersionFiles versionFiles = mock( VersionFiles.class );
-        when( versionFiles.filesInVersionOrder() )
-                .thenReturn( asList( file( 2, "v2", 30 ), file( 3, "v3", 0 ) ) );
+        VersionFiles.VersionFile v2 = file( 2, "v2", 30 );
+        VersionFiles.VersionFile v3 = file( 3, "v3", 0 );
+        when( versionFiles.filesInVersionOrder() ).thenReturn( asList( v2, v3 ) );
 
-        HeaderReader headerReader = mock( HeaderReader.class );
-        when( headerReader.readHeader( new File( "v2" ) ) ).thenReturn( version( 2 ).prevIndex( 9 ).prevTerm( 0 ) );
-        when( headerReader.readHeader( new File( "v3" ) ) ).thenReturn( version( 3 ).prevIndex( 19 ).prevTerm( 0 ) );
+        when( v2.header()).thenReturn( version( 2 ).prevIndex( 9 ).prevTerm( 0 ) );
+        when( v3.header()).thenReturn( version( 3 ).prevIndex( 19 ).prevTerm( 0 ) );
 
-        EntryReader entryReader = mock( EntryReader.class );
-        when( entryReader.readEntriesInVersion( 3 ) ).thenReturn( cursor() );
+        when( v3.readEntries() ).thenReturn( cursor() );
 
-        Recovery recovery = new Recovery( versionFiles, headerReader, entryReader, mock( HeaderWriter.class ), mock( LogFileTruncater.class ) );
+        Recovery recovery = new Recovery( versionFiles );
 
         // when
         Recovery.LogState state = recovery.recover();
@@ -121,11 +118,10 @@ public class RecoveryTest
         // given
         VersionFiles versionFiles = mock( VersionFiles.class );
         when( versionFiles.filesInVersionOrder() ).thenReturn( Collections.emptyList() );
-        when( versionFiles.createNewVersionFile( 0 ) ).thenReturn( file( 0, "v0", 0 ) );
+        VersionFiles.VersionFile v0 = file( 0, "v0", 0 );
+        when( versionFiles.createNewVersionFile( 0 ) ).thenReturn( v0 );
 
-        HeaderReader headerReader = mock( HeaderReader.class );
-        HeaderWriter headerWriter = mock( HeaderWriter.class );
-        Recovery recovery = new Recovery( versionFiles, headerReader, mock( EntryReader.class ), headerWriter, mock( LogFileTruncater.class ) );
+        Recovery recovery = new Recovery( versionFiles );
 
         // when
         Recovery.LogState state = recovery.recover();
@@ -140,7 +136,7 @@ public class RecoveryTest
         assertEquals( 0, state.ranges.highestVersion() );
 
         verify( versionFiles ).createNewVersionFile( 0 );
-        verify( headerWriter ).write( new File( "v0" ), version( 0 ).prevIndex( -1 ).prevTerm( -1 ) );
+        verify( v0 ).writeHeader( version( 0 ).prevIndex( -1 ).prevTerm( -1 ) );
     }
 
     @Test
@@ -148,23 +144,21 @@ public class RecoveryTest
     {
         // given
         VersionFiles versionFiles = mock( VersionFiles.class );
-        when( versionFiles.filesInVersionOrder() )
-                .thenReturn( asList( file( 0, "v0", 30 ), file( 1, "v1", 30 ), file( 2, "v2", -HEADER_LENGTH ) ) );
+        VersionFiles.VersionFile v0 = file( 0, "v0", 30 );
+        VersionFiles.VersionFile v1 = file( 1, "v1", 30 );
+        VersionFiles.VersionFile v2 = file( 2, "v2", -HEADER_LENGTH );
+        when( versionFiles.filesInVersionOrder() ).thenReturn( asList( v0, v1, v2 ) );
 
-        HeaderReader headerReader = mock( HeaderReader.class );
-        when( headerReader.readHeader( new File( "v0" ) ) ).thenReturn( version( 0 ).prevIndex( -1 ).prevTerm( -1 ) );
-        when( headerReader.readHeader( new File( "v1" ) ) ).thenReturn( version( 1 ).prevIndex( 9 ).prevTerm( 0 ) );
-        when( headerReader.readHeader( new File( "v2" ) ) ).thenReturn( null );
+        when( v0.header()).thenReturn( version( 0 ).prevIndex( -1 ).prevTerm( -1 ) );
+        when( v1.header()).thenReturn( version( 1 ).prevIndex( 9 ).prevTerm( 0 ) );
+        when( v2.header()).thenReturn( null );
 
-        EntryReader entryReader = mock( EntryReader.class );
-        when( entryReader.readEntriesInVersion( 1 ) ).thenReturn( cursor(
-                new PositionAwareRaftLogAppendRecord( 0, 100, new RaftLogAppendRecord( 10, new RaftLogEntry( 0,
-                        valueOf( 110 ) ) ) )
+        when( v1.readEntries() ).thenReturn( cursor(
+                new PositionAwareRaftLogAppendRecord( 0, 100,
+                        new RaftLogAppendRecord( 10, new RaftLogEntry( 0, valueOf( 110 ) ) ) )
         ) );
 
-
-        HeaderWriter headerWriter = mock( HeaderWriter.class );
-        Recovery recovery = new Recovery( versionFiles, headerReader, entryReader, headerWriter, mock( LogFileTruncater.class ) );
+        Recovery recovery = new Recovery( versionFiles );
 
         // when
         Recovery.LogState state = recovery.recover();
@@ -178,7 +172,7 @@ public class RecoveryTest
         assertEquals( 0, state.ranges.lowestVersion() );
         assertEquals( 2, state.ranges.highestVersion() );
 
-        verify( headerWriter ).write( new File( "v2" ), version( 2 ).prevIndex( 10 ).prevTerm( 0 ) );
+        verify( v2 ).writeHeader( version( 2 ).prevIndex( 10 ).prevTerm( 0 ) );
     }
 
     @Test
@@ -186,16 +180,16 @@ public class RecoveryTest
     {
         // given
         VersionFiles versionFiles = mock( VersionFiles.class );
-        when( versionFiles.filesInVersionOrder() )
-                .thenReturn( asList( file( 0, "v0", 30 ), file( 1, "v1", 30 ), file( 3, "v3", 30 ) ) );
+        VersionFiles.VersionFile v0 = file( 0, "v0", 30 );
+        VersionFiles.VersionFile v1 = file( 1, "v1", 30 );
+        VersionFiles.VersionFile v3 = file( 3, "v3", 30 );
+        when( versionFiles.filesInVersionOrder() ).thenReturn( asList( v0, v1, v3 ) );
 
-        HeaderReader headerReader = mock( HeaderReader.class );
-        when( headerReader.readHeader( new File( "v0" ) ) ).thenReturn( version( 0 ).prevIndex( -1 ).prevTerm( -1 ) );
-        when( headerReader.readHeader( new File( "v1" ) ) ).thenReturn( version( 1 ).prevIndex( 9 ).prevTerm( 0 ) );
-        when( headerReader.readHeader( new File( "v3" ) ) ).thenReturn( version( 3 ).prevIndex( 10 ).prevTerm( 0 ) );
+        when( v0.header() ).thenReturn( version( 0 ).prevIndex( -1 ).prevTerm( -1 ) );
+        when( v1.header() ).thenReturn( version( 1 ).prevIndex( 9 ).prevTerm( 0 ) );
+        when( v3.header() ).thenReturn( version( 3 ).prevIndex( 10 ).prevTerm( 0 ) );
 
-        Recovery recovery = new Recovery( versionFiles, headerReader,
-                mock( EntryReader.class ), mock( HeaderWriter.class ), mock( LogFileTruncater.class ) );
+        Recovery recovery = new Recovery( versionFiles );
 
         // when
         try
@@ -214,14 +208,13 @@ public class RecoveryTest
     {
         // given
         VersionFiles versionFiles = mock( VersionFiles.class );
-        when( versionFiles.filesInVersionOrder() )
-                .thenReturn( singletonList( file( 2, "foo", 30 ) ) );
+        VersionFiles.VersionFile foo = file( 2, "foo", 30 );
+        when( versionFiles.filesInVersionOrder() ).thenReturn( singletonList( foo ) );
 
-        HeaderReader headerReader = mock( HeaderReader.class );
-        when( headerReader.readHeader( new File( "foo" ) ) ).thenReturn( version( 1 ).prevIndex( 9 ).prevTerm( 0 ) );
+        when( foo.header( )).thenReturn( version( 1 ).prevIndex( 9 ).prevTerm( 0 ) );
 
-        Recovery recovery = new Recovery( versionFiles, headerReader,
-                mock( EntryReader.class ), mock( HeaderWriter.class ), mock( LogFileTruncater.class ) );
+        Recovery recovery = new Recovery( versionFiles
+        );
 
         // when
         try
@@ -241,16 +234,18 @@ public class RecoveryTest
     {
         // given
         VersionFiles versionFiles = mock( VersionFiles.class );
-        when( versionFiles.filesInVersionOrder() )
-                .thenReturn( asList( file( 0, "v0", 30 ), file( 1, "v1", 30 ), file( 2, "v2", 30 ), file( 3, "v3", 30 ) ) );
+        VersionFiles.VersionFile v0 = file( 0, "v0", 30 );
+        VersionFiles.VersionFile v1 = file( 1, "v1", 30 );
+        VersionFiles.VersionFile v2 = file( 2, "v2", 30 );
+        VersionFiles.VersionFile v3 = file( 3, "v3", 30 );
+        when( versionFiles.filesInVersionOrder() ).thenReturn( asList( v0, v1, v2, v3 ) );
 
-        HeaderReader headerReader = mock( HeaderReader.class );
-        when( headerReader.readHeader( new File( "v0" ) ) ).thenReturn( version( 0 ).prevIndex( -1 ).prevTerm( -1 ) );
-        when( headerReader.readHeader( new File( "v1" ) ) ).thenReturn( version( 1 ).prevIndex( 9 ).prevTerm( 0 ) );
-        when( headerReader.readHeader( new File( "v2" ) ) ).thenReturn( null );
+        when( v0.header() ).thenReturn( version( 0 ).prevIndex( -1 ).prevTerm( -1 ) );
+        when( v1.header() ).thenReturn( version( 1 ).prevIndex( 9 ).prevTerm( 0 ) );
+        when( v2.header() ).thenReturn( null );
 
-        Recovery recovery = new Recovery( versionFiles, headerReader,
-                mock( EntryReader.class ), mock( HeaderWriter.class ), mock( LogFileTruncater.class ) );
+        Recovery recovery = new Recovery( versionFiles
+        );
 
         // when
         try
@@ -261,7 +256,7 @@ public class RecoveryTest
         catch ( DamagedLogStorageException e )
         {
             assertThat( e.getMessage(), containsString(
-                    "Found empty file [v2] but there are files with higher version numbers: [3: v3]" ) );
+                    "Found empty file [v2] but there are files with higher version numbers" ) );
         }
     }
 
@@ -270,35 +265,40 @@ public class RecoveryTest
     {
         // given
         VersionFiles versionFiles = mock( VersionFiles.class );
-        when( versionFiles.filesInVersionOrder() )
-                .thenReturn( asList( file( 0, "v0", 30 ), file( 1, "v1", 30 ), file( 2, "v2", 31 ) ) );
+        VersionFiles.VersionFile v0 = file( 0, "v0", 30 );
+        VersionFiles.VersionFile v1 = file( 1, "v1", 30 );
+        VersionFiles.VersionFile v2 = file( 2, "v2", 31 );
+        when( versionFiles.filesInVersionOrder() ).thenReturn( asList( v0, v1, v2 ) );
 
-        HeaderReader headerReader = mock( HeaderReader.class );
-        when( headerReader.readHeader( new File( "v0" ) ) ).thenReturn( version( 0 ).prevIndex( -1 ).prevTerm( -1 ) );
-        when( headerReader.readHeader( new File( "v1" ) ) ).thenReturn( version( 1 ).prevIndex( 9 ).prevTerm( 0 ) );
-        when( headerReader.readHeader( new File( "v2" ) ) ).thenReturn( version( 2 ).prevIndex( 19 ).prevTerm( 0 ) );
+        when( v0.header() ).thenReturn( version( 0 ).prevIndex( -1 ).prevTerm( -1 ) );
+        when( v1.header() ).thenReturn( version( 1 ).prevIndex( 9 ).prevTerm( 0 ) );
+        when( v2.header() ).thenReturn( version( 2 ).prevIndex( 19 ).prevTerm( 0 ) );
 
-        EntryReader entryReader = mock( EntryReader.class );
-        when( entryReader.readEntriesInVersion( 2 ) ).thenReturn( cursor(
+        when( v2.readEntries() ).thenReturn( cursor(
                 offset( 0, 10 ).index( 20 ).term( 0 ).content( valueOf( 120 ) ),
                 offset( 10, 20 ).index( 21 ).term( 0 ).content( valueOf( 121 ) ),
                 offset( 20, 30 ).index( 22 ).term( 0 ).content( valueOf( 122 ) )
         ) );
 
-        LogFileTruncater truncater = mock( LogFileTruncater.class );
-        Recovery recovery = new Recovery( versionFiles, headerReader, entryReader, mock( HeaderWriter.class ), truncater );
+        Recovery recovery = new Recovery( versionFiles );
 
         // when
         recovery.recover();
 
         // then
-        verify( truncater).truncate( new File( "v2" ), 30 + HEADER_LENGTH ) ;
+        verify( v2 ).truncate( 30 + HEADER_LENGTH );
     }
 
 
     private static VersionFiles.VersionFile file( long version, String fileName, long contentSize )
     {
-        return new VersionFiles.VersionFile( version, new File( fileName ), contentSize + HEADER_LENGTH );
+        VersionFiles.VersionFile versionFile = mock(VersionFiles.VersionFile.class);
+
+        when(versionFile.version()).thenReturn( version );
+        when(versionFile.file()).thenReturn( new File( fileName ) ) ;
+        when(versionFile.size()).thenReturn( contentSize + HEADER_LENGTH );
+
+        return versionFile;
 
     }
 
