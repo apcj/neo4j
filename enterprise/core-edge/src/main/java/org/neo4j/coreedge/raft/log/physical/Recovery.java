@@ -56,7 +56,6 @@ public class Recovery
      */
     public LogState recover() throws IOException, DamagedLogStorageException
     {
-        long currentVersion = -1;
         long prevIndex = -1;
         long prevTerm = -1;
         long appendIndex = -1;
@@ -66,21 +65,19 @@ public class Recovery
         Iterator<VersionFiles.VersionFile> versionFiles = files.filesInVersionOrder().iterator();
         boolean encounteredMissingHeader = false;
 
-        VersionFiles.VersionFile versionFile = null;
+        VersionFiles.VersionFile file = null;
+        VersionFiles.VersionFile latestWellFormedFile = null;
         while ( versionFiles.hasNext() && !encounteredMissingHeader )
         {
-            versionFile = versionFiles.next();
-
-            Header header = versionFile.header();
-
-//            Header header = headerReader.readHeader( versionFile.file );
+            file = versionFiles.next();
+            Header header = file.header();
             if ( header == null )
             {
                 encounteredMissingHeader = true;
             }
             else
             {
-                if ( noVersionsFoundYet( currentVersion ) )
+                if ( noVersionsFoundYet( latestWellFormedFile ) )
                 {
                     prevIndex = header.prevIndex;
                     prevTerm = header.prevTerm;
@@ -90,24 +87,22 @@ public class Recovery
                 appendIndex = header.prevIndex;
                 term = header.prevTerm;
 
-                verifyVersion( currentVersion, versionFile, header );
-                currentVersion = header.version;
+                verifyVersion( latestWellFormedFile, file, header );
+                latestWellFormedFile = file;
             }
         }
 
-        verifyNoOrphanFiles( versionFiles, versionFile );
+        verifyNoOrphanFiles( versionFiles, file );
 
-        if ( noVersionsFoundYet( currentVersion ) )
+        if ( noVersionsFoundYet( latestWellFormedFile ) )
         {
-            versionFile = files.createNewVersionFile( 0 );
+            file = files.createNewVersionFile( 0 );
         }
         else
         {
-
             PositionAwareRaftLogAppendRecord positionAwareRecord = null;
 
-            try ( IOCursor<PositionAwareRaftLogAppendRecord> entryCursor = versionFile.readEntries() )
-//            try ( IOCursor<PositionAwareRaftLogAppendRecord> entryCursor = reader.readEntriesInVersion( currentVersion ) )
+            try ( IOCursor<PositionAwareRaftLogAppendRecord> entryCursor = latestWellFormedFile.readEntries() )
             {
                 while ( entryCursor.next() )
                 {
@@ -119,25 +114,24 @@ public class Recovery
                 }
             }
             long lastValidByte = positionAwareRecord == null ? HeaderReader.HEADER_LENGTH : positionAwareRecord.endPosition();
-            if ( versionFile.size() > lastValidByte )
+            if ( file.size() > lastValidByte )
             {
-                versionFile.truncate(lastValidByte);
-//                logFileTruncater.truncate( versionFile.file, lastValidByte );
+                file.truncate(lastValidByte);
             }
         }
 
-        if ( noVersionsFoundYet( currentVersion ) || encounteredMissingHeader )
+        if ( noVersionsFoundYet( latestWellFormedFile ) || encounteredMissingHeader )
         {
-            currentVersion++;
+            long version = latestWellFormedFile != null ? latestWellFormedFile.version() +1 : 0;
 
-            Header header = new Header( currentVersion, appendIndex, term );
+
+            Header header = new Header( version, appendIndex, term );
             ranges.add( header.version, header.prevIndex );
-            versionFile.writeHeader( header );
-
-//            headerWriter.write( versionFile.file, header );
+            file.writeHeader( header );
+            latestWellFormedFile = file;
         }
 
-        return new LogState( currentVersion, prevIndex, prevTerm, appendIndex, term, ranges );
+        return new LogState( latestWellFormedFile.version(), prevIndex, prevTerm, appendIndex, term, ranges );
     }
 
     public void verifyNoOrphanFiles( Iterator<VersionFiles.VersionFile> versionFiles, VersionFiles.VersionFile file ) throws DamagedLogStorageException
@@ -150,16 +144,16 @@ public class Recovery
         }
     }
 
-    public void verifyVersion( long currentVersion, VersionFiles.VersionFile file, Header header ) throws DamagedLogStorageException
+    public void verifyVersion( VersionFiles.VersionFile latestWellFormedFile, VersionFiles.VersionFile file, Header header ) throws DamagedLogStorageException
     {
         if ( header.version != file.version() )
         {
             throw new DamagedLogStorageException( "Expected file [%s] to contain log version %d, but " +
                     "contained log version %d", file.file(), file.version(), header.version );
         }
-        if ( currentVersion >= 0 && currentVersion + 1 != header.version )
+        if ( latestWellFormedFile != null && latestWellFormedFile.version() + 1 != header.version )
         {
-            throw new DamagedLogStorageException( "Missing expected log file version %d amongst series of files %s", currentVersion + 1, files.filesInVersionOrder() );
+            throw new DamagedLogStorageException( "Missing expected log file version %d amongst series of files %s", latestWellFormedFile.version() + 1, files.filesInVersionOrder() );
         }
     }
 
@@ -173,9 +167,9 @@ public class Recovery
         return orphans;
     }
 
-    public boolean noVersionsFoundYet( long currentVersion )
+    public boolean noVersionsFoundYet( VersionFiles.VersionFile currentVersion )
     {
-        return currentVersion < 0;
+        return currentVersion == null;
     }
 
     static class LogState
