@@ -53,9 +53,9 @@ public class RecoveryTest
     {
         // given
         VersionFiles versionFiles = mock( VersionFiles.class );
-        VersionFiles.VersionFile v0 = file( 0, "v0", 30 );
-        VersionFiles.VersionFile v1 = file( 1, "v1", 30 );
-        VersionFiles.VersionFile v2 = file( 2, "v2", 30 );
+        VersionFile v0 = file( 0, "v0", 30 );
+        VersionFile v1 = file( 1, "v1", 30 );
+        VersionFile v2 = file( 2, "v2", 30 );
         when( versionFiles.filesInVersionOrder() ).thenReturn( asList( v0, v1, v2 ) );
 
         when( v0.header() ).thenReturn( version( 0 ).prevIndex( -1 ).prevTerm( -1 ) );
@@ -88,8 +88,8 @@ public class RecoveryTest
     {
         // given
         VersionFiles versionFiles = mock( VersionFiles.class );
-        VersionFiles.VersionFile v2 = file( 2, "v2", 30 );
-        VersionFiles.VersionFile v3 = file( 3, "v3", 0 );
+        VersionFile v2 = file( 2, "v2", 30 );
+        VersionFile v3 = file( 3, "v3", 0 );
         when( versionFiles.filesInVersionOrder() ).thenReturn( asList( v2, v3 ) );
 
         when( v2.header()).thenReturn( version( 2 ).prevIndex( 9 ).prevTerm( 0 ) );
@@ -118,7 +118,7 @@ public class RecoveryTest
         // given
         VersionFiles versionFiles = mock( VersionFiles.class );
         when( versionFiles.filesInVersionOrder() ).thenReturn( Collections.emptyList() );
-        VersionFiles.VersionFile v0 = file( 0, "v0", 0 );
+        VersionFile v0 = file( 0, "v0", 0 );
         when( versionFiles.createNewVersionFile( 0 ) ).thenReturn( v0 );
 
         Recovery recovery = new Recovery( versionFiles );
@@ -144,9 +144,9 @@ public class RecoveryTest
     {
         // given
         VersionFiles versionFiles = mock( VersionFiles.class );
-        VersionFiles.VersionFile v0 = file( 0, "v0", 30 );
-        VersionFiles.VersionFile v1 = file( 1, "v1", 30 );
-        VersionFiles.VersionFile v2 = file( 2, "v2", -HEADER_LENGTH );
+        VersionFile v0 = file( 0, "v0", 30 );
+        VersionFile v1 = file( 1, "v1", 30 );
+        VersionFile v2 = file( 2, "v2", -HEADER_LENGTH );
         when( versionFiles.filesInVersionOrder() ).thenReturn( asList( v0, v1, v2 ) );
 
         when( v0.header()).thenReturn( version( 0 ).prevIndex( -1 ).prevTerm( -1 ) );
@@ -180,9 +180,9 @@ public class RecoveryTest
     {
         // given
         VersionFiles versionFiles = mock( VersionFiles.class );
-        VersionFiles.VersionFile v0 = file( 0, "v0", 30 );
-        VersionFiles.VersionFile v1 = file( 1, "v1", 30 );
-        VersionFiles.VersionFile v3 = file( 3, "v3", 30 );
+        VersionFile v0 = file( 0, "v0", 30 );
+        VersionFile v1 = file( 1, "v1", 30 );
+        VersionFile v3 = file( 3, "v3", 30 );
         when( versionFiles.filesInVersionOrder() ).thenReturn( asList( v0, v1, v3 ) );
 
         when( v0.header() ).thenReturn( version( 0 ).prevIndex( -1 ).prevTerm( -1 ) );
@@ -208,7 +208,7 @@ public class RecoveryTest
     {
         // given
         VersionFiles versionFiles = mock( VersionFiles.class );
-        VersionFiles.VersionFile foo = file( 2, "foo", 30 );
+        VersionFile foo = file( 2, "foo", 30 );
         when( versionFiles.filesInVersionOrder() ).thenReturn( singletonList( foo ) );
 
         when( foo.header( )).thenReturn( version( 1 ).prevIndex( 9 ).prevTerm( 0 ) );
@@ -234,10 +234,10 @@ public class RecoveryTest
     {
         // given
         VersionFiles versionFiles = mock( VersionFiles.class );
-        VersionFiles.VersionFile v0 = file( 0, "v0", 30 );
-        VersionFiles.VersionFile v1 = file( 1, "v1", 30 );
-        VersionFiles.VersionFile v2 = file( 2, "v2", 30 );
-        VersionFiles.VersionFile v3 = file( 3, "v3", 30 );
+        VersionFile v0 = file( 0, "v0", 30 );
+        VersionFile v1 = file( 1, "v1", 30 );
+        VersionFile v2 = file( 2, "v2", 30 );
+        VersionFile v3 = file( 3, "v3", 30 );
         when( versionFiles.filesInVersionOrder() ).thenReturn( asList( v0, v1, v2, v3 ) );
 
         when( v0.header() ).thenReturn( version( 0 ).prevIndex( -1 ).prevTerm( -1 ) );
@@ -265,9 +265,9 @@ public class RecoveryTest
     {
         // given
         VersionFiles versionFiles = mock( VersionFiles.class );
-        VersionFiles.VersionFile v0 = file( 0, "v0", 30 );
-        VersionFiles.VersionFile v1 = file( 1, "v1", 30 );
-        VersionFiles.VersionFile v2 = file( 2, "v2", 31 );
+        VersionFile v0 = file( 0, "v0", 30 );
+        VersionFile v1 = file( 1, "v1", 30 );
+        VersionFile v2 = file( 2, "v2", 31 );
         when( versionFiles.filesInVersionOrder() ).thenReturn( asList( v0, v1, v2 ) );
 
         when( v0.header() ).thenReturn( version( 0 ).prevIndex( -1 ).prevTerm( -1 ) );
@@ -290,9 +290,9 @@ public class RecoveryTest
     }
 
 
-    private static VersionFiles.VersionFile file( long version, String fileName, long contentSize )
+    private static VersionFile file( long version, String fileName, long contentSize )
     {
-        VersionFiles.VersionFile versionFile = mock(VersionFiles.VersionFile.class);
+        VersionFile versionFile = mock(VersionFile.class);
 
         when(versionFile.version()).thenReturn( version );
         when(versionFile.file()).thenReturn( new File( fileName ) ) ;

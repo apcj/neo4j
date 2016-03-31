@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.neo4j.coreedge.raft.log.EntryReader;
 import org.neo4j.coreedge.raft.log.PositionAwareRaftLogAppendRecord;
 import org.neo4j.coreedge.raft.log.RaftLogAppendRecord;
 import org.neo4j.cursor.IOCursor;
@@ -35,18 +34,10 @@ import org.neo4j.cursor.IOCursor;
 public class Recovery
 {
     private final VersionFiles files;
-//    private final HeaderReader headerReader;
-//    private final EntryReader reader;
-//    private final HeaderWriter headerWriter;
-//    private final LogFileTruncater logFileTruncater;
 
     public Recovery( VersionFiles files )
     {
         this.files = files;
-//        this.headerReader = headerReader;
-//        this.reader = reader;
-//        this.headerWriter = headerWriter;
-//        this.logFileTruncater = logFileTruncater;
     }
 
     /**
@@ -62,11 +53,11 @@ public class Recovery
         long term = -1;
         VersionIndexRanges ranges = new VersionIndexRanges();
 
-        Iterator<VersionFiles.VersionFile> versionFiles = files.filesInVersionOrder().iterator();
+        Iterator<VersionFile> versionFiles = files.filesInVersionOrder().iterator();
         boolean encounteredMissingHeader = false;
 
-        VersionFiles.VersionFile file = null;
-        VersionFiles.VersionFile latestWellFormedFile = null;
+        VersionFile file = null;
+        VersionFile latestWellFormedFile = null;
         while ( versionFiles.hasNext() && !encounteredMissingHeader )
         {
             file = versionFiles.next();
@@ -113,7 +104,7 @@ public class Recovery
                     term = record.logEntry().term();
                 }
             }
-            long lastValidByte = positionAwareRecord == null ? HeaderReader.HEADER_LENGTH : positionAwareRecord.endPosition();
+            long lastValidByte = lastValidByte( positionAwareRecord );
             if ( file.size() > lastValidByte )
             {
                 file.truncate(lastValidByte);
@@ -123,8 +114,6 @@ public class Recovery
         if ( noVersionsFoundYet( latestWellFormedFile ) || encounteredMissingHeader )
         {
             long version = latestWellFormedFile != null ? latestWellFormedFile.version() +1 : 0;
-
-
             Header header = new Header( version, appendIndex, term );
             ranges.add( header.version, header.prevIndex );
             file.writeHeader( header );
@@ -134,7 +123,12 @@ public class Recovery
         return new LogState( latestWellFormedFile.version(), prevIndex, prevTerm, appendIndex, term, ranges );
     }
 
-    public void verifyNoOrphanFiles( Iterator<VersionFiles.VersionFile> versionFiles, VersionFiles.VersionFile file ) throws DamagedLogStorageException
+    public long lastValidByte( PositionAwareRaftLogAppendRecord positionAwareRecord )
+    {
+        return positionAwareRecord == null ? HeaderReader.HEADER_LENGTH : positionAwareRecord.endPosition();
+    }
+
+    public void verifyNoOrphanFiles( Iterator<VersionFile> versionFiles, VersionFile file ) throws DamagedLogStorageException
     {
         if ( versionFiles.hasNext() )
         {
@@ -144,7 +138,7 @@ public class Recovery
         }
     }
 
-    public void verifyVersion( VersionFiles.VersionFile latestWellFormedFile, VersionFiles.VersionFile file, Header header ) throws DamagedLogStorageException
+    public void verifyVersion( VersionFile latestWellFormedFile, VersionFile file, Header header ) throws DamagedLogStorageException
     {
         if ( header.version != file.version() )
         {
@@ -157,9 +151,9 @@ public class Recovery
         }
     }
 
-    public List<VersionFiles.VersionFile> collectOrphans( Iterator<VersionFiles.VersionFile> versionFiles )
+    public List<VersionFile> collectOrphans( Iterator<VersionFile> versionFiles )
     {
-        List<VersionFiles.VersionFile> orphans = new ArrayList<>();
+        List<VersionFile> orphans = new ArrayList<>();
         while ( versionFiles.hasNext() )
         {
             orphans.add( versionFiles.next() );
@@ -167,7 +161,7 @@ public class Recovery
         return orphans;
     }
 
-    public boolean noVersionsFoundYet( VersionFiles.VersionFile currentVersion )
+    public boolean noVersionsFoundYet( VersionFile currentVersion )
     {
         return currentVersion == null;
     }
