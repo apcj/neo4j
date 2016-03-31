@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.neo4j.coreedge.raft.log.EntryReader;
+import org.neo4j.coreedge.raft.log.PositionAwareRaftLogAppendRecord;
 import org.neo4j.coreedge.raft.log.RaftLogAppendRecord;
 import org.neo4j.cursor.IOCursor;
 
@@ -37,13 +38,16 @@ public class Recovery
     private final HeaderReader headerReader;
     private final EntryReader reader;
     private final HeaderWriter headerWriter;
+    private final LogFileTruncater logFileTruncater;
 
-    public Recovery( VersionFiles files, HeaderReader headerReader, EntryReader reader, HeaderWriter headerWriter )
+    public Recovery( VersionFiles files, HeaderReader headerReader, EntryReader reader, HeaderWriter headerWriter,
+                     LogFileTruncater logFileTruncater )
     {
         this.files = files;
         this.headerReader = headerReader;
         this.reader = reader;
         this.headerWriter = headerWriter;
+        this.logFileTruncater = logFileTruncater;
     }
 
     /**
@@ -98,14 +102,24 @@ public class Recovery
         }
         else
         {
-            try ( IOCursor<RaftLogAppendRecord> entryCursor = reader.readEntriesInVersion( currentVersion ) )
+
+            PositionAwareRaftLogAppendRecord positionAwareRecord = null;
+
+            try ( IOCursor<PositionAwareRaftLogAppendRecord> entryCursor = reader.readEntriesInVersion( currentVersion ) )
             {
                 while ( entryCursor.next() )
                 {
-                    RaftLogAppendRecord record = entryCursor.get();
+
+                    positionAwareRecord = entryCursor.get();
+                    RaftLogAppendRecord record = positionAwareRecord.record();
                     appendIndex = record.logIndex();
                     term = record.logEntry().term();
                 }
+            }
+            long lastValidByte = positionAwareRecord == null ? HeaderReader.HEADER_LENGTH : positionAwareRecord.endPosition();
+            if ( file.size > lastValidByte )
+            {
+                logFileTruncater.truncate( file.file, lastValidByte );
             }
         }
 

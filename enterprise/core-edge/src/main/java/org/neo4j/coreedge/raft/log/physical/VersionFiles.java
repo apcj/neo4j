@@ -39,11 +39,13 @@ public class VersionFiles
     {
         public final long version;
         public final File file;
+        public final long size;
 
-        public VersionFile( long version, File file )
+        public VersionFile( long version, File file, long size )
         {
             this.version = version;
             this.file = file;
+            this.size = size;
         }
 
         @Override public String toString()

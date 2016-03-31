@@ -23,6 +23,8 @@ import java.io.File;
 
 public class HeaderReader
 {
+    public static int HEADER_LENGTH = 5;
+
     public Header readHeader( File file )
     {
         return null;

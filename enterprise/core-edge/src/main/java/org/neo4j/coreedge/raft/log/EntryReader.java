@@ -25,5 +25,6 @@ import org.neo4j.cursor.IOCursor;
 
 public interface EntryReader
 {
-    IOCursor<RaftLogAppendRecord> readEntriesInVersion( long version ) throws IOException;
+    IOCursor<PositionAwareRaftLogAppendRecord> readEntriesInVersion( long version ) throws IOException;
+
 }
