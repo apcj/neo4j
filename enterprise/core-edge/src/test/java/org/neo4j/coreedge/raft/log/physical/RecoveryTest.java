@@ -42,7 +42,7 @@ import static org.mockito.Mockito.when;
 
 import static org.neo4j.coreedge.raft.ReplicatedInteger.valueOf;
 import static org.neo4j.coreedge.raft.log.physical.HeaderReader.HEADER_LENGTH;
-import static org.neo4j.coreedge.raft.log.physical.RecoveryTest.HeaderBuilder.version;
+import static org.neo4j.coreedge.raft.log.physical.HeaderBuilder.version;
 import static org.neo4j.coreedge.raft.log.physical.RecoveryTest.RecordBuilder.offset;
 import static org.neo4j.kernel.impl.util.IOCursors.cursor;
 
@@ -339,32 +339,4 @@ public class RecoveryTest
         }
     }
 
-    static class HeaderBuilder
-    {
-        public long version;
-        public long prevIndex;
-        public long prevTerm;
-
-        public static HeaderBuilder version(long version)
-        {
-            return new HeaderBuilder( version );
-        }
-
-        public HeaderBuilder( long version )
-        {
-            this.version = version;
-        }
-
-        public HeaderBuilder prevIndex( long prevIndex )
-        {
-            this.prevIndex = prevIndex;
-            return this;
-        }
-
-        public Header prevTerm( long prevTerm )
-        {
-            this.prevTerm = prevTerm;
-            return new Header( version, prevIndex, prevTerm );
-        }
-    }
 }

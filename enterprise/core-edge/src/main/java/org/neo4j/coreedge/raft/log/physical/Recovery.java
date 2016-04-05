@@ -140,11 +140,7 @@ public class Recovery
 
     public void verifyVersion( VersionFile latestWellFormedFile, VersionFile file, Header header ) throws DamagedLogStorageException
     {
-        if ( header.version != file.version() )
-        {
-            throw new DamagedLogStorageException( "Expected file [%s] to contain log version %d, but " +
-                    "contained log version %d", file.file(), file.version(), header.version );
-        }
+
         if ( latestWellFormedFile != null && latestWellFormedFile.version() + 1 != header.version )
         {
             throw new DamagedLogStorageException( "Missing expected log file version %d amongst series of files %s", latestWellFormedFile.version() + 1, files.filesInVersionOrder() );

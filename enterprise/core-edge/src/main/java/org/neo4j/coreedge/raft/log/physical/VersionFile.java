@@ -13,12 +13,14 @@ public class VersionFile
     private final long version;
     private final File file;
     private final long size;
+    private final HeaderReader headerReader;
 
-    public VersionFile( long version, File file, long size )
+    public VersionFile( long version, File file, long size, HeaderReader headerReader )
     {
         this.version = version;
         this.file = file;
         this.size = size;
+        this.headerReader = headerReader;
     }
 
     public IOCursor<PositionAwareRaftLogAppendRecord> readEntries() throws IOException
@@ -47,9 +49,16 @@ public class VersionFile
         return format( "%d: %s", version, file );
     }
 
-    public Header header()
+    public Header header() throws DamagedLogStorageException
     {
-        return new Header( -1,-1,-1 );
+        Header header = headerReader.readHeader( file );
+        if ( version != header.version )
+        {
+            throw new DamagedLogStorageException( "Expected file [%s] to contain log version %d, but " +
+                    "contained log version %d", file, version, header.version );
+        }
+
+        return header;
     }
 
     public void truncate( long lastValidByte )
