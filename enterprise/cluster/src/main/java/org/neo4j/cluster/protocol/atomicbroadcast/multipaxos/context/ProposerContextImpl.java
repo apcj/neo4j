@@ -151,10 +151,12 @@ class ProposerContextImpl
     @Override
     public int getMinimumQuorumSize( List<URI> acceptors )
     {
+        int allowedFailures = commonState.configuration()
+                .getAllowedFailures( commonState.getMaxSurvivableFailedMembers() );
         // n >= 2f+1
-        if ( acceptors.size() >= 2 * commonState.configuration().getAllowedFailures() + 1 )
+        if ( acceptors.size() >= 2 * allowedFailures + 1 )
         {
-            return acceptors.size() - commonState.configuration().getAllowedFailures();
+            return acceptors.size() - allowedFailures;
         }
         else
         {

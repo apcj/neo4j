@@ -347,6 +347,8 @@ public enum ProposerState
                                                         org.neo4j.cluster.protocol.atomicbroadcast.multipaxos.InstanceId.INSTANCE ) );
                                             }
                                         }
+                                        System.out.printf( "%s sent learn messages to %d members.%n",
+                                                context.boundAt(), context.getMemberURIs().size() );
 
                                         // Tell joiner of this cluster configuration change
                                         if ( state.getJoin() != null )

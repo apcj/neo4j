@@ -35,6 +35,7 @@ import org.neo4j.kernel.impl.util.StringLogger;
 import org.neo4j.kernel.logging.ConsoleLogger;
 import org.neo4j.kernel.logging.Logging;
 
+import static org.neo4j.helpers.collection.Iterables.limit;
 import static org.neo4j.helpers.collection.Iterables.toList;
 
 class AbstractContextImpl
@@ -102,7 +103,10 @@ class AbstractContextImpl
     @Override
     public List<URI> getAcceptors()
     {
-        return commonState.configuration().getMemberURIs();
+        // Only use 2f+1 acceptors
+        int allowedFailures = commonState.configuration()
+                .getAllowedFailures( commonState.getMaxSurvivableFailedMembers() );
+        return toList( limit( allowedFailures * 2 + 1, commonState.configuration().getMemberURIs() ) );
     }
 
     @Override

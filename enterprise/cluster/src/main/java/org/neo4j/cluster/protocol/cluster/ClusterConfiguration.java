@@ -173,10 +173,10 @@ public class ClusterConfiguration
         return roles;
     }
 
-    public int getAllowedFailures()
+    public int getAllowedFailures( int maxAllowedFailures )
     {
         assert members.size() > 0;
-        return (members.size() - 1) / 2;
+        return Math.min( (members.size() - 1) / 2, maxAllowedFailures );
     }
 
     public void left()

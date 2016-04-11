@@ -129,6 +129,8 @@ public class ClusterClient extends LifecycleAdapter
 
         long clusterJoinTimeout(); // Whether to timeout the whole process or not
 
+        int maxSurvivableFailedMembers();
+
         String name(); // Cluster client name, if any
     }
 
@@ -246,6 +248,12 @@ public class ClusterClient extends LifecycleAdapter
             }
 
             @Override
+            public int maxSurvivableFailedMembers()
+            {
+                return config.get( ClusterSettings.max_survivable_failed_members );
+            }
+
+            @Override
             public String name()
             {
                 return config.get( ClusterSettings.instance_name );
@@ -336,8 +344,8 @@ public class ClusterClient extends LifecycleAdapter
             }
         } );
 
-        server = protocolServerFactory.newProtocolServer( config.getServerId(), timeoutStrategy,
-                receiver, sender,
+        server = protocolServerFactory.newProtocolServer( config.getServerId(), config.maxSurvivableFailedMembers(),
+                timeoutStrategy, receiver, sender,
                 acceptorInstanceStore, electionCredentialsProvider, stateMachineExecutor, objectInputStreamFactory,
                 objectOutputStreamFactory );
 

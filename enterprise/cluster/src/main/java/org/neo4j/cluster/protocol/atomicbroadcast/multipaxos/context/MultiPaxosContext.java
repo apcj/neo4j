@@ -57,6 +57,7 @@ public class MultiPaxosContext
     private final PaxosInstanceStore paxosInstances;
 
     public MultiPaxosContext( InstanceId me,
+                              int maxSurvivableFailedMembers,
                               Iterable<ElectionRole> roles,
                               ClusterConfiguration configuration,
                               Executor executor,
@@ -67,7 +68,7 @@ public class MultiPaxosContext
                               Timeouts timeouts,
                               ElectionCredentialsProvider electionCredentialsProvider )
     {
-        commonState = new CommonContextState(configuration);
+        commonState = new CommonContextState( configuration, maxSurvivableFailedMembers );
         paxosInstances = new PaxosInstanceStore();
 
         heartbeatContext = new HeartbeatContextImpl(me, commonState, logging, timeouts, executor );

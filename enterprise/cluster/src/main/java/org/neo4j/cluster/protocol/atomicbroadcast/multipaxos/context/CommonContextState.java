@@ -32,19 +32,22 @@ class CommonContextState
     private org.neo4j.cluster.InstanceId lastKnownAliveUpToDateInstance;
     private long nextInstanceId = 0;
     private ClusterConfiguration configuration;
+    private final int maxSurvivableFailedMembers;
 
-    public CommonContextState( ClusterConfiguration configuration )
+    public CommonContextState( ClusterConfiguration configuration, int maxSurvivableFailedMembers )
     {
         this.configuration = configuration;
+        this.maxSurvivableFailedMembers = maxSurvivableFailedMembers;
     }
 
     private CommonContextState( URI boundAt, long lastKnownLearnedInstanceInCluster, long nextInstanceId,
-                        ClusterConfiguration configuration )
+                        ClusterConfiguration configuration, int maxSurvivableFailedMembers )
     {
         this.boundAt = boundAt;
         this.lastKnownLearnedInstanceInCluster = lastKnownLearnedInstanceInCluster;
         this.nextInstanceId = nextInstanceId;
         this.configuration = configuration;
+        this.maxSurvivableFailedMembers = maxSurvivableFailedMembers;
     }
 
     public URI boundAt()
@@ -110,10 +113,15 @@ class CommonContextState
         this.configuration = configuration;
     }
 
+    public int getMaxSurvivableFailedMembers()
+    {
+        return maxSurvivableFailedMembers;
+    }
+
     public CommonContextState snapshot( StringLogger logger )
     {
         return new CommonContextState( boundAt, lastKnownLearnedInstanceInCluster, nextInstanceId,
-                configuration.snapshot(logger) );
+                configuration.snapshot(logger), maxSurvivableFailedMembers );
     }
 
     @Override
