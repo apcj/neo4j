@@ -147,7 +147,7 @@ public class ClusterSettings
             "any arbitrary half failing is expensive. Therefore setting this parameter to less than half the cluster " +
             "size is useful to speed up consensus, without compromising availability. ")
     public static final Setting<Integer> max_survivable_failed_members =
-            setting( "ha.max_survivable_failed_members", INTEGER, "10" );
+            setting( "ha.max_survivable_failed_members", INTEGER, "1" );
 
     public static final Setting<String> instance_name = setting("ha.instance_name", STRING, (String) null);
 }
