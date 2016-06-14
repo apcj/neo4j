@@ -53,9 +53,9 @@ public class DiscoverMembersProcedureTest
         final ReadOnlyTopologyService coreTopologyService = mock( ReadOnlyTopologyService.class );
 
         Map<CoreMember, BoltAddress> coreMembers = new HashMap<>();
-        coreMembers.put( coreMemberAtBoltPort( 9000 ), address( 1 ) );
-        coreMembers.put( coreMemberAtBoltPort( 9001 ), address( 2 ) );
-        coreMembers.put( coreMemberAtBoltPort( 9002 ), address( 3 ) );
+        coreMembers.put( coreMemberAtRaftPort( 9000 ), address( 1 ) );
+        coreMembers.put( coreMemberAtRaftPort( 9001 ), address( 2 ) );
+        coreMembers.put( coreMemberAtRaftPort( 9002 ), address( 3 ) );
 
         final ClusterTopology clusterTopology = new ClusterTopology( false, coreMembers, addresses( 4, 5, 6 ) );
         when( coreTopologyService.currentTopology() ).thenReturn( clusterTopology );
@@ -79,7 +79,7 @@ public class DiscoverMembersProcedureTest
         final ReadOnlyTopologyService coreTopologyService = mock( ReadOnlyTopologyService.class );
 
         Map<CoreMember, BoltAddress> coreMembers = new HashMap<>();
-        coreMembers.put( coreMemberAtBoltPort( 9000 ), address( 1 ) );
+        coreMembers.put( coreMemberAtRaftPort( 9000 ), address( 1 ) );
 
         final ClusterTopology clusterTopology = new ClusterTopology( false, coreMembers, addresses( 4, 5, 6 ) );
         when( coreTopologyService.currentTopology() ).thenReturn( clusterTopology );
@@ -100,9 +100,9 @@ public class DiscoverMembersProcedureTest
         final ReadOnlyTopologyService coreTopologyService = mock( ReadOnlyTopologyService.class );
 
         Map<CoreMember, BoltAddress> coreMembers = new HashMap<>();
-        coreMembers.put( coreMemberAtBoltPort( 9000 ), address( 1 ) );
-        coreMembers.put( coreMemberAtBoltPort( 9001 ), address( 2 ) );
-        coreMembers.put( coreMemberAtBoltPort( 9002 ), address( 3 ) );
+        coreMembers.put( coreMemberAtRaftPort( 9000 ), address( 1 ) );
+        coreMembers.put( coreMemberAtRaftPort( 9001 ), address( 2 ) );
+        coreMembers.put( coreMemberAtRaftPort( 9002 ), address( 3 ) );
 
         final ClusterTopology clusterTopology = new ClusterTopology( false, coreMembers, addresses( 4, 5, 6 ) );
         when( coreTopologyService.currentTopology() ).thenReturn( clusterTopology );
@@ -124,9 +124,9 @@ public class DiscoverMembersProcedureTest
         final ReadOnlyTopologyService coreTopologyService = mock( ReadOnlyTopologyService.class );
 
         Map<CoreMember, BoltAddress> coreMembers = new HashMap<>(  );
-        coreMembers.put( coreMemberAtBoltPort( 9000 ), address( 1 ) );
-        coreMembers.put( coreMemberAtBoltPort( 9001 ), address( 2 ) );
-        coreMembers.put( coreMemberAtBoltPort( 9002 ), address( 3 ) );
+        coreMembers.put( coreMemberAtRaftPort( 9000 ), address( 1 ) );
+        coreMembers.put( coreMemberAtRaftPort( 9001 ), address( 2 ) );
+        coreMembers.put( coreMemberAtRaftPort( 9002 ), address( 3 ) );
 
         final ClusterTopology clusterTopology = new ClusterTopology( false, coreMembers, addresses( 4, 5, 6 ) );
         when( coreTopologyService.currentTopology() ).thenReturn( clusterTopology );
@@ -142,20 +142,19 @@ public class DiscoverMembersProcedureTest
         assertEquals( 3, members.size() );
     }
 
-    private CoreMember coreMemberAtBoltPort( int boltPort )
+    static CoreMember coreMemberAtRaftPort( int raftPort )
     {
         return new CoreMember(
                 null,
-                null,
-                new AdvertisedSocketAddress( "127.0.0.1:" + boltPort ) );
+                new AdvertisedSocketAddress( "127.0.0.1:" + raftPort ) );
     }
 
-    private Set<BoltAddress> addresses( int... ids )
+    static Set<BoltAddress> addresses( int... ids )
     {
-        return Arrays.stream( ids ).mapToObj( this::address ).collect( Collectors.toSet() );
+        return Arrays.stream( ids ).mapToObj( DiscoverMembersProcedureTest::address ).collect( Collectors.toSet() );
     }
 
-    private BoltAddress address( int id )
+    static BoltAddress address( int id )
     {
         return new BoltAddress( new AdvertisedSocketAddress( "localhost:" + (3000 + id) ) );
     }

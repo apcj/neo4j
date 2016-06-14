@@ -75,8 +75,7 @@ public class HazelcastClusterTopology
         {
             coreMembers.put( new CoreMember(
                     new AdvertisedSocketAddress( member.getStringAttribute( TRANSACTION_SERVER ) ),
-                    new AdvertisedSocketAddress( member.getStringAttribute( RAFT_SERVER ) ),
-                    new AdvertisedSocketAddress( member.getStringAttribute( BOLT_SERVER ) ) ),
+                    new AdvertisedSocketAddress( member.getStringAttribute( RAFT_SERVER ) )),
                     new BoltAddress( new AdvertisedSocketAddress( member.getStringAttribute( BOLT_SERVER ) ) )
             );
         }

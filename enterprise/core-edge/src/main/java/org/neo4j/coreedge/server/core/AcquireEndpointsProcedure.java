@@ -56,7 +56,7 @@ public class AcquireEndpointsProcedure extends CallableProcedure.BasicProcedure
                                       LeaderLocator<CoreMember> leaderLocator, LogProvider logProvider )
     {
         super( procedureSignature( new ProcedureSignature.ProcedureName( new String[]{"dbms", "cluster"}, NAME ) )
-                .out( "address", Neo4jTypes.NTString ).out( "role", Neo4jTypes.NTString ).build());
+                .out( "address", Neo4jTypes.NTString ).out( "role", Neo4jTypes.NTString ).build() );
         this.discoveryService = discoveryService;
         this.leaderLocator = leaderLocator;
         this.log = logProvider.getLog( getClass() );
@@ -67,9 +67,11 @@ public class AcquireEndpointsProcedure extends CallableProcedure.BasicProcedure
     {
         try
         {
-            AdvertisedSocketAddress leader = leaderLocator.getLeader().getBoltAddress();
-            Set<ReadWriteEndPoint> writeEndpoints = writeEndpoints( leader );
-            Set<ReadWriteEndPoint> readEndpoints = readEndpoints( leader );
+            CoreMember leader = leaderLocator.getLeader();
+            AdvertisedSocketAddress leaderAddress =
+                    discoveryService.currentTopology().boltAddress( leader ).getAdvertisedAddress();
+            Set<ReadWriteEndPoint> writeEndpoints = writeEndpoints( leaderAddress );
+            Set<ReadWriteEndPoint> readEndpoints = readEndpoints( leaderAddress );
 
             log.info( "Write: %s, Read: %s",
                     writeEndpoints.stream().map( ReadWriteEndPoint::address ).collect( toSet() ),
@@ -106,7 +108,7 @@ public class AcquireEndpointsProcedure extends CallableProcedure.BasicProcedure
                 .map( clusterTopology::boltAddress ).map( BoltAddress::getAdvertisedAddress );
         Stream<AdvertisedSocketAddress> readLeader = Stream.of( leader );
 
-        return Stream.concat(Stream.concat( readEdge, readCore ), readLeader).map( ReadWriteEndPoint::read )
+        return Stream.concat( Stream.concat( readEdge, readCore ), readLeader ).map( ReadWriteEndPoint::read )
                 .limit( 1 ).collect( toSet() );
     }
 
