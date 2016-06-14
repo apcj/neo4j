@@ -40,10 +40,8 @@ import org.neo4j.kernel.api.proc.ProcedureSignature;
 import org.neo4j.logging.Log;
 import org.neo4j.logging.LogProvider;
 
-import static java.lang.Integer.parseInt;
 import static java.util.stream.Collectors.toSet;
 
-import static org.neo4j.helpers.collection.Iterators.asList;
 import static org.neo4j.helpers.collection.Iterators.asRawIterator;
 import static org.neo4j.kernel.api.proc.ProcedureSignature.procedureSignature;
 
@@ -102,17 +100,14 @@ public class AcquireEndpointsProcedure extends CallableProcedure.BasicProcedure
     {
         ClusterTopology clusterTopology = discoveryService.currentTopology();
 
-        Stream<AdvertisedSocketAddress> readEdge = boltAddressesFor( clusterTopology.edgeMembers() );
-        Stream<AdvertisedSocketAddress> readCore = boltAddressesFor( clusterTopology.boltCoreMembers() );
+        Stream<AdvertisedSocketAddress> readEdge = clusterTopology.edgeMembers().stream()
+                .map( BoltAddress::getAdvertisedAddress );
+        Stream<AdvertisedSocketAddress> readCore = clusterTopology.coreMembers().stream()
+                .map( clusterTopology::boltAddress ).map( BoltAddress::getAdvertisedAddress );
         Stream<AdvertisedSocketAddress> readLeader = Stream.of( leader );
 
         return Stream.concat(Stream.concat( readEdge, readCore ), readLeader).map( ReadWriteEndPoint::read )
                 .limit( 1 ).collect( toSet() );
-    }
-
-    private Stream<AdvertisedSocketAddress> boltAddressesFor( Set<BoltAddress> boltAddresses )
-    {
-        return boltAddresses.stream().map( BoltAddress::getBoltAddress );
     }
 
     public enum Type

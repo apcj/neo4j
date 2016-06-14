@@ -44,11 +44,12 @@ import static java.util.stream.Collectors.toSet;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import static org.neo4j.helpers.collection.Iterators.asList;
+import static org.neo4j.helpers.collection.Iterators.asSet;
+import static org.neo4j.helpers.collection.Iterators.emptySetOf;
 
 public class AcquireEndpointsProcedureTest
 {
@@ -114,7 +115,8 @@ public class AcquireEndpointsProcedureTest
         when( topologyService.currentTopology() ).thenReturn( clusterTopology );
 
         when( clusterTopology.edgeMembers() ).thenReturn( Collections.emptySet() );
-        when( clusterTopology.boltCoreMembers() ).thenReturn( addresses( 1 ) );
+        when( clusterTopology.coreMembers() ).thenReturn( asSet(coreMemberAtBoltPort(9000)) );
+        when( clusterTopology.boltAddress(org.mockito.Mockito.any()) ).thenReturn( addresses( 1 ).iterator().next() );
 
         LeaderLocator<CoreMember> leaderLocator = mock(LeaderLocator.class);
         CoreMember theLeader = coreMemberAtBoltPort(9000);
@@ -142,7 +144,7 @@ public class AcquireEndpointsProcedureTest
         when( topologyService.currentTopology() ).thenReturn( clusterTopology );
 
         when( clusterTopology.edgeMembers() ).thenReturn( Collections.emptySet() );
-        when( clusterTopology.boltCoreMembers() ).thenReturn( Collections.emptySet() );
+        when( clusterTopology.coreMembers() ).thenReturn( emptySetOf( CoreMember.class ) );
 
         LeaderLocator<CoreMember> leaderLocator = mock(LeaderLocator.class);
         CoreMember theLeader = coreMemberAtBoltPort(9000);
