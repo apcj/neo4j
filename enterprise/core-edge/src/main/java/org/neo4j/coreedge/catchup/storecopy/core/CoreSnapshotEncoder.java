@@ -32,8 +32,8 @@ public class CoreSnapshotEncoder extends MessageToMessageEncoder<CoreSnapshot>
     @Override
     protected void encode( ChannelHandlerContext ctx, CoreSnapshot coreSnapshot, List<Object> out ) throws Exception
     {
-        NetworkFlushableByteBuf encoded = new NetworkFlushableByteBuf( ctx.alloc().buffer() );
-        new CoreSnapshot.Marshal().marshal( coreSnapshot, encoded );
+        ByteBuf encoded = ctx.alloc().buffer();
+        new CoreSnapshot.Marshal().marshal( coreSnapshot, new NetworkFlushableByteBuf( encoded ) );
         out.add( encoded );
     }
 }
