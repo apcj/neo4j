@@ -26,9 +26,9 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;
 
-import org.neo4j.coreedge.catchup.tx.edge.NetworkReadableClosableByteBuf;
 import org.neo4j.coreedge.raft.RaftMessages;
 import org.neo4j.coreedge.raft.log.RaftLogEntry;
+import org.neo4j.coreedge.raft.net.NetworkReadableClosableChannelNetty4;
 import org.neo4j.coreedge.raft.replication.ReplicatedContent;
 import org.neo4j.coreedge.raft.state.ChannelMarshal;
 import org.neo4j.coreedge.server.AdvertisedSocketAddress;
@@ -55,7 +55,7 @@ public class RaftMessageDecoder extends MessageToMessageDecoder<ByteBuf>
     @Override
     protected void decode( ChannelHandlerContext ctx, ByteBuf buffer, List<Object> list ) throws Exception
     {
-        ReadableChannel channel = new NetworkReadableClosableByteBuf( buffer );
+        ReadableChannel channel = new NetworkReadableClosableChannelNetty4( buffer );
         int messageTypeWire = channel.getInt();
 
         RaftMessages.Type[] values = RaftMessages.Type.values();
