@@ -76,7 +76,7 @@ public class CoreStateDownloader
                 throw new StoreCopyFailedException( e );
             }
 
-            localDatabase.copyStoreFrom( source, storeFetcher ); // this deletes the current store
+            localDatabase.bringUpToDateOrReplaceStoreFrom( source, storeFetcher ); // this deletes the current store
 
             /* We install the snapshot after the store has been downloaded,
              * so that we are not left with a state ahead of the store. */

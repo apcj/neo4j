@@ -43,11 +43,12 @@ public class StoreFetcher
     private StoreCopyClient storeCopyClient;
     private TxPullClient txPullClient;
     private TransactionLogCatchUpFactory transactionLogFactory;
+    private final File storeDir;
 
     public StoreFetcher( LogProvider logProvider,
                          FileSystemAbstraction fs, PageCache pageCache,
                          StoreCopyClient storeCopyClient, TxPullClient txPullClient,
-                         TransactionLogCatchUpFactory transactionLogFactory )
+                         TransactionLogCatchUpFactory transactionLogFactory, File storeDir )
     {
         this.logProvider = logProvider;
         this.storeCopyClient = storeCopyClient;
@@ -55,7 +56,27 @@ public class StoreFetcher
         this.fs = fs;
         this.pageCache = pageCache;
         this.transactionLogFactory = transactionLogFactory;
+        this.storeDir = storeDir;
         log = logProvider.getLog( getClass() );
+    }
+
+    public boolean tryCatchingUp( CoreMember from, long lastCommittedTransactionId ) throws StoreCopyFailedException,
+            IOException
+    {
+        try ( TransactionLogCatchUpWriter writer = transactionLogFactory.create( storeDir, fs, pageCache, logProvider ) )
+        {
+            log.info( "Pulling transactions from: %d", lastCommittedTransactionId );
+            try
+            {
+                long lastPulledTxId = txPullClient.pullTransactions( from, lastCommittedTransactionId, writer );
+                log.info( "Txs streamed up to %d", lastPulledTxId );
+                return true;
+            }
+            catch ( StoreCopyFailedException e )
+            {
+                return false;
+            }
+        }
     }
 
     public void copyStore( CoreMember from, File storeDir ) throws StoreCopyFailedException

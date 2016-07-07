@@ -187,10 +187,12 @@ public class EnterpriseEdgeEditionModule extends EditionModule
         txPulling.add( txPuller );
         txPulling.add( txPullerTimeoutService );
 
+        long pullUpdatesTimeout = config.get( CoreEdgeClusterSettings.join_catch_up_timeout );
+
         StoreFetcher storeFetcher = new StoreFetcher( platformModule.logging.getInternalLogProvider(),
                 new DefaultFileSystemAbstraction(), platformModule.pageCache,
-                new StoreCopyClient( edgeToCoreClient ), new TxPullClient( edgeToCoreClient ),
-                new TransactionLogCatchUpFactory() );
+                new StoreCopyClient( edgeToCoreClient ), new TxPullClient( edgeToCoreClient, pullUpdatesTimeout ),
+                new TransactionLogCatchUpFactory(), storeDir );
 
         life.add( new EdgeServerStartupProcess( storeFetcher,
                 new LocalDatabase( platformModule.storeDir,
@@ -198,7 +200,7 @@ public class EnterpriseEdgeEditionModule extends EditionModule
                         new StoreFiles( new DefaultFileSystemAbstraction() ),
                         platformModule.dataSourceManager,
                         dependencies.provideDependency( TransactionIdStore.class ),
-                        databaseHealthSupplier, logProvider ),
+                        databaseHealthSupplier, pageCache, logProvider ),
                 txPulling, platformModule.dataSourceManager, new ConnectToRandomCoreServer( discoveryService ),
                 new ExponentialBackoffStrategy( 1, TimeUnit.SECONDS ), logProvider, discoveryService, config ) );
     }

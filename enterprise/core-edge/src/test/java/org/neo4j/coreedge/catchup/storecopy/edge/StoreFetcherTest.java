@@ -56,7 +56,7 @@ public class StoreFetcherTest
 
         StoreFetcher fetcher = new StoreFetcher( NullLogProvider.getInstance(), mock( FileSystemAbstraction.class ),
                 null,
-                storeCopyClient, txPullClient, factory( writer ) );
+                storeCopyClient, txPullClient, factory( writer ), null );
 
         // when
         CoreMember localhost = new CoreMember( UUID.randomUUID() );
@@ -88,7 +88,7 @@ public class StoreFetcherTest
 
         StoreFetcher fetcher = new StoreFetcher( NullLogProvider.getInstance(), mock( FileSystemAbstraction.class ),
                 null,
-                storeCopyClient, txPullClient, factory( writer ) );
+                storeCopyClient, txPullClient, factory( writer ), null );
 
         // when
         fetcher.copyStore( localhost, new File( "destination" ) );
@@ -107,7 +107,7 @@ public class StoreFetcherTest
 
         StoreFetcher fetcher = new StoreFetcher( NullLogProvider.getInstance(), mock( FileSystemAbstraction.class ),
                 null,
-                storeCopyClient, txPullClient, factory( writer ) );
+                storeCopyClient, txPullClient, factory( writer ), null );
 
         doThrow( StoreCopyFailedException.class ).when( txPullClient )
                 .pullTransactions( any( CoreMember.class ), anyLong(), any( TransactionLogCatchUpWriter.class ) );

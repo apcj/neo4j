@@ -21,13 +21,14 @@ package org.neo4j.coreedge.server.edge;
 
 import java.util.concurrent.locks.LockSupport;
 
+import org.omg.PortableServer.THREAD_POLICY_ID;
+
 import org.neo4j.coreedge.catchup.storecopy.LocalDatabase;
 import org.neo4j.coreedge.catchup.storecopy.edge.StoreFetcher;
 import org.neo4j.coreedge.discovery.CoreServerSelectionException;
 import org.neo4j.coreedge.discovery.EdgeTopologyService;
 import org.neo4j.coreedge.raft.replication.tx.RetryStrategy;
 import org.neo4j.coreedge.server.CoreMember;
-import org.neo4j.coreedge.server.StoreId;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.impl.transaction.state.DataSourceManager;
 import org.neo4j.kernel.lifecycle.Lifecycle;
@@ -85,7 +86,7 @@ public class EdgeServerStartupProcess implements Lifecycle
         if ( localDatabase.isEmpty() )
         {
             localDatabase.stop();
-            localDatabase.copyStoreFrom( coreMember, storeFetcher );
+            localDatabase.copyWholeStoreFrom( coreMember, storeFetcher );
             localDatabase.start();
         }
         else

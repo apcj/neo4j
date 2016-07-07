@@ -17,32 +17,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.coreedge.catchup;
+package org.neo4j.coreedge.catchup.tx.edge;
 
-public class CatchupClientProtocol
+public interface NoSuchTransactionListener
 {
-    private NextMessage nextMessage = NextMessage.MESSAGE_TYPE;
-
-    public void expect( NextMessage nextMessage )
-    {
-        this.nextMessage = nextMessage;
-    }
-
-    public boolean isExpecting( NextMessage message )
-    {
-        return this.nextMessage == message;
-    }
-
-    public enum NextMessage
-    {
-        MESSAGE_TYPE,
-        STORE_ID,
-        CORE_SNAPSHOT,
-        TX_PULL_RESPONSE,
-        STORE_COPY_FINISHED,
-        TX_STREAM_FINISHED,
-        FILE_HEADER,
-        FILE_CONTENTS,
-        NO_SUCH_TRANSACTION
-    }
+    void onNoSuchTransaction( long lastTransactionId );
 }

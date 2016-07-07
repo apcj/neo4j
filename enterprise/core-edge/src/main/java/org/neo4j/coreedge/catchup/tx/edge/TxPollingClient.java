@@ -105,6 +105,7 @@ public class TxPollingClient extends LifecycleAdapter implements TxPullListener
     {
         coreClient.addTxPullResponseListener( this );
         coreClient.addTxStreamCompleteListener( this );
+        coreClient.addNoSuchTransactionListener( coreClient );
 
         timeout = timeoutService.create( TX_PULLER_TIMEOUT, txPullIntervalMillis, 0, timeout -> onTimeout() );
 

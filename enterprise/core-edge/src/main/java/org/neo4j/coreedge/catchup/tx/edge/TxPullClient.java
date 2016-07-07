@@ -21,18 +21,25 @@ package org.neo4j.coreedge.catchup.tx.edge;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
-import org.neo4j.coreedge.catchup.storecopy.CoreClient;
+import org.neo4j.coreedge.catchup.storecopy.CoreClientExtractedInterfaceThatAlistairThinksIsAShitName;
 import org.neo4j.coreedge.catchup.storecopy.StoreCopyFailedException;
 import org.neo4j.coreedge.server.CoreMember;
+import org.neo4j.kernel.impl.transaction.log.NoSuchTransactionException;
+
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public class TxPullClient
 {
-    private final CoreClient coreClient;
+    private final CoreClientExtractedInterfaceThatAlistairThinksIsAShitName coreClient;
+    private final Long pullTransactionsTimeout;
 
-    public TxPullClient( CoreClient coreClient )
+    public TxPullClient( CoreClientExtractedInterfaceThatAlistairThinksIsAShitName coreClient,
+                         long pullTransactionsTimeout )
     {
         this.coreClient = coreClient;
+        this.pullTransactionsTimeout = pullTransactionsTimeout;
     }
 
     public long pullTransactions( CoreMember from, long startTxId, TxPullResponseListener txPullResponseListener )
@@ -41,6 +48,9 @@ public class TxPullClient
         coreClient.addTxPullResponseListener( txPullResponseListener );
 
         CompletableFuture<Long> txId = new CompletableFuture<>();
+        NoSuchTransactionListener noSuchTransactionListener = notFoundTxId
+                -> txId.completeExceptionally( new NoSuchTransactionException(notFoundTxId) );
+        coreClient.addNoSuchTransactionListener( noSuchTransactionListener );
 
         TxStreamCompleteListener streamCompleteListener = txId::complete;
         coreClient.addTxStreamCompleteListener( streamCompleteListener );
@@ -48,9 +58,9 @@ public class TxPullClient
         try
         {
             coreClient.pollForTransactions( from, startTxId );
-            return txId.get();
+            return txId.get( pullTransactionsTimeout, MILLISECONDS );
         }
-        catch ( InterruptedException | ExecutionException e )
+        catch ( InterruptedException | ExecutionException | TimeoutException e )
         {
             throw new StoreCopyFailedException( e );
         }
@@ -58,6 +68,7 @@ public class TxPullClient
         {
             coreClient.removeTxPullResponseListener( txPullResponseListener );
             coreClient.removeTxStreamCompleteListener( streamCompleteListener );
+            coreClient.removeNoSuchTransactionListener( noSuchTransactionListener );
         }
     }
 }

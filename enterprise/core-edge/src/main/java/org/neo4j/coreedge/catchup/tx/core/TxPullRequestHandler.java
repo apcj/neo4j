@@ -19,10 +19,11 @@
  */
 package org.neo4j.coreedge.catchup.tx.core;
 
+import java.io.IOException;
+import java.util.function.Supplier;
+
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-
-import java.util.function.Supplier;
 
 import org.neo4j.coreedge.catchup.CatchupServerProtocol;
 import org.neo4j.coreedge.catchup.CatchupServerProtocol.NextMessage;
@@ -33,6 +34,7 @@ import org.neo4j.coreedge.server.StoreId;
 import org.neo4j.cursor.IOCursor;
 import org.neo4j.kernel.impl.transaction.CommittedTransactionRepresentation;
 import org.neo4j.kernel.impl.transaction.log.LogicalTransactionStore;
+import org.neo4j.kernel.impl.transaction.log.NoSuchTransactionException;
 import org.neo4j.kernel.impl.transaction.log.TransactionIdStore;
 import org.neo4j.kernel.monitoring.Monitors;
 
@@ -58,33 +60,49 @@ public class TxPullRequestHandler extends SimpleChannelInboundHandler<TxPullRequ
     }
 
     @Override
-    protected void channelRead0( ChannelHandlerContext ctx, final TxPullRequest msg ) throws Exception
+    protected void channelRead0( ChannelHandlerContext ctx, final TxPullRequest msg )
     {
-        long startTxId = Math.max( msg.txId(), TransactionIdStore.BASE_TX_ID );
-        long endTxId = startTxId;
-
-        if ( transactionIdStore.getLastCommittedTransactionId() > startTxId )
+        try
         {
-            try ( IOCursor<CommittedTransactionRepresentation> cursor =
-                    logicalTransactionStore.getTransactions( startTxId + 1 ) )
+            long startTxId = Math.max( msg.txId(), TransactionIdStore.BASE_TX_ID );
+            long endTxId = startTxId;
+
+            if ( transactionIdStore.getLastCommittedTransactionId() > startTxId )
             {
-                while ( cursor.next() )
+                try ( IOCursor<CommittedTransactionRepresentation> cursor =
+                              logicalTransactionStore.getTransactions( startTxId + 1 ) )
                 {
-                    ctx.write( ResponseMessageType.TX );
-                    CommittedTransactionRepresentation tx = cursor.get();
-                    endTxId = tx.getCommitEntry().getTxId();
-                    ctx.write( new TxPullResponse( storeId, tx ) );
+                    while ( cursor.next() )
+                    {
+                        ctx.write( ResponseMessageType.TX );
+                        CommittedTransactionRepresentation tx = cursor.get();
+                        endTxId = tx.getCommitEntry().getTxId();
+                        ctx.write( new TxPullResponse( storeId, tx ) );
+                    }
+                    ctx.flush();
                 }
-                ctx.flush();
+                catch ( NoSuchTransactionException e )
+                {
+                    ctx.write( ResponseMessageType.NO_SUCH_TRANSACTION );
+                    ctx.write( new NoSuchTransactionResponse( startTxId ) );
+                    ctx.flush();
+                    return;
+                }
+                catch ( IOException e )
+                {
+                    //fail
+                }
             }
+
+            ctx.write( ResponseMessageType.TX_STREAM_FINISHED );
+            ctx.write( new TxStreamFinishedResponse( endTxId ) );
+            ctx.flush();
         }
-
-        ctx.write( ResponseMessageType.TX_STREAM_FINISHED );
-        ctx.write( new TxStreamFinishedResponse( endTxId ) );
-        ctx.flush();
-
-        monitor.increment();
-        protocol.expect( NextMessage.MESSAGE_TYPE );
+        finally
+        {
+            monitor.increment();
+            protocol.expect( NextMessage.MESSAGE_TYPE );
+        }
     }
 
     @Override

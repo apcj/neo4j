@@ -34,6 +34,7 @@ import org.neo4j.coreedge.catchup.storecopy.edge.StoreFileReceiver;
 import org.neo4j.coreedge.catchup.storecopy.edge.StoreFileStreamingCompleteListener;
 import org.neo4j.coreedge.catchup.storecopy.edge.StoreFileStreams;
 import org.neo4j.coreedge.catchup.storecopy.edge.StoreIdReceiver;
+import org.neo4j.coreedge.catchup.tx.edge.NoSuchTransactionListener;
 import org.neo4j.coreedge.catchup.tx.edge.PullRequestMonitor;
 import org.neo4j.coreedge.catchup.tx.edge.TxPullRequest;
 import org.neo4j.coreedge.catchup.tx.edge.TxPullResponse;
@@ -58,7 +59,8 @@ import static java.util.Arrays.asList;
 public abstract class CoreClient extends LifecycleAdapter implements StoreFileReceiver, StoreIdReceiver,
                                                                      StoreFileStreamingCompleteListener,
                                                                      TxStreamCompleteListener, TxPullResponseListener,
-                                                                     CoreSnapshotListener
+                                                                     CoreSnapshotListener, NoSuchTransactionListener,
+        CoreClientExtractedInterfaceThatAlistairThinksIsAShitName
 {
     private final PullRequestMonitor pullRequestMonitor;
     private final SenderService senderService;
@@ -67,6 +69,7 @@ public abstract class CoreClient extends LifecycleAdapter implements StoreFileRe
     private final Listeners<StoreFileStreamingCompleteListener> storeFileStreamingCompleteListeners = new Listeners<>();
     private final Listeners<TxStreamCompleteListener> txStreamCompleteListeners = new Listeners<>();
     private final Listeners<TxPullResponseListener> txPullResponseListeners = new Listeners<>();
+    private final Listeners<NoSuchTransactionListener> noSuchTransactionListeners = new Listeners<>();
     private CompletableFuture<CoreSnapshot> coreSnapshotFuture;
 
     private Outbound<CoreMember, Message> outbound;
@@ -101,6 +104,7 @@ public abstract class CoreClient extends LifecycleAdapter implements StoreFileRe
         return coreSnapshotFuture;
     }
 
+    @Override
     public void pollForTransactions( CoreMember serverAddress, long lastTransactionId )
     {
         TxPullRequest txPullRequest = new TxPullRequest( lastTransactionId );
@@ -125,21 +129,25 @@ public abstract class CoreClient extends LifecycleAdapter implements StoreFileRe
         senderService.stop();
     }
 
+    @Override
     public void addTxPullResponseListener( TxPullResponseListener listener )
     {
         txPullResponseListeners.add( listener );
     }
 
+    @Override
     public void removeTxPullResponseListener( TxPullResponseListener listener )
     {
         txPullResponseListeners.remove( listener );
     }
 
+    @Override
     public void addStoreFileStreamingCompleteListener( StoreFileStreamingCompleteListener listener )
     {
         storeFileStreamingCompleteListeners.add( listener );
     }
 
+    @Override
     public void removeStoreFileStreamingCompleteListener( StoreFileStreamingCompleteListener listener )
     {
         storeFileStreamingCompleteListeners.remove( listener );
@@ -192,13 +200,33 @@ public abstract class CoreClient extends LifecycleAdapter implements StoreFileRe
         coreSnapshotFuture.complete( snapshot );
     }
 
+    @Override
     public void addTxStreamCompleteListener( TxStreamCompleteListener listener )
     {
         txStreamCompleteListeners.add( listener );
     }
 
+    @Override
     public void removeTxStreamCompleteListener( TxStreamCompleteListener listener )
     {
         txStreamCompleteListeners.remove( listener );
+    }
+
+    @Override
+    public void onNoSuchTransaction( long lastTransactionId )
+    {
+        noSuchTransactionListeners.notify( listener -> listener.onNoSuchTransaction( lastTransactionId ) );
+    }
+
+    @Override
+    public void addNoSuchTransactionListener( NoSuchTransactionListener listener )
+    {
+        noSuchTransactionListeners.add( listener );
+    }
+
+    @Override
+    public void removeNoSuchTransactionListener( NoSuchTransactionListener listener )
+    {
+        noSuchTransactionListeners.remove( listener );
     }
 }

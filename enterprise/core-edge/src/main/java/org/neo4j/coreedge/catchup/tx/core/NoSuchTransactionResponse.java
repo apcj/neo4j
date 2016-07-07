@@ -17,32 +17,42 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.coreedge.catchup;
+package org.neo4j.coreedge.catchup.tx.core;
 
-public class CatchupClientProtocol
+import java.util.Objects;
+
+public class NoSuchTransactionResponse
 {
-    private NextMessage nextMessage = NextMessage.MESSAGE_TYPE;
+    private final long txId;
 
-    public void expect( NextMessage nextMessage )
+    public NoSuchTransactionResponse( long txId )
     {
-        this.nextMessage = nextMessage;
+        this.txId = txId;
     }
 
-    public boolean isExpecting( NextMessage message )
+    public long txId()
     {
-        return this.nextMessage == message;
+        return txId;
     }
 
-    public enum NextMessage
+    @Override
+    public boolean equals( Object o )
     {
-        MESSAGE_TYPE,
-        STORE_ID,
-        CORE_SNAPSHOT,
-        TX_PULL_RESPONSE,
-        STORE_COPY_FINISHED,
-        TX_STREAM_FINISHED,
-        FILE_HEADER,
-        FILE_CONTENTS,
-        NO_SUCH_TRANSACTION
+        if ( this == o )
+        {
+            return true;
+        }
+        if ( o == null || getClass() != o.getClass() )
+        {
+            return false;
+        }
+        NoSuchTransactionResponse that = (NoSuchTransactionResponse) o;
+        return txId == that.txId;
+    }
+
+    @Override
+    public int hashCode()
+    {
+        return Objects.hash( txId );
     }
 }

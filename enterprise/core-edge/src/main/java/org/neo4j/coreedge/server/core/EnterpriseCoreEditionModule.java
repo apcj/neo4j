@@ -145,7 +145,6 @@ import org.neo4j.kernel.internal.KernelData;
 import org.neo4j.kernel.internal.Version;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.kernel.lifecycle.Lifecycle;
-import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.kernel.lifecycle.LifecycleStatus;
 import org.neo4j.logging.LogProvider;
 import org.neo4j.storageengine.api.Token;
@@ -283,7 +282,7 @@ public class EnterpriseCoreEditionModule extends EditionModule
                 new StoreFiles( new DefaultFileSystemAbstraction() ),
                 platformModule.dataSourceManager,
                 platformModule.dependencies.provideDependency( TransactionIdStore.class ), databaseHealthSupplier,
-                logProvider);
+                platformModule.pageCache, logProvider );
 
         final DelayedRenewableTimeoutService raftTimeoutService =
                 new DelayedRenewableTimeoutService( systemUTC(), logProvider );
@@ -301,9 +300,11 @@ public class EnterpriseCoreEditionModule extends EditionModule
                         nonBlockingChannels, discoveryService, logThresholdMillis ) );
         channelInitializer.setOwner( coreToCoreClient );
 
+        long pullUpdatesTimeout = config.get( CoreEdgeClusterSettings.join_catch_up_timeout );
+
         StoreFetcher storeFetcher = new StoreFetcher( logProvider, fileSystem, platformModule.pageCache,
-                new StoreCopyClient( coreToCoreClient ), new TxPullClient( coreToCoreClient ),
-                new TransactionLogCatchUpFactory() );
+                new StoreCopyClient( coreToCoreClient ), new TxPullClient( coreToCoreClient, pullUpdatesTimeout),
+                new TransactionLogCatchUpFactory(), storeDir );
 
         GlobalSession myGlobalSession = new GlobalSession( UUID.randomUUID(), myself );
         LocalSessionPool sessionPool = new LocalSessionPool( myGlobalSession );

@@ -17,23 +17,21 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.coreedge.server.core;
+package org.neo4j.coreedge.catchup.tx.core;
 
-import org.neo4j.coreedge.catchup.storecopy.LocalDatabase;
-import org.neo4j.kernel.lifecycle.LifecycleAdapter;
+import java.util.List;
 
-public class DeleteStoreOnStartUp extends LifecycleAdapter
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.MessageToMessageEncoder;
+
+public class NoSuchTransactionResponseEncoder extends MessageToMessageEncoder<NoSuchTransactionResponse>
 {
-    private final LocalDatabase localDatabase;
-
-    public DeleteStoreOnStartUp( LocalDatabase localDatabase )
-    {
-        this.localDatabase = localDatabase;
-    }
-
     @Override
-    public void start() throws Throwable
+    protected void encode( ChannelHandlerContext ctx, NoSuchTransactionResponse response, List<Object> out ) throws Exception
     {
-        localDatabase.deleteStore();
+        ByteBuf encoded = ctx.alloc().buffer();
+        encoded.writeLong( response.txId() );
+        out.add( encoded );
     }
 }

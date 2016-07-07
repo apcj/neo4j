@@ -27,6 +27,8 @@ import org.neo4j.coreedge.catchup.storecopy.edge.CopiedStoreRecovery;
 import org.neo4j.coreedge.catchup.storecopy.edge.StoreFetcher;
 import org.neo4j.coreedge.server.CoreMember;
 import org.neo4j.coreedge.server.StoreId;
+import org.neo4j.io.pagecache.PageCache;
+import org.neo4j.kernel.impl.transaction.log.ReadOnlyTransactionIdStore;
 import org.neo4j.kernel.impl.transaction.log.TransactionIdStore;
 import org.neo4j.kernel.impl.transaction.state.DataSourceManager;
 import org.neo4j.kernel.internal.DatabaseHealth;
@@ -44,6 +46,7 @@ public class LocalDatabase implements Supplier<StoreId>
     private final DataSourceManager dataSourceManager;
     private final Supplier<TransactionIdStore> transactionIdStoreSupplier;
     private final Supplier<DatabaseHealth> databaseHealthSupplier;
+    private final PageCache pageCache;
 
     private volatile StoreId storeId;
     private volatile DatabaseHealth databaseHealth;
@@ -51,7 +54,7 @@ public class LocalDatabase implements Supplier<StoreId>
 
     public LocalDatabase( File storeDir, CopiedStoreRecovery copiedStoreRecovery, StoreFiles storeFiles,
                           DataSourceManager dataSourceManager, Supplier<TransactionIdStore> transactionIdStoreSupplier,
-                          Supplier<DatabaseHealth> databaseHealthSupplier, LogProvider logProvider )
+                          Supplier<DatabaseHealth> databaseHealthSupplier, PageCache pageCache, LogProvider logProvider )
     {
         this.storeDir = storeDir;
         this.copiedStoreRecovery = copiedStoreRecovery;
@@ -59,6 +62,7 @@ public class LocalDatabase implements Supplier<StoreId>
         this.dataSourceManager = dataSourceManager;
         this.transactionIdStoreSupplier = transactionIdStoreSupplier;
         this.databaseHealthSupplier = databaseHealthSupplier;
+        this.pageCache = pageCache;
         log = logProvider.getLog( getClass() );
     }
 
@@ -69,7 +73,8 @@ public class LocalDatabase implements Supplier<StoreId>
 
     public void stop()
     {
-        clearCache();
+        storeId = null;
+        databaseHealth = null;
         dataSourceManager.getDataSource().stop();
     }
 
@@ -83,11 +88,6 @@ public class LocalDatabase implements Supplier<StoreId>
             log.info( "My StoreId is: " + storeId );
         }
         return storeId;
-    }
-
-    public void deleteStore() throws IOException
-    {
-        storeFiles.delete( storeDir );
     }
 
     public void panic( Throwable cause )
@@ -109,15 +109,17 @@ public class LocalDatabase implements Supplier<StoreId>
         return databaseHealth;
     }
 
-    public void copyStoreFrom( CoreMember from, StoreFetcher storeFetcher ) throws StoreCopyFailedException
+    public void bringUpToDateOrReplaceStoreFrom( CoreMember source, StoreFetcher storeFetcher ) throws StoreCopyFailedException
     {
         try
         {
-            storeFiles.delete( storeDir );
-            TemporaryStoreDirectory tempStore = new TemporaryStoreDirectory( storeDir );
-            storeFetcher.copyStore( from, tempStore.storeDir() );
-            copiedStoreRecovery.recoverCopiedStore( tempStore.storeDir() );
-            storeFiles.moveTo( tempStore.storeDir(), storeDir );
+            boolean successfullyCaughtUp = tryToCatchUp( source, storeFetcher );
+
+            if ( !successfullyCaughtUp )
+            {
+                storeFiles.delete( storeDir );
+                copyWholeStoreFrom( source, storeFetcher );
+            }
         }
         catch ( IOException e )
         {
@@ -125,15 +127,24 @@ public class LocalDatabase implements Supplier<StoreId>
         }
     }
 
+    private boolean tryToCatchUp( CoreMember source, StoreFetcher storeFetcher ) throws IOException, StoreCopyFailedException
+    {
+        ReadOnlyTransactionIdStore transactionIdStore = new ReadOnlyTransactionIdStore( pageCache, storeDir );
+        long lastCommittedTransactionId = transactionIdStore.getLastCommittedTransactionId();
+        return storeFetcher.tryCatchingUp( source, lastCommittedTransactionId );
+    }
+
+    public void copyWholeStoreFrom( CoreMember source, StoreFetcher storeFetcher ) throws IOException, StoreCopyFailedException
+    {
+        TemporaryStoreDirectory tempStore = new TemporaryStoreDirectory( storeDir );
+        storeFetcher.copyStore( source, tempStore.storeDir() );
+        copiedStoreRecovery.recoverCopiedStore( tempStore.storeDir() );
+        storeFiles.moveTo( tempStore.storeDir(), storeDir );
+    }
+
     public boolean isEmpty()
     {
         return transactionIdStoreSupplier.get().getLastCommittedTransactionId() == TransactionIdStore.BASE_TX_ID;
-    }
-
-    private void clearCache()
-    {
-        storeId = null;
-        databaseHealth = null;
     }
 
     @Override

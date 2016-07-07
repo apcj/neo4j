@@ -234,17 +234,18 @@ public class EdgeServerReplicationIT
 
         executeOnLeaderWithRetry( this::createData, cluster );
 
-        cluster.addEdgeServerWithId( edgeServerId );
-
-        // let's spend some time by adding more data
-        executeOnLeaderWithRetry( this::createData, cluster );
-
-        cluster.removeEdgeServerWithServerId( edgeServerId );
-
-        // let's spend some time by adding more data
-        executeOnLeaderWithRetry( this::createData, cluster );
-
         cluster.addEdgeServerWithId( edgeServerId ).start();
+
+        // let's spend some time by adding more data
+        executeOnLeaderWithRetry( this::createData, cluster );
+
+        cluster.getEdgeServerById( edgeServerId ).shutdown();
+
+        // let's spend some time by adding more data
+        executeOnLeaderWithRetry( this::createData, cluster );
+
+        System.out.println("RESTARTING");
+        cluster.getEdgeServerById( edgeServerId ).start();
 
         awaitEx( () -> edgesUpToDateAsTheLeader( cluster.awaitLeader(), cluster.edgeServers() ), 1, TimeUnit.MINUTES );
 

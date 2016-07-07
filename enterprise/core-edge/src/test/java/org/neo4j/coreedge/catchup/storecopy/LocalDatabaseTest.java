@@ -106,6 +106,7 @@ public class LocalDatabaseTest
         when( neoStoreDataSource.getStoreId() ).thenReturn( storeId );
         return new LocalDatabase( new File( "directory" ), mock( CopiedStoreRecovery.class ),
                 new StoreFiles( mock( FileSystemAbstraction.class ) ), dataSourceManager,
-                singleton( mock( TransactionIdStore.class ) ), () -> mock( DatabaseHealth.class ), NullLogProvider.getInstance() );
+                singleton( mock( TransactionIdStore.class ) ), () -> mock( DatabaseHealth.class ), null,
+                NullLogProvider.getInstance() );
     }
 }

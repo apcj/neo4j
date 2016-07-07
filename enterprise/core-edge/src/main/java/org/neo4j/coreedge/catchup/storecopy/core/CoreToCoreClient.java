@@ -38,6 +38,9 @@ import org.neo4j.coreedge.catchup.storecopy.FileHeaderHandler;
 import org.neo4j.coreedge.catchup.storecopy.edge.GetStoreRequestEncoder;
 import org.neo4j.coreedge.catchup.storecopy.edge.StoreCopyFinishedResponseDecoder;
 import org.neo4j.coreedge.catchup.storecopy.edge.StoreCopyFinishedResponseHandler;
+import org.neo4j.coreedge.catchup.tx.core.NoSuchTransactionResponseDecoder;
+import org.neo4j.coreedge.catchup.tx.core.NoSuchTransactionResponseEncoder;
+import org.neo4j.coreedge.catchup.tx.edge.NoSuchTransactionResponseHandler;
 import org.neo4j.coreedge.catchup.tx.edge.TxPullRequestEncoder;
 import org.neo4j.coreedge.catchup.tx.edge.TxPullResponseDecoder;
 import org.neo4j.coreedge.catchup.tx.edge.TxPullResponseHandler;
@@ -105,6 +108,9 @@ public class CoreToCoreClient extends CoreClient
 
             pipeline.addLast( new TxStreamFinishedResponseDecoder( protocol ) );
             pipeline.addLast( new TxStreamFinishedResponseHandler( protocol, owner ) );
+
+            pipeline.addLast( new NoSuchTransactionResponseDecoder( protocol ) );
+            pipeline.addLast( new NoSuchTransactionResponseHandler( protocol, owner ) );
 
             // keep these after type-specific handlers since they process ByteBufs
             pipeline.addLast( new FileHeaderDecoder( protocol ) );
