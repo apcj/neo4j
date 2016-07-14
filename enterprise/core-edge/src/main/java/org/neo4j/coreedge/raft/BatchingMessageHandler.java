@@ -36,7 +36,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 public class BatchingMessageHandler implements Runnable, MessageHandler<RaftMessages.StoreIdAwareMessage>, MismatchedStoreIdService
 {
     private final Log log;
-    private final MessageHandler<RaftMessage> innerHandler;
+    private final RaftInstance innerHandler;
     private final BlockingQueue<RaftMessages.StoreIdAwareMessage> messageQueue;
 
     private final int maxBatch;
@@ -46,7 +46,7 @@ public class BatchingMessageHandler implements Runnable, MessageHandler<RaftMess
     private RaftStateMachine raftStateMachine;
     private final List<MismatchedStoreListener> listeners = new ArrayList<>(  );
 
-    public BatchingMessageHandler( MessageHandler<RaftMessage> innerHandler, LogProvider logProvider,
+    public BatchingMessageHandler( RaftInstance innerHandler, LogProvider logProvider,
                                    int queueSize, int maxBatch, LocalDatabase localDatabase,
                                    RaftStateMachine raftStateMachine )
     {
@@ -95,7 +95,7 @@ public class BatchingMessageHandler implements Runnable, MessageHandler<RaftMess
             {
                 if ( messageQueue.isEmpty() )
                 {
-                    innerHandler.handle( message.message() );
+                    innerHandle( message.message() );
                 }
                 else
                 {
@@ -124,6 +124,19 @@ public class BatchingMessageHandler implements Runnable, MessageHandler<RaftMess
                 }
 
             }
+        }
+    }
+
+    private void innerHandle( RaftMessage raftMessage )
+    {
+        try
+        {
+            long commitIndex = innerHandler.handle( raftMessage );
+            raftStateMachine.notifyCommitted( commitIndex );
+        }
+        catch ( SnapshotNeededException e )
+        {
+            raftStateMachine.notifyNeedFreshSnapshot();
         }
     }
 
@@ -162,13 +175,13 @@ public class BatchingMessageHandler implements Runnable, MessageHandler<RaftMess
             }
             else
             {
-                innerHandler.handle( message );
+                innerHandle( message );
             }
         }
 
         if ( batchRequest != null )
         {
-            innerHandler.handle( batchRequest );
+            innerHandle( batchRequest );
         }
     }
 }

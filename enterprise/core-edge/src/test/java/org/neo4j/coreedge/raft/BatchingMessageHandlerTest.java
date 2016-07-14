@@ -19,16 +19,15 @@
  */
 package org.neo4j.coreedge.raft;
 
-import org.junit.Before;
-import org.junit.Test;
-
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.junit.Before;
+import org.junit.Test;
+
 import org.neo4j.coreedge.catchup.storecopy.LocalDatabase;
-import org.neo4j.coreedge.raft.net.Inbound;
 import org.neo4j.coreedge.server.StoreId;
 import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.logging.NullLogProvider;
@@ -58,8 +57,7 @@ public class BatchingMessageHandlerTest
     public void shouldDownloadSnapshotOnStoreIdMismatch() throws Exception
     {
         // given
-        @SuppressWarnings("unchecked")
-        Inbound.MessageHandler<RaftMessages.RaftMessage> innerHandler = mock( Inbound.MessageHandler.class );
+        RaftInstance innerHandler = mock( RaftInstance.class );
 
         when( localDatabase.isEmpty() ).thenReturn( true );
         BatchingMessageHandler batchHandler = new BatchingMessageHandler(
@@ -82,8 +80,7 @@ public class BatchingMessageHandlerTest
     public void shouldLogOnStoreIdMismatchAndNonEmptyStore() throws Exception
     {
         // given
-        @SuppressWarnings("unchecked")
-        Inbound.MessageHandler<RaftMessages.RaftMessage> innerHandler = mock( Inbound.MessageHandler.class );
+        RaftInstance innerHandler = mock( RaftInstance.class );
 
         when( localDatabase.isEmpty() ).thenReturn( false );
         AssertableLogProvider logProvider = new AssertableLogProvider();
@@ -107,8 +104,7 @@ public class BatchingMessageHandlerTest
     public void shouldInformListenersOnStoreIdMismatch() throws Exception
     {
         // given
-        @SuppressWarnings("unchecked")
-        Inbound.MessageHandler<RaftMessages.RaftMessage> innerHandler = mock( Inbound.MessageHandler.class );
+        RaftInstance innerHandler = mock( RaftInstance.class );
 
         when( localDatabase.isEmpty() ).thenReturn( false );
         BatchingMessageHandler batchHandler = new BatchingMessageHandler(
@@ -133,8 +129,7 @@ public class BatchingMessageHandlerTest
     public void shouldInvokeInnerHandlerWhenRun() throws Exception
     {
         // given
-        @SuppressWarnings("unchecked")
-        Inbound.MessageHandler<RaftMessages.RaftMessage> innerHandler = mock( Inbound.MessageHandler.class );
+        RaftInstance innerHandler = mock( RaftInstance.class );
 
         BatchingMessageHandler batchHandler = new BatchingMessageHandler(
                 innerHandler, NullLogProvider.getInstance(), QUEUE_SIZE, MAX_BATCH, localDatabase, raftStateMachine );
@@ -154,8 +149,7 @@ public class BatchingMessageHandlerTest
     public void shouldInvokeHandlerOnQueuedMessage() throws Exception
     {
         // given
-        @SuppressWarnings("unchecked")
-        Inbound.MessageHandler<RaftMessages.RaftMessage> innerHandler = mock( Inbound.MessageHandler.class );
+        RaftInstance innerHandler = mock( RaftInstance.class );
 
         BatchingMessageHandler batchHandler = new BatchingMessageHandler(
                 innerHandler, NullLogProvider.getInstance(), QUEUE_SIZE, MAX_BATCH, localDatabase, raftStateMachine );
@@ -182,8 +176,7 @@ public class BatchingMessageHandlerTest
     public void shouldBatchRequests() throws Exception
     {
         // given
-        @SuppressWarnings("unchecked")
-        Inbound.MessageHandler<RaftMessages.RaftMessage> innerHandler = mock( Inbound.MessageHandler.class );
+        RaftInstance innerHandler = mock( RaftInstance.class );
 
         BatchingMessageHandler batchHandler = new BatchingMessageHandler(
                 innerHandler, NullLogProvider.getInstance(), QUEUE_SIZE, MAX_BATCH, localDatabase, raftStateMachine );
@@ -210,8 +203,7 @@ public class BatchingMessageHandlerTest
     public void shouldBatchNewEntriesAndHandleOtherMessagesSingularly() throws Exception
     {
         // given
-        @SuppressWarnings("unchecked")
-        Inbound.MessageHandler<RaftMessages.RaftMessage> innerHandler = mock( Inbound.MessageHandler.class );
+        RaftInstance innerHandler = mock( RaftInstance.class );
 
         BatchingMessageHandler batchHandler = new BatchingMessageHandler(
                 innerHandler, NullLogProvider.getInstance(), QUEUE_SIZE, MAX_BATCH, localDatabase, raftStateMachine );

@@ -105,10 +105,20 @@ public class RaftInstanceBuilder
         RaftLogShippingManager logShipping =
                 new RaftLogShippingManager( outbound, logProvider, raftLog, clock, member, membershipManager,
                         retryTimeMillis, catchupBatchSize, maxAllowedShippingLag, inFlightMap );
-        RaftInstance raft = new RaftInstance( member, termState, voteState, raftLog, raftStateMachine, electionTimeout,
+        RaftInstance raft = new RaftInstance( member, termState, voteState, raftLog, electionTimeout,
                 heartbeatInterval, renewableTimeoutService, outbound, logProvider,
                 membershipManager, logShipping, databaseHealthSupplier, inFlightMap, monitors );
-        inbound.registerHandler( raft );
+        inbound.registerHandler( ( incomingMessage ) -> {
+            try
+            {
+                long commitIndex = raft.handle( incomingMessage );
+                raftStateMachine.notifyCommitted( commitIndex );
+            }
+            catch ( SnapshotNeededException e )
+            {
+                raftStateMachine.notifyNeedFreshSnapshot();
+            }
+        } );
         return raft;
     }
 
