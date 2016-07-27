@@ -19,7 +19,9 @@
  */
 package org.neo4j.bolt.v1.runtime.internal;
 
+import org.neo4j.bolt.transaction.Tractor;
 import org.neo4j.kernel.GraphDatabaseQueryService;
+import org.neo4j.kernel.api.security.AuthSubject;
 import org.neo4j.kernel.impl.coreapi.PropertyContainerLocker;
 import org.neo4j.kernel.impl.query.QuerySession;
 
@@ -35,14 +37,9 @@ public interface SessionState
      */
     void beginTransaction();
 
-    /**
-     * Begin a new implicit transaction, meaning a transaction that will commit automatically once the next result
-     * that becomes available has been closed.
-     */
-    void beginImplicitTransaction();
+    Tractor tractor();
 
-    /** Check if the session currently has an open transaction. */
-    boolean hasTransaction();
+    AuthSubject authSubject();
 
     /** Commit the current explicit transaction associated with this session. */
     void commitTransaction();

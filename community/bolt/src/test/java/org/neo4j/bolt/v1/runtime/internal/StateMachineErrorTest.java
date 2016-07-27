@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.neo4j.bolt.security.auth.Authentication;
+import org.neo4j.bolt.transaction.Tractor;
 import org.neo4j.bolt.v1.runtime.Session;
 import org.neo4j.bolt.v1.runtime.StatementMetadata;
 import org.neo4j.bolt.v1.runtime.integration.RecordingCallback;
@@ -170,9 +171,6 @@ public class StateMachineErrorTest
         machine.beginTransaction();
         assertThat( machine.state(), equalTo( SessionStateMachine.State.ERROR ) );
 
-        machine.beginImplicitTransaction();
-        assertThat( machine.state(), equalTo( SessionStateMachine.State.ERROR ) );
-
         machine.commitTransaction();
         assertThat( machine.state(), equalTo( SessionStateMachine.State.ERROR ) );
 
@@ -229,7 +227,7 @@ public class StateMachineErrorTest
         RecordingCallback messages = new RecordingCallback();
         SessionStateMachine.SPI spi = new StandardStateMachineSPI( "<test>", new UsageData( scheduler ), db, runner,
                 NullLogService.getInstance(), Authentication.NONE, txBridge, () -> transactionIdStore, sessionTracker );
-        SessionStateMachine machine = new SessionStateMachine( spi );
+        SessionStateMachine machine = new SessionStateMachine( spi, mock( Tractor.class ) );
 
         // When
         machine.run( "RETURN 1", null, null, messages );

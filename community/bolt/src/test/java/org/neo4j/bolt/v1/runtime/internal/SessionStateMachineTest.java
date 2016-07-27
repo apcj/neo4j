@@ -24,6 +24,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import org.neo4j.bolt.security.auth.AuthenticationResult;
+import org.neo4j.bolt.transaction.Tractor;
 import org.neo4j.bolt.v1.runtime.Session;
 import org.neo4j.bolt.v1.runtime.spi.RecordStream;
 import org.neo4j.kernel.api.KernelTransaction;
@@ -48,7 +49,7 @@ public class SessionStateMachineTest
     private final KernelTransaction ktx = mock( KernelTransaction.class );
 
     private final SessionStateMachine.SPI spi = mock( SessionStateMachine.SPI.class );
-    private final SessionStateMachine machine = new SessionStateMachine( spi );
+    private final SessionStateMachine machine = new SessionStateMachine( spi, mock( Tractor.class ) );
 
     @Test
     public void initialStateShouldBeUninitalized()
@@ -65,7 +66,7 @@ public class SessionStateMachineTest
                 .thenThrow( new RollbackInducingKernelException() );
 
         machine.init( "FunClient/1.2", emptyMap(), -1, null, noOp()  );
-        machine.beginImplicitTransaction();
+        machine.beginTransaction();
 
         // When
         machine.run( "Hello, world!", emptyMap(), null, noOp() );

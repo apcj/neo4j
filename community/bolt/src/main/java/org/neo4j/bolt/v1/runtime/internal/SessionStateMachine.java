@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.neo4j.bolt.security.auth.AuthenticationException;
 import org.neo4j.bolt.security.auth.AuthenticationResult;
+import org.neo4j.bolt.transaction.Tractor;
 import org.neo4j.bolt.v1.runtime.Session;
 import org.neo4j.bolt.v1.runtime.StatementMetadata;
 import org.neo4j.bolt.v1.runtime.spi.RecordStream;
@@ -43,6 +44,7 @@ import org.neo4j.kernel.impl.query.Neo4jTransactionalContext;
 import org.neo4j.kernel.impl.query.QuerySession;
 
 import static java.lang.String.format;
+
 import static org.neo4j.kernel.api.KernelTransaction.Type.explicit;
 import static org.neo4j.kernel.api.KernelTransaction.Type.implicit;
 import static org.neo4j.kernel.api.exceptions.Status.Security.CredentialsExpired;
@@ -153,14 +155,13 @@ class SessionStateMachine implements Session, SessionState
 
                     private State doBeginTransaction( SessionStateMachine ctx, KernelTransaction.Type type )
                     {
-                        assert ctx.currentTransaction == null;
+                        assert ctx.tractor == null;
                         try
                         {
                             // NOTE: If we move away from doing implicit transactions this
                             // way, we need a different way to kill statements running in implicit
                             // transactions, because we do that by calling #terminate() on this tx.
-                            ctx.currentTransaction =
-                                    ctx.spi.beginTransaction( type, ctx.authSubject, ctx.versionTracker );
+                            ctx.tractor.begin( type, ctx.authSubject );
                             return IN_TRANSACTION;
                         }
                         catch ( TransactionFailureException e )
@@ -201,19 +202,11 @@ class SessionStateMachine implements Session, SessionState
                     {
                         try
                         {
-                            KernelTransaction tx = ctx.currentTransaction;
-                            ctx.currentTransaction = null;
-
-                            tx.success();
-                            tx.close();
+                            ctx.tractor.commit();
                         }
                         catch ( Throwable e )
                         {
                             return error( ctx, e );
-                        }
-                        finally
-                        {
-                            ctx.currentTransaction = null;
                         }
                         return IDLE;
                     }
@@ -223,11 +216,7 @@ class SessionStateMachine implements Session, SessionState
                     {
                         try
                         {
-                            KernelTransaction tx = ctx.currentTransaction;
-                            ctx.currentTransaction = null;
-
-                            tx.failure();
-                            tx.close();
+                            ctx.tractor.rollback();
                             return IDLE;
                         }
                         catch ( Throwable e )
@@ -255,7 +244,7 @@ class SessionStateMachine implements Session, SessionState
                         try
                         {
                             ctx.result( ctx.currentResult );
-                            return discardAll( ctx );
+                            return close( ctx );
                         }
                         catch ( Throwable e )
                         {
@@ -268,24 +257,33 @@ class SessionStateMachine implements Session, SessionState
                     {
                         try
                         {
+                            return close( ctx );
+                        }
+                        catch ( Throwable e )
+                        {
+                            return error( ctx, e );
+                        }
+                    }
+
+                    private State close( SessionStateMachine ctx ) throws TransactionFailureException
+                    {
+                        try
+                        {
                             ctx.currentResult.close();
 
-                            if ( !ctx.hasTransaction() )
+                            if ( !ctx.tractor.hasTransaction() )
                             {
                                 return IDLE;
                             }
-                            else if ( ctx.currentTransaction.transactionType() == implicit )
+                            else if ( ctx.tractor.hasImplicitTransaction() )
                             {
-                                return IN_TRANSACTION.commitTransaction( ctx );
+                                ctx.tractor.commit();
+                                return IDLE;
                             }
                             else
                             {
                                 return IN_TRANSACTION;
                             }
-                        }
-                        catch ( Throwable e )
-                        {
-                            return error( ctx, e );
                         }
                         finally
                         {
@@ -318,7 +316,7 @@ class SessionStateMachine implements Session, SessionState
                     @Override
                     public State ackFailure( SessionStateMachine ctx )
                     {
-                        if( ctx.hasTransaction() )
+                        if( ctx.tractor.hasTransaction() )
                         {
                             return IN_TRANSACTION;
                         }
@@ -535,11 +533,11 @@ class SessionStateMachine implements Session, SessionState
 
         public State halt( SessionStateMachine ctx )
         {
-            if ( ctx.currentTransaction != null )
+            if ( ctx.tractor != null )
             {
                 try
                 {
-                    ctx.currentTransaction.close();
+                    ctx.tractor.rollback();
                 }
                 catch ( Throwable e )
                 {
@@ -586,36 +584,14 @@ class SessionStateMachine implements Session, SessionState
         State error( SessionStateMachine ctx, Neo4jError err )
         {
             ctx.spi.reportError( err );
-            if ( ctx.hasTransaction() )
+            try
             {
-                KernelTransaction.Type txType = ctx.currentTransaction.transactionType();
-                switch( txType )
-                {
-                case explicit:
-                    ctx.currentTransaction.failure();
-                    break;
-                case implicit:
-                    try
-                    {
-                        ctx.currentTransaction.failure();
-                        ctx.currentTransaction.close();
-                    }
-                    catch ( Throwable t )
-                    {
-                        ctx.spi.reportError( "While handling '" + err.status() + "', a second failure occurred when " +
-                                "rolling back transaction: " + t.getMessage(), t );
-                    }
-                    finally
-                    {
-                        ctx.currentTransaction = null;
-                    }
-                    break;
-
-                default:
-                    throw new IllegalStateException( "Unknown type: " + txType );
-                }
+                ctx.tractor.rollback();
             }
-            ctx.error( err );
+            catch ( TransactionFailureException e )
+            {
+                ctx.error( Neo4jError.from( e ) );
+            }
             return ERROR;
         }
     }
@@ -653,8 +629,7 @@ class SessionStateMachine implements Session, SessionState
     /** The current pending result, if present */
     private RecordStream currentResult;
 
-    /** The current transaction, if present */
-    private KernelTransaction currentTransaction;
+    private final Tractor tractor;
 
     /** The current query source, if initialized */
     private String currentQuerySource;
@@ -717,9 +692,10 @@ class SessionStateMachine implements Session, SessionState
         VersionTracker versionTracker( long startingVersion );
     }
 
-    SessionStateMachine( SPI spi )
+    SessionStateMachine( SPI spi, Tractor tractor )
     {
         this.spi = spi;
+        this.tractor = tractor;
         this.authSubject = AuthSubject.ANONYMOUS;
     }
 
@@ -837,11 +813,7 @@ class SessionStateMachine implements Session, SessionState
         interruptCounter.incrementAndGet();
 
         // If there is currently a transaction running, terminate it
-        KernelTransaction tx = this.currentTransaction;
-        if(tx != null)
-        {
-            tx.markForTermination( Status.Transaction.Terminated );
-        }
+        tractor.markForTermination( Status.Transaction.Terminated );
     }
 
     @Override
@@ -856,11 +828,7 @@ class SessionStateMachine implements Session, SessionState
         haltMark.setMark( new Neo4jError( status, message ) );
 
         // If there is currently a transaction running, terminate it
-        KernelTransaction tx = this.currentTransaction;
-        if(tx != null)
-        {
-            tx.markForTermination( status );
-        }
+        tractor.markForTermination( status );
     }
 
     @Override
@@ -889,15 +857,21 @@ class SessionStateMachine implements Session, SessionState
     // Below are methods used from within the state machine, to alter state while its executing an action
 
     @Override
-    public void beginImplicitTransaction()
-    {
-        state = state.beginImplicitTransaction( this );
-    }
-
-    @Override
     public void beginTransaction()
     {
         state = state.beginTransaction( this );
+    }
+
+    @Override
+    public Tractor tractor()
+    {
+        return tractor;
+    }
+
+    @Override
+    public AuthSubject authSubject()
+    {
+        return authSubject;
     }
 
     @Override
@@ -910,12 +884,6 @@ class SessionStateMachine implements Session, SessionState
     public void rollbackTransaction()
     {
         state = state.rollbackTransaction( this );
-    }
-
-    @Override
-    public boolean hasTransaction()
-    {
-        return currentTransaction != null;
     }
 
     @Override
@@ -962,10 +930,8 @@ class SessionStateMachine implements Session, SessionState
             state = state.interrupt( this );
         }
 
-        if ( hasTransaction() )
-        {
-            spi.bindTransactionToCurrentThread( currentTransaction );
-        }
+        tractor.bindCurrentTransactionToCurrentThread();
+
         assert this.currentCallback == null;
         assert this.currentAttachment == null;
         this.currentCallback = cb;
@@ -992,10 +958,7 @@ class SessionStateMachine implements Session, SessionState
         }
         finally
         {
-            if ( hasTransaction() )
-            {
-                spi.unbindTransactionFromCurrentThread();
-            }
+            tractor.unbindCurrentTransactionFromCurrentThread();
         }
     }
 

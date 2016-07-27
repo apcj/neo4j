@@ -22,6 +22,7 @@ package org.neo4j.bolt.v1.runtime.internal;
 import java.util.function.Supplier;
 
 import org.neo4j.bolt.security.auth.Authentication;
+import org.neo4j.bolt.transaction.Tractor;
 import org.neo4j.bolt.v1.runtime.Session;
 import org.neo4j.bolt.v1.runtime.Sessions;
 import org.neo4j.kernel.NeoStoreDataSource;
@@ -100,6 +101,7 @@ public class StandardSessions extends LifecycleAdapter implements Sessions
         SessionStateMachine.SPI spi =
                 new StandardStateMachineSPI( connectionDescriptor, usageData, gds, statementRunner, logging,
                         authentication, txBridge, transactionIdStore, sessionTracker );
-        return new SessionStateMachine( spi );
+        Tractor tractor = new Tractor( gds, txBridge );
+        return new SessionStateMachine( spi, tractor );
     }
 }
