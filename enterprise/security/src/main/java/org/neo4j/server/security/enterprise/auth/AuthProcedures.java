@@ -30,8 +30,8 @@ import java.util.stream.Stream;
 import org.neo4j.graphdb.security.AuthorizationViolationException;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.KernelTransactionHandle;
-import org.neo4j.kernel.api.bolt.HaltableUserSession;
-import org.neo4j.kernel.api.bolt.SessionTracker;
+import org.neo4j.kernel.api.bolt.ManagedBoltStateMachine;
+import org.neo4j.kernel.api.bolt.BoltConnectionTracker;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.api.security.AuthSubject;
 import org.neo4j.kernel.api.security.exception.InvalidArgumentsException;
@@ -220,21 +220,21 @@ public class AuthProcedures
         return terminateTransactionsForValidUser( username );
     }
 
-    @Procedure( name = "dbms.listSessions", mode = DBMS )
-    public Stream<SessionResult> listSessions()
+    @Procedure( name = "dbms.listConnections", mode = DBMS )
+    public Stream<SessionResult> listConnections()
     {
         ensureAdminAuthSubject();
 
-        SessionTracker sessionTracker = getSessionTracker();
-        return countSessionByUsername(
-                sessionTracker.getActiveSessions().stream()
-                        .filter( session -> !session.willBeHalted() )
-                        .map( HaltableUserSession::username )
+        BoltConnectionTracker boltConnectionTracker = getBoltConnectionTracker();
+        return countConnectionsByUsername(
+                boltConnectionTracker.getActiveConnections().stream()
+                        .filter( session -> !session.hasTerminated() )
+                        .map( ManagedBoltStateMachine::owner )
                 );
     }
 
-    @Procedure( name = "dbms.terminateSessionsForUser", mode = DBMS )
-    public Stream<SessionResult> terminateSessionsForUser( @Name( "username" ) String username )
+    @Procedure( name = "dbms.terminateConnectionsForUser", mode = DBMS )
+    public Stream<SessionResult> terminateConnectionsForUser( @Name( "username" ) String username )
             throws InvalidArgumentsException
     {
         EnterpriseAuthSubject subject = EnterpriseAuthSubject.castOrFail( authSubject );
@@ -270,14 +270,11 @@ public class AuthProcedures
     private Stream<SessionResult> terminateSessionsForValidUser( String username )
     {
         Long killCount = 0L;
-        for ( HaltableUserSession session : getSessionTracker().getActiveSessions() )
+        for ( ManagedBoltStateMachine connection : getBoltConnectionTracker().getActiveConnections( username ) )
         {
-            if ( session.username().equals( username ) )
-            {
-                session.markForHalting( Status.Session.InvalidSession,
-                        Status.Session.InvalidSession.code().description() );
-                killCount += 1;
-            }
+            connection.terminate( Status.Session.InvalidSession,
+                    Status.Session.InvalidSession.code().description() );
+            killCount += 1;
         }
         return Stream.of( new SessionResult( username, killCount ) );
     }
@@ -287,9 +284,9 @@ public class AuthProcedures
         return graph.getDependencyResolver().resolveDependency( KernelTransactions.class ).activeTransactions();
     }
 
-    private SessionTracker getSessionTracker()
+    private BoltConnectionTracker getBoltConnectionTracker()
     {
-        return graph.getDependencyResolver().resolveDependency( SessionTracker.class );
+        return graph.getDependencyResolver().resolveDependency( BoltConnectionTracker.class );
     }
 
     private Stream<TransactionResult> countTransactionByUsername( Stream<String> usernames )
@@ -301,7 +298,7 @@ public class AuthProcedures
                 );
     }
 
-    private Stream<SessionResult> countSessionByUsername( Stream<String> usernames )
+    private Stream<SessionResult> countConnectionsByUsername( Stream<String> usernames )
     {
         return usernames.collect(
                     Collectors.groupingBy( Function.identity(), Collectors.counting() )

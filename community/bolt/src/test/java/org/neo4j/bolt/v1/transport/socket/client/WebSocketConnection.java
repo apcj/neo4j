@@ -38,7 +38,7 @@ import org.neo4j.kernel.impl.util.HexPrinter;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-public class WebSocketConnection implements Connection, WebSocketListener
+public class WebSocketConnection implements TransportConnection, WebSocketListener
 {
     private final Supplier<WebSocketClient> clientSupplier;
     private final Function<HostnamePort,URI> uriGenerator;
@@ -47,6 +47,8 @@ public class WebSocketConnection implements Connection, WebSocketListener
 
     private WebSocketClient client;
     private RemoteEndpoint server;
+
+    private boolean connected = false;
 
     // Incoming data goes on this queue
     private final LinkedBlockingQueue<byte[]> received = new LinkedBlockingQueue<>();
@@ -75,7 +77,7 @@ public class WebSocketConnection implements Connection, WebSocketListener
     }
 
     @Override
-    public Connection connect( HostnamePort address ) throws Exception
+    public TransportConnection connect( HostnamePort address ) throws Exception
     {
         URI target = uriGenerator.apply( address );
 
@@ -93,11 +95,12 @@ public class WebSocketConnection implements Connection, WebSocketListener
         }
 
         server = session.getRemote();
+        connected = true;
         return this;
     }
 
     @Override
-    public Connection send( byte[] rawBytes ) throws Exception
+    public TransportConnection send( byte[] rawBytes ) throws Exception
     {
         // The WS client *mutates* the buffer we give it, so we need to copy it here to allow the caller to retain
         // ownership
@@ -113,7 +116,7 @@ public class WebSocketConnection implements Connection, WebSocketListener
         byte[] target = new byte[remaining];
         while ( remaining > 0 )
         {
-            waitForRecievedData( length, remaining, target );
+            waitForReceivedData( length, remaining, target );
             for ( int i = 0; i < Math.min( remaining, currentReceiveBuffer.length - currentReceiveIndex ); i++ )
             {
                 target[length - remaining] = currentReceiveBuffer[currentReceiveIndex++];
@@ -123,13 +126,7 @@ public class WebSocketConnection implements Connection, WebSocketListener
         return target;
     }
 
-    @Override
-    public void discard( int length ) throws IOException
-    {
-        throw new UnsupportedOperationException();
-    }
-
-    private void waitForRecievedData( int length, int remaining, byte[] target )
+    private void waitForReceivedData( int length, int remaining, byte[] target )
             throws InterruptedException, IOException
     {
         long start = System.currentTimeMillis();
@@ -142,6 +139,7 @@ public class WebSocketConnection implements Connection, WebSocketListener
                 currentReceiveBuffer == POISON_PILL )
             {
                 // no data received
+                connected = false;
                 throw new IOException( "Connection closed while waiting for data from the server." );
             }
             if ( System.currentTimeMillis() - start > 30_000 )
@@ -159,7 +157,14 @@ public class WebSocketConnection implements Connection, WebSocketListener
         if (client != null)
         {
             client.stop();
+            connected = false;
         }
+    }
+
+    @Override
+    public boolean isConnected()
+    {
+        return connected;
     }
 
     @Override

@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import org.neo4j.bolt.v1.transport.integration.TransportTestUtil;
-import org.neo4j.bolt.v1.transport.socket.client.Connection;
+import org.neo4j.bolt.v1.transport.socket.client.TransportConnection;
 import org.neo4j.bolt.v1.transport.socket.client.SocketConnection;
 import org.neo4j.helpers.HostnamePort;
 import org.neo4j.kernel.api.security.exception.InvalidArgumentsException;
@@ -36,9 +36,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.neo4j.bolt.v1.messaging.message.Messages.init;
+import static org.neo4j.bolt.v1.messaging.message.InitMessage.init;
 import static org.neo4j.bolt.v1.messaging.util.MessageMatchers.msgSuccess;
-import static org.neo4j.bolt.v1.transport.integration.TransportTestUtil.eventuallyRecieves;
+import static org.neo4j.bolt.v1.transport.integration.TransportTestUtil.eventuallyReceives;
 import static org.neo4j.helpers.collection.MapUtil.map;
 import static org.neo4j.kernel.api.security.AuthenticationResult.PASSWORD_CHANGE_REQUIRED;
 import static org.neo4j.server.security.enterprise.auth.AuthProcedures.PERMISSION_DENIED;
@@ -334,14 +334,14 @@ public abstract class AuthProceduresTestLogic<S> extends AuthTestBase<S>
     @Test
     public void shouldTerminateSessionsOnChangeUserPassword() throws Exception
     {
-        Connection conn = startBoltSession( "writeSubject", "abc" );
-        assertSuccess( adminSubject, "CALL dbms.listSessions() YIELD username, sessionCount " +
+        TransportConnection conn = startBoltSession( "writeSubject", "abc" );
+        assertSuccess( adminSubject, "CALL dbms.listConnections() YIELD username, sessionCount " +
                         "WITH username, sessionCount WHERE username = 'writeSubject' RETURN username, sessionCount",
                 r -> assertKeyIsMap( r, "username", "sessionCount", map( "writeSubject", IS_BOLT ? "2" : "1" ) ) );
 
         assertEmpty( adminSubject, "CALL dbms.changeUserPassword( 'writeSubject', 'newPassword' )" );
 
-        assertEmpty( adminSubject, "CALL dbms.listSessions() YIELD username, sessionCount " +
+        assertEmpty( adminSubject, "CALL dbms.listConnections() YIELD username, sessionCount " +
                         "WITH username, sessionCount WHERE username = 'writeSubject' RETURN username, sessionCount");
         conn.disconnect();
     }
@@ -454,14 +454,14 @@ public abstract class AuthProceduresTestLogic<S> extends AuthTestBase<S>
     @Test
     public void shouldTerminateSessionsOnUserDeletion() throws Exception
     {
-        Connection conn = startBoltSession( "writeSubject", "abc" );
-        assertSuccess( adminSubject, "CALL dbms.listSessions() YIELD username, sessionCount " +
+        TransportConnection conn = startBoltSession( "writeSubject", "abc" );
+        assertSuccess( adminSubject, "CALL dbms.listConnections() YIELD username, sessionCount " +
                         "WITH username, sessionCount WHERE username = 'writeSubject' RETURN username, sessionCount",
                 r -> assertKeyIsMap( r, "username", "sessionCount", map( "writeSubject", IS_BOLT ? "2" : "1" ) ) );
 
         assertEmpty( adminSubject, "CALL dbms.deleteUser( 'writeSubject' )" );
 
-        assertEmpty( adminSubject, "CALL dbms.listSessions() YIELD username, sessionCount " +
+        assertEmpty( adminSubject, "CALL dbms.listConnections() YIELD username, sessionCount " +
                 "WITH username, sessionCount WHERE username = 'writeSubject' RETURN username, sessionCount");
         conn.disconnect();
     }
@@ -512,14 +512,14 @@ public abstract class AuthProceduresTestLogic<S> extends AuthTestBase<S>
     @Test
     public void shouldTerminateSessionsOnUserSuspension() throws Exception
     {
-        Connection conn = startBoltSession( "writeSubject", "abc" );
-        assertSuccess( adminSubject, "CALL dbms.listSessions() YIELD username, sessionCount " +
+        TransportConnection conn = startBoltSession( "writeSubject", "abc" );
+        assertSuccess( adminSubject, "CALL dbms.listConnections() YIELD username, sessionCount " +
                         "WITH username, sessionCount WHERE username = 'writeSubject' RETURN username, sessionCount",
                 r -> assertKeyIsMap( r, "username", "sessionCount", map( "writeSubject", IS_BOLT ? "2" : "1" ) ) );
 
         assertEmpty( adminSubject, "CALL dbms.suspendUser( 'writeSubject' )" );
 
-        assertEmpty( adminSubject, "CALL dbms.listSessions() YIELD username, sessionCount " +
+        assertEmpty( adminSubject, "CALL dbms.listConnections() YIELD username, sessionCount " +
                 "WITH username, sessionCount WHERE username = 'writeSubject' RETURN username, sessionCount");
         conn.disconnect();
     }
@@ -984,18 +984,18 @@ public abstract class AuthProceduresTestLogic<S> extends AuthTestBase<S>
         assertEmpty( adminSubject, "MATCH (n:Test) RETURN n.name AS name" );
     }
 
-    private Connection startBoltSession( String username, String password ) throws Exception
+    private TransportConnection startBoltSession( String username, String password ) throws Exception
     {
-        Connection boltConnection = new SocketConnection();
+        TransportConnection connection = new SocketConnection();
         HostnamePort address = new HostnamePort( "localhost:7687" );
         Map<String,Object> authToken = map( "principal", username, "credentials", password, "scheme", "basic" );
 
-        boltConnection.connect( address ).send( TransportTestUtil.acceptedVersions( 1, 0, 0, 0 ) )
+        connection.connect( address ).send( TransportTestUtil.acceptedVersions( 1, 0, 0, 0 ) )
                 .send( TransportTestUtil.chunk( init( "TestClient/1.1", authToken ) ) );
 
-        assertThat( boltConnection, eventuallyRecieves( new byte[]{0, 0, 0, 1} ) );
-        assertThat( boltConnection, eventuallyRecieves( msgSuccess() ) );
-        return boltConnection;
+        assertThat( connection, eventuallyReceives( new byte[]{0, 0, 0, 1} ) );
+        assertThat( connection, eventuallyReceives( msgSuccess() ) );
+        return connection;
     }
 
 }

@@ -29,11 +29,12 @@ import java.net.SocketTimeoutException;
 import org.neo4j.helpers.HostnamePort;
 import org.neo4j.kernel.impl.util.HexPrinter;
 
-public class SocketConnection implements Connection
+public class SocketConnection implements TransportConnection
 {
     private Socket socket;
     private InputStream in;
     private OutputStream out;
+    private boolean connected;
 
     public SocketConnection()
     {
@@ -51,18 +52,19 @@ public class SocketConnection implements Connection
     }
 
     @Override
-    public Connection connect( HostnamePort address ) throws Exception
+    public TransportConnection connect( HostnamePort address ) throws Exception
     {
         socket.setSoTimeout( 30000 * 1000 ); // TOOD
 
         socket.connect( new InetSocketAddress( address.getHost(), address.getPort() ) );
         in = socket.getInputStream();
         out = socket.getOutputStream();
+        connected = true;
         return this;
     }
 
     @Override
-    public Connection send( byte[] rawBytes ) throws IOException
+    public TransportConnection send( byte[] rawBytes ) throws IOException
     {
         out.write( rawBytes );
         return this;
@@ -87,26 +89,25 @@ public class SocketConnection implements Connection
         //all the bytes could not be read, fail
         if (left != 0)
         {
+            connected = false;
             throw new IOException( "Failed to read " + length + " bytes, missing " + left + " bytes. Buffer: " + HexPrinter.hex( bytes ) );
         }
         return bytes;
     }
 
     @Override
-    public void discard( int length ) throws IOException
+    public void disconnect() throws IOException
     {
-        for ( int i = 0; i < length; i++ )
+        if ( socket != null && connected )
         {
-            in.read();
+            socket.close();
+            connected = false;
         }
     }
 
     @Override
-    public void disconnect() throws IOException
+    public boolean isConnected()
     {
-        if ( socket != null && socket.isConnected() )
-        {
-            socket.close();
-        }
+        return connected;
     }
 }

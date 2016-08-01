@@ -17,6 +17,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+
 package org.neo4j.server.security.enterprise.auth.integration.bolt;
 
 import org.hamcrest.BaseMatcher;
@@ -27,20 +28,15 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Consumer;
-
+import org.neo4j.bolt.v1.messaging.message.ResetMessage;
 import org.neo4j.bolt.v1.runtime.spi.ImmutableRecord;
 import org.neo4j.bolt.v1.runtime.spi.Record;
 import org.neo4j.bolt.v1.transport.integration.Neo4jWithSocket;
 import org.neo4j.bolt.v1.transport.integration.TransportTestUtil;
-import org.neo4j.bolt.v1.transport.socket.client.Connection;
 import org.neo4j.bolt.v1.transport.socket.client.SecureSocketConnection;
 import org.neo4j.bolt.v1.transport.socket.client.SecureWebSocketConnection;
 import org.neo4j.bolt.v1.transport.socket.client.SocketConnection;
+import org.neo4j.bolt.v1.transport.socket.client.TransportConnection;
 import org.neo4j.bolt.v1.transport.socket.client.WebSocketConnection;
 import org.neo4j.function.Factory;
 import org.neo4j.graphdb.config.Setting;
@@ -52,18 +48,22 @@ import org.neo4j.test.TestEnterpriseGraphDatabaseFactory;
 import org.neo4j.test.TestGraphDatabaseFactory;
 import org.neo4j.test.rule.concurrent.ThreadingRule;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Consumer;
+
 import static java.util.Arrays.asList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.neo4j.bolt.v1.messaging.message.Messages.init;
-import static org.neo4j.bolt.v1.messaging.message.Messages.pullAll;
-import static org.neo4j.bolt.v1.messaging.message.Messages.reset;
-import static org.neo4j.bolt.v1.messaging.message.Messages.run;
+import static org.neo4j.bolt.v1.messaging.message.InitMessage.init;
+import static org.neo4j.bolt.v1.messaging.message.PullAllMessage.pullAll;
+import static org.neo4j.bolt.v1.messaging.message.RunMessage.run;
 import static org.neo4j.bolt.v1.messaging.util.MessageMatchers.msgFailure;
 import static org.neo4j.bolt.v1.messaging.util.MessageMatchers.msgIgnored;
 import static org.neo4j.bolt.v1.messaging.util.MessageMatchers.msgRecord;
 import static org.neo4j.bolt.v1.messaging.util.MessageMatchers.msgSuccess;
-import static org.neo4j.bolt.v1.transport.integration.TransportTestUtil.eventuallyRecieves;
+import static org.neo4j.bolt.v1.transport.integration.TransportTestUtil.eventuallyReceives;
 import static org.neo4j.helpers.collection.MapUtil.map;
 import static org.neo4j.kernel.api.exceptions.Status.Session.InvalidSession;
 
@@ -113,13 +113,13 @@ public class BoltSessionManagementIT
     }
 
     @Parameterized.Parameter( 0 )
-    public Factory<Connection> cf;
+    public Factory<TransportConnection> cf;
 
     @Parameterized.Parameter( 1 )
     public HostnamePort address;
 
-    protected Connection admin;
-    protected Connection user;
+    protected TransportConnection admin;
+    protected TransportConnection user;
 
     private static String SESSION_TERMINATED_MSG = "The session is no longer available, possibly due to termination.";
 
@@ -128,19 +128,19 @@ public class BoltSessionManagementIT
     {
         return asList(
                 new Object[]{
-                        (Factory<Connection>) SocketConnection::new,
+                        (Factory<TransportConnection>) SocketConnection::new,
                         new HostnamePort( "localhost:7687" )
                 },
                 new Object[]{
-                        (Factory<Connection>) WebSocketConnection::new,
+                        (Factory<TransportConnection>) WebSocketConnection::new,
                         new HostnamePort( "localhost:7687" )
                 },
                 new Object[]{
-                        (Factory<Connection>) SecureSocketConnection::new,
+                        (Factory<TransportConnection>) SecureSocketConnection::new,
                         new HostnamePort( "localhost:7687" )
                 },
                 new Object[]{
-                        (Factory<Connection>) SecureWebSocketConnection::new,
+                        (Factory<TransportConnection>) SecureWebSocketConnection::new,
                         new HostnamePort( "localhost:7687" )
                 } );
     }
@@ -152,7 +152,7 @@ public class BoltSessionManagementIT
     {
         // When
         admin.send( TransportTestUtil.chunk(
-                run( "CALL dbms.listSessions() YIELD username, sessionCount" ),
+                run( "CALL dbms.listConnections() YIELD username, sessionCount" ),
                 pullAll() ) );
 
         // Then
@@ -168,7 +168,7 @@ public class BoltSessionManagementIT
         // When
         authenticate( user, "Igor", "123", null );
         admin.send( TransportTestUtil.chunk(
-                run( "CALL dbms.listSessions() YIELD username, sessionCount" ),
+                run( "CALL dbms.listConnections() YIELD username, sessionCount" ),
                 pullAll() ) );
 
         // Then
@@ -186,11 +186,11 @@ public class BoltSessionManagementIT
         // When
         authenticate( user, "Igor", "123", null );
         user.send( TransportTestUtil.chunk(
-                run( "CALL dbms.listSessions() YIELD username, sessionCount" ),
+                run( "CALL dbms.listConnections() YIELD username, sessionCount" ),
                 pullAll() ) );
 
         // Then
-        assertThat( user, eventuallyRecieves(
+        assertThat( user, eventuallyReceives(
                 msgFailure( Status.Security.Forbidden, AuthProcedures.PERMISSION_DENIED ) ) );
     }
 
@@ -202,7 +202,7 @@ public class BoltSessionManagementIT
         // When
         authenticate( user, "Igor", "123", null );
         admin.send( TransportTestUtil.chunk(
-                run( "CALL dbms.terminateSessionsForUser( 'Igor' ) YIELD username, sessionCount" ),
+                run( "CALL dbms.terminateConnectionsForUser( 'Igor' ) YIELD username, sessionCount" ),
                 pullAll() ) );
 
         // Then
@@ -211,7 +211,7 @@ public class BoltSessionManagementIT
         assertTrue( terminationResult.get( "Igor" ) == 1L );
 
         admin.send( TransportTestUtil.chunk(
-                run( "CALL dbms.listSessions() YIELD username, sessionCount" ),
+                run( "CALL dbms.listConnections() YIELD username, sessionCount" ),
                 pullAll() ) );
         Map<String, Long> listResult = collectSessionResult( admin, 1 );
         assertTrue( listResult.containsKey( "neo4j" ) );
@@ -220,7 +220,7 @@ public class BoltSessionManagementIT
         user.send( TransportTestUtil.chunk(
                 run( "MATCH (n) RETURN n" ),
                 pullAll() ) );
-        assertThat( user, eventuallyRecieves( msgFailure( InvalidSession, SESSION_TERMINATED_MSG ) ) );
+        assertThat( user, eventuallyReceives( msgFailure( InvalidSession, SESSION_TERMINATED_MSG ) ) );
     }
 
     @Test
@@ -228,7 +228,7 @@ public class BoltSessionManagementIT
     {
         // When
         admin.send( TransportTestUtil.chunk(
-                run( "CALL dbms.terminateSessionsForUser( 'Igor' ) YIELD username, sessionCount" ),
+                run( "CALL dbms.terminateConnectionsForUser( 'Igor' ) YIELD username, sessionCount" ),
                 pullAll() ) );
 
         // Then
@@ -242,11 +242,11 @@ public class BoltSessionManagementIT
     {
         // When
         admin.send( TransportTestUtil.chunk(
-                run( "CALL dbms.terminateSessionsForUser( 'NonExistentUser' ) YIELD username, sessionCount" ),
+                run( "CALL dbms.terminateConnectionsForUser( 'NonExistentUser' ) YIELD username, sessionCount" ),
                 pullAll() ) );
 
         // Then
-        assertThat( admin, eventuallyRecieves( msgFailure( Status.Security.InvalidArguments,
+        assertThat( admin, eventuallyReceives( msgFailure( Status.Security.InvalidArguments,
                 "User 'NonExistentUser' does not exist." ) ) );
     }
 
@@ -286,7 +286,7 @@ public class BoltSessionManagementIT
     public void shouldTerminateOwnSessionsIfNonAdmin() throws Throwable
     {
         // Given
-        Connection user2 = cf.newInstance();
+        TransportConnection user2 = cf.newInstance();
         authenticate( user, "Igor", "123", null );
         authenticate( user2, "Igor", "123", null );
         assertTerminateOwnSessions( user, user2, "Igor" );
@@ -294,36 +294,36 @@ public class BoltSessionManagementIT
 
     // ------------------------------------------
 
-    private static void assertTerminateOwnSession( Connection conn, String username ) throws Exception
+    private static void assertTerminateOwnSession( TransportConnection conn, String username ) throws Exception
     {
         // Given
         conn.send( TransportTestUtil.chunk(
-                run( "CALL dbms.terminateSessionsForUser( '" + username + "' ) YIELD username, sessionCount" ),
+                run( "CALL dbms.terminateConnectionsForUser( '" + username + "' ) YIELD username, sessionCount" ),
                 pullAll() ) );
 
         // Then
-        assertThat( conn, eventuallyRecieves(
+        assertThat( conn, eventuallyReceives(
                 msgSuccess(),
                 msgFailure( InvalidSession, SESSION_TERMINATED_MSG )
         ) );
         conn.send( TransportTestUtil.chunk(
                 run( "MATCH (n) RETURN n" ),
                 pullAll() ) );
-        assertThat( conn, eventuallyRecieves(
+        assertThat( conn, eventuallyReceives(
                 msgFailure( InvalidSession, SESSION_TERMINATED_MSG ),
                 msgFailure( InvalidSession, SESSION_TERMINATED_MSG )
         ) );
     }
 
-    private static void assertTerminateOwnSessions( Connection conn1, Connection conn2, String username ) throws
+    private static void assertTerminateOwnSessions( TransportConnection conn1, TransportConnection conn2, String username ) throws
             Exception
     {
         conn1.send( TransportTestUtil.chunk(
-                run( "CALL dbms.terminateSessionsForUser( '" + username + "' ) YIELD username, sessionCount" ),
+                run( "CALL dbms.terminateConnectionsForUser( '" + username + "' ) YIELD username, sessionCount" ),
                 pullAll() ) );
 
         // Then
-        assertThat( conn1, eventuallyRecieves(
+        assertThat( conn1, eventuallyReceives(
                 msgSuccess(),
                 msgFailure( InvalidSession, SESSION_TERMINATED_MSG )
         ) );
@@ -331,29 +331,29 @@ public class BoltSessionManagementIT
         conn2.send( TransportTestUtil.chunk(
                 run( "MATCH (n) RETURN n" ),
                 pullAll() ) );
-        assertThat( conn2, eventuallyRecieves(
+        assertThat( conn2, eventuallyReceives(
                 msgFailure( InvalidSession, SESSION_TERMINATED_MSG ),
                 msgFailure( InvalidSession, SESSION_TERMINATED_MSG )
         ) );
     }
 
-    private static void assertFailTerminateSessionForUser( Connection client, String username ) throws Exception
+    private static void assertFailTerminateSessionForUser( TransportConnection client, String username ) throws Exception
     {
         client.send( TransportTestUtil.chunk(
-                run( "CALL dbms.terminateSessionsForUser( '" + username + "' ) YIELD username, sessionCount" ),
+                run( "CALL dbms.terminateConnectionsForUser( '" + username + "' ) YIELD username, sessionCount" ),
                 pullAll() ) );
 
         // Then
-        assertThat( client, eventuallyRecieves(
+        assertThat( client, eventuallyReceives(
                 msgFailure( Status.Security.Forbidden, AuthProcedures.PERMISSION_DENIED ),
                 msgIgnored()
         ) );
 
-        client.send( TransportTestUtil.chunk( reset() ) );
-        assertThat( client, eventuallyRecieves( msgSuccess() ) );
+        client.send( TransportTestUtil.chunk( ResetMessage.reset() ) );
+        assertThat( client, eventuallyReceives( msgSuccess() ) );
     }
 
-    private void authenticate( Connection client, String username, String password, String newPassword )
+    private void authenticate( TransportConnection client, String username, String password, String newPassword )
             throws Exception
     {
         Map<String, Object> authToken =
@@ -369,33 +369,33 @@ public class BoltSessionManagementIT
                 .send( TransportTestUtil.chunk(
                         init( "TestClient/1.1", authToken ) ) );
 
-        assertThat( client, eventuallyRecieves( new byte[]{0, 0, 0, 1} ) );
-        assertThat( client, eventuallyRecieves( msgSuccess() ) );
+        assertThat( client, eventuallyReceives( new byte[]{0, 0, 0, 1} ) );
+        assertThat( client, eventuallyReceives( msgSuccess() ) );
     }
 
-    private static void createNewUser( Connection client, String username, String password ) throws Exception
+    private static void createNewUser( TransportConnection client, String username, String password ) throws Exception
     {
         client.send( TransportTestUtil.chunk(
                 run( "CALL dbms.createUser( '" + username + "', '" + password + "', false )" ),
                 pullAll() ) );
-        assertThat( client, eventuallyRecieves( msgSuccess(), msgSuccess() ) );
+        assertThat( client, eventuallyReceives( msgSuccess(), msgSuccess() ) );
     }
 
-    private static Map<String, Long> collectSessionResult( Connection client, int n )
+    private static Map<String, Long> collectSessionResult( TransportConnection client, int n )
     {
         CollectingMatcher collector = new CollectingMatcher();
 
         // Then
-        assertThat( client, eventuallyRecieves(
+        assertThat( client, eventuallyReceives(
                 msgSuccess( map( "fields", asList( "username", "sessionCount" ) ) )
             ) );
 
         for ( int i = 0; i < n; i++ )
         {
-            assertThat( client, eventuallyRecieves( msgRecord( collector ) ) );
+            assertThat( client, eventuallyReceives( msgRecord( collector ) ) );
         }
 
-        assertThat( client, eventuallyRecieves( msgSuccess() ) );
+        assertThat( client, eventuallyReceives( msgSuccess() ) );
 
         return collector.result();
 
