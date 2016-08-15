@@ -20,9 +20,11 @@
 package org.neo4j.bolt.v1.runtime;
 
 import org.neo4j.bolt.security.auth.AuthenticationResult;
+import org.neo4j.bolt.v1.runtime.bookmarking.Bookmark;
 import org.neo4j.bolt.v1.runtime.cypher.CypherAdapterStream;
 import org.neo4j.bolt.v1.runtime.cypher.StatementMetadata;
 import org.neo4j.bolt.v1.runtime.cypher.StatementProcessor;
+import org.neo4j.bolt.v1.runtime.spi.CommitResult;
 import org.neo4j.bolt.v1.runtime.spi.RecordStream;
 import org.neo4j.cypher.InvalidSemanticsException;
 import org.neo4j.function.ThrowingConsumer;
@@ -37,6 +39,7 @@ import org.neo4j.kernel.api.security.AuthSubject;
 import org.neo4j.kernel.impl.query.QueryExecutionKernelException;
 
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class TransactionStateMachine implements StatementProcessor
 {
@@ -141,6 +144,10 @@ public class TransactionStateMachine implements StatementProcessor
                         {
                             ctx.currentTransaction = spi.beginTransaction( ctx.authSubject );
                             ctx.currentResult = RecordStream.EMPTY;
+
+                            String bookmark = params.get( "BOOKMARK" ).toString();
+                            spi.awaitUpToDate( Bookmark.fromString( bookmark ).txId(), 30, TimeUnit.SECONDS );
+
                             return EXPLICIT_TRANSACTION;
                         }
                         else if ( statement.equalsIgnoreCase( COMMIT ) )
@@ -204,6 +211,11 @@ public class TransactionStateMachine implements StatementProcessor
                             ctx.currentTransaction.close();
                             ctx.currentTransaction = null;
                             ctx.currentResult = RecordStream.EMPTY;
+
+                            long txId = spi.newestEncounteredTxId();
+                            Bookmark bookmark = new Bookmark( txId );
+                            ctx.currentResult = new CommitResult( bookmark );
+
                             return AUTO_COMMIT;
                         }
                         else if ( statement.equalsIgnoreCase( ROLLBACK ) )
@@ -329,6 +341,10 @@ public class TransactionStateMachine implements StatementProcessor
 
     interface SPI
     {
+        void awaitUpToDate( long oldestAcceptableTxId, int timeout, TimeUnit timeoutUnit ) throws TransactionFailureException;
+
+        long newestEncounteredTxId();
+
         KernelTransaction beginTransaction( AuthSubject authSubject );
 
         void bindTransactionToCurrentThread( KernelTransaction tx );

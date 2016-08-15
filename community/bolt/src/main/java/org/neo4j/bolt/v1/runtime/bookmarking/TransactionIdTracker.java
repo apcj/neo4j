@@ -33,14 +33,14 @@ import static org.neo4j.kernel.impl.transaction.log.TransactionIdStore.BASE_TX_I
  * Facility to allow a user to run a query on different members of the cluster and ensure that a member is at least as
  * up to date as the state it read or wrote elsewhere.
  */
-class TransactionIdTracker
+public class TransactionIdTracker
 {
     private static final int POLL_INTERVAL = 25;
     private static final TimeUnit POLL_UNIT = TimeUnit.MILLISECONDS;
 
     private final Supplier<TransactionIdStore> transactionIdStore;
 
-    TransactionIdTracker( Supplier<TransactionIdStore> transactionIdStore )
+    public TransactionIdTracker( Supplier<TransactionIdStore> transactionIdStore )
     {
         this.transactionIdStore = transactionIdStore;
     }

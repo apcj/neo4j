@@ -19,6 +19,8 @@
  */
 package org.neo4j.bolt.v1.runtime;
 
+import java.util.function.Supplier;
+
 import org.neo4j.bolt.security.auth.Authentication;
 import org.neo4j.bolt.v1.runtime.cypher.CypherStatementRunner;
 import org.neo4j.kernel.NeoStoreDataSource;
@@ -26,6 +28,7 @@ import org.neo4j.kernel.api.bolt.BoltConnectionTracker;
 import org.neo4j.kernel.impl.core.ThreadToStatementContextBridge;
 import org.neo4j.kernel.impl.logging.LogService;
 import org.neo4j.kernel.impl.query.QueryExecutionEngine;
+import org.neo4j.kernel.impl.transaction.log.TransactionIdStore;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
@@ -86,8 +89,10 @@ public class LifecycleManagedBoltFactory extends LifecycleAdapter implements Bol
     public BoltStateMachine newMachine( String connectionDescriptor, Runnable onClose )
     {
         final CypherStatementRunner statementRunner = new CypherStatementRunner( queryExecutionEngine, txBridge );
+        Supplier<TransactionIdStore> transactionIdStoreSupplier =
+                neoStoreDataSource.getDependencyResolver().provideDependency( TransactionIdStore.class );
         TransactionStateMachine.SPI transactionStateMachineSPI = new TransactionStateMachineSPI( gds, txBridge,
-                queryExecutionEngine, statementRunner );
+                queryExecutionEngine, statementRunner, transactionIdStoreSupplier );
         BoltStateMachine.SPI spi = new BoltStateMachineSPI( connectionDescriptor, usageData,
                 logging, authentication, connectionTracker, transactionStateMachineSPI );
         return new BoltStateMachine( spi, onClose );
