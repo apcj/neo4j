@@ -86,8 +86,10 @@ public class LifecycleManagedBoltFactory extends LifecycleAdapter implements Bol
     public BoltStateMachine newMachine( String connectionDescriptor, Runnable onClose )
     {
         final CypherStatementRunner statementRunner = new CypherStatementRunner( queryExecutionEngine, txBridge );
-        BoltStateMachine.SPI spi = new BoltStateMachineSPI( connectionDescriptor, usageData, gds,
-                queryExecutionEngine, logging, authentication, txBridge, statementRunner, connectionTracker );
+        TransactionStateMachine.SPI transactionStateMachineSPI = new TransactionStateMachineSPI( gds, txBridge,
+                queryExecutionEngine, statementRunner );
+        BoltStateMachine.SPI spi = new BoltStateMachineSPI( connectionDescriptor, usageData,
+                logging, authentication, connectionTracker, transactionStateMachineSPI );
         return new BoltStateMachine( spi, onClose );
     }
 }
