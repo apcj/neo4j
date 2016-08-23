@@ -29,6 +29,7 @@ import org.neo4j.coreedge.core.replication.DistributedOperation;
 import org.neo4j.coreedge.core.replication.ProgressTracker;
 import org.neo4j.coreedge.core.state.machines.CoreStateMachines;
 import org.neo4j.coreedge.core.state.snapshot.CoreSnapshot;
+import org.neo4j.coreedge.core.state.snapshot.CoreStateType;
 import org.neo4j.coreedge.core.state.storage.StateStorage;
 import org.neo4j.coreedge.core.state.machines.tx.CoreReplicatedContent;
 import org.neo4j.coreedge.core.consensus.log.RaftLog;
@@ -272,7 +273,7 @@ public class CommandApplicationProcess extends LifecycleAdapter
         CoreSnapshot coreSnapshot = new CoreSnapshot( prevIndex, prevTerm );
 
         coreStateMachines.addSnapshots( coreSnapshot );
-        sessionTracker.addSnapshots( coreSnapshot );
+        coreSnapshot.add( CoreStateType.SESSION_TRACKER, sessionTracker.snapshot() );
 
         return coreSnapshot;
     }
@@ -283,10 +284,7 @@ public class CommandApplicationProcess extends LifecycleAdapter
         long snapshotPrevIndex = coreSnapshot.prevIndex();
         try
         {
-            if ( snapshotPrevIndex > 1 )
-            {
-                raftLog.skip( snapshotPrevIndex, coreSnapshot.prevTerm() );
-            }
+            raftLog.skip( snapshotPrevIndex, coreSnapshot.prevTerm() );
         }
         catch ( IOException e )
         {
@@ -295,6 +293,6 @@ public class CommandApplicationProcess extends LifecycleAdapter
         this.lastApplied = this.lastFlushed = snapshotPrevIndex;
         log.info( format( "Skipping lastApplied index forward to %d", snapshotPrevIndex ) );
 
-        sessionTracker.installSnapshots( coreSnapshot );
+        sessionTracker.installSnapshot( coreSnapshot.get( CoreStateType.SESSION_TRACKER ) );
     }
 }

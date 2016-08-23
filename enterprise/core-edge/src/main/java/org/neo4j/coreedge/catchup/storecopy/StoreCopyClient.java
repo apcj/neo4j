@@ -75,6 +75,7 @@ public class StoreCopyClient
                         public void onFileStreamingComplete( CompletableFuture<Long> signal,
                                                              StoreCopyFinishedResponse response )
                         {
+                            System.out.println( "response = " + response.lastCommittedTxBeforeStoreCopy() );
                             signal.complete( response.lastCommittedTxBeforeStoreCopy() );
                         }
                     } );

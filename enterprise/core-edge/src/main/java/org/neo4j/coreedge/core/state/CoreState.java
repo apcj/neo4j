@@ -183,6 +183,7 @@ public class CoreState implements MessageHandler<RaftMessages.StoreIdAwareMessag
     public synchronized CoreSnapshot snapshot() throws IOException, InterruptedException
     {
         return applicationProcess.snapshot();
+        return snapshot;
     }
 
     public synchronized void installSnapshot( CoreSnapshot coreSnapshot )

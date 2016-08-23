@@ -180,7 +180,9 @@ public class Leader implements RaftMessageHandler
                 }
                 else // Response indicated failure.
                 {
-                    if ( response.appendIndex() >= ctx.entryLog().prevIndex() )
+                    if (
+                            response.appendIndex() > -1 &&
+                                    response.appendIndex() >= ctx.entryLog().prevIndex() )
                     {
                         // Signal a mismatch to the log shipper, which will serve an earlier entry.
                         outcome.addShipCommand( new ShipCommand.Mismatch( response.appendIndex(), response.from() ) );

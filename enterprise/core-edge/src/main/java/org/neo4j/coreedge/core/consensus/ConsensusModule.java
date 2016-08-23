@@ -141,7 +141,7 @@ public class ConsensusModule
                         heartbeatInterval, raftTimeoutService, outbound, logProvider, raftMembershipManager,
                         logShipping, inFlightMap, platformModule.monitors );
 
-        life.add( new RaftDiscoveryServiceConnector( discoveryService, raftMachine ) );
+        life.add( new RaftDiscoveryServiceConnector( discoveryService, raftMachine, myself ) );
 
         life.add(logShipping);
     }

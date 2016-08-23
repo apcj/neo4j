@@ -58,6 +58,7 @@ public class GetStoreRequestHandler extends SimpleChannelInboundHandler<GetStore
     protected void channelRead0( ChannelHandlerContext ctx, GetStoreRequest msg ) throws Exception
     {
         long lastCheckPointedTx = checkPointerSupplier.get().tryCheckPoint( new SimpleTriggerInfo( "Store copy" ) );
+        System.out.println( "lastCheckPointedTx = " + lastCheckPointedTx );
         sendFiles( ctx );
         endStoreCopy( ctx, lastCheckPointedTx );
         protocol.expect( State.MESSAGE_TYPE );

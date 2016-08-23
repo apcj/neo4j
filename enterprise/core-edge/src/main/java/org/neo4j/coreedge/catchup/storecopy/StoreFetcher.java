@@ -88,8 +88,8 @@ public class StoreFetcher
 
             try ( TransactionLogCatchUpWriter writer = transactionLogFactory.create( storeDir, fs, pageCache, logProvider ) )
             {
-                log.info( "Pulling transactions from: %d", lastFlushedTxId - 1 );
-                long lastPulledTxId = txPullClient.pullTransactions( from, storeId, lastFlushedTxId - 1, writer );
+                log.info( "Pulling transactions from: %d", lastFlushedTxId + 1 );
+                long lastPulledTxId = txPullClient.pullTransactions( from, storeId, lastFlushedTxId + 1, writer );
                 log.info( "Txs streamed up to %d", lastPulledTxId );
             }
         }

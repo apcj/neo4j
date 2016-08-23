@@ -40,7 +40,7 @@ import org.neo4j.logging.LogProvider;
 public class TxPullRequestHandler extends SimpleChannelInboundHandler<TxPullRequest>
 {
     private final CatchupServerProtocol protocol;
-    private final StoreId storeId;
+    private final Supplier<StoreId> storeIdSupplier;
     private final TransactionIdStore transactionIdStore;
     private final LogicalTransactionStore logicalTransactionStore;
     private final TxPullRequestsMonitor monitor;
@@ -53,7 +53,7 @@ public class TxPullRequestHandler extends SimpleChannelInboundHandler<TxPullRequ
                                  Monitors monitors, LogProvider logProvider )
     {
         this.protocol = protocol;
-        this.storeId = storeIdSupplier.get();
+        this.storeIdSupplier = storeIdSupplier;
         this.transactionIdStore = transactionIdStoreSupplier.get();
         this.logicalTransactionStore = logicalTransactionStoreSupplier.get();
         this.monitor = monitors.newMonitor( TxPullRequestsMonitor.class );
@@ -63,29 +63,28 @@ public class TxPullRequestHandler extends SimpleChannelInboundHandler<TxPullRequ
     @Override
     protected void channelRead0( ChannelHandlerContext ctx, final TxPullRequest msg ) throws Exception
     {
-        long startTxId = Math.max( msg.txId(), TransactionIdStore.BASE_TX_ID );
-        long endTxId = startTxId;
+        long endTxId = msg.txId();
         boolean success = true;
+        StoreId localStoreId = storeIdSupplier.get();
 
-        if ( !this.storeId.equals( msg.storeId() ) )
+        if ( !localStoreId.equals( msg.storeId() ) )
         {
             success = false;
             log.info( "Failed to serve TxPullRequest for tx %d and storeId %s because that storeId is different " +
                             "from this machine with %s",
-                    endTxId, msg.storeId(), this.storeId );
+                    endTxId, msg.storeId(), localStoreId );
         }
-
-        else if ( transactionIdStore.getLastCommittedTransactionId() > startTxId )
+        else if ( transactionIdStore.getLastCommittedTransactionId() >= msg.txId() )
         {
             try ( IOCursor<CommittedTransactionRepresentation> cursor =
-                          logicalTransactionStore.getTransactions( startTxId + 1 ) )
+                          logicalTransactionStore.getTransactions( msg.txId() ) )
             {
                 while ( cursor.next() )
                 {
                     ctx.write( ResponseMessageType.TX );
                     CommittedTransactionRepresentation tx = cursor.get();
                     endTxId = tx.getCommitEntry().getTxId();
-                    ctx.write( new TxPullResponse( storeId, tx ) );
+                    ctx.write( new TxPullResponse( localStoreId, tx ) );
                 }
                 ctx.flush();
             }
