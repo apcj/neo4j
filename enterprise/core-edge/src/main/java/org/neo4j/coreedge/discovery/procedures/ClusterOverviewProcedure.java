@@ -88,7 +88,7 @@ public class ClusterOverviewProcedure extends CallableProcedure.BasicProcedure
             AdvertisedSocketAddress boltServerAddress = null;
             try
             {
-                boltServerAddress = coreTopology.find( memberId ).getBoltServer();
+                boltServerAddress = coreTopology.find( memberId ).getClientConnectorAddresses().getBoltAddress();
             }
             catch ( NoKnownAddressesException e )
             {

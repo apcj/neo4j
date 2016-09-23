@@ -26,7 +26,6 @@ import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.HazelcastInstanceNotActiveException;
 
 import org.neo4j.coreedge.core.consensus.schedule.RenewableTimeoutService;
-import org.neo4j.helpers.AdvertisedSocketAddress;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.logging.Log;
@@ -40,7 +39,7 @@ class HazelcastClient extends LifecycleAdapter implements TopologyService
 {
     static final RenewableTimeoutService.TimeoutName REFRESH_EDGE = () -> "Refresh Edge";
     private final Log log;
-    private final AdvertisedSocketAddress boltAddress;
+    private final ClientConnectorAddresses boltAddress;
     private final HazelcastConnector connector;
     private final RenewableTimeoutService renewableTimeoutService;
     private HazelcastInstance hazelcastInstance;
@@ -55,7 +54,7 @@ class HazelcastClient extends LifecycleAdapter implements TopologyService
         this.renewableTimeoutService = renewableTimeoutService;
         this.edgeRefreshRate = edgeRefreshRate;
         this.log = logProvider.getLog( getClass() );
-        this.boltAddress = ConnectorAddresses.extractBoltAddress( config );
+        this.boltAddress = ClientConnectorAddresses.extractFromConfig( config );
         this.edgeTimeToLiveTimeout = edgeTimeToLiveTimeout;
     }
 

@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 import org.neo4j.coreedge.core.CoreEdgeClusterSettings;
 import org.neo4j.coreedge.core.consensus.LeaderLocator;
 import org.neo4j.coreedge.core.consensus.NoLeaderFoundException;
+import org.neo4j.coreedge.discovery.ClientConnectorAddresses;
 import org.neo4j.coreedge.discovery.CoreAddresses;
 import org.neo4j.coreedge.discovery.CoreTopology;
 import org.neo4j.coreedge.discovery.CoreTopologyService;
@@ -403,12 +404,13 @@ public class GetServersProcedureTest
     static CoreAddresses coreAddresses( int id )
     {
         AdvertisedSocketAddress advertisedSocketAddress = new AdvertisedSocketAddress( "localhost", (3000 + id) );
-        return new CoreAddresses( advertisedSocketAddress, advertisedSocketAddress, advertisedSocketAddress );
+        return new CoreAddresses( advertisedSocketAddress, advertisedSocketAddress,
+                new ClientConnectorAddresses( advertisedSocketAddress ) );
     }
 
     private static EdgeAddresses edgeAddresses( int id )
     {
         AdvertisedSocketAddress advertisedSocketAddress = new AdvertisedSocketAddress( "localhost", (3000 + id) );
-        return new EdgeAddresses( advertisedSocketAddress );
+        return new EdgeAddresses( new ClientConnectorAddresses( advertisedSocketAddress ) );
     }
 }

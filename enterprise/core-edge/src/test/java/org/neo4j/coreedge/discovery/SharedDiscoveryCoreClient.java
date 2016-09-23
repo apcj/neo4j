@@ -111,8 +111,8 @@ class SharedDiscoveryCoreClient extends LifecycleAdapter implements CoreTopology
     {
         AdvertisedSocketAddress raftAddress = config.get( CoreEdgeClusterSettings.raft_advertised_address );
         AdvertisedSocketAddress transactionSource = config.get( CoreEdgeClusterSettings.transaction_advertised_address );
-        AdvertisedSocketAddress boltAddress = ConnectorAddresses.extractBoltAddress( config );
+        ClientConnectorAddresses clientConnectorAddresses = ClientConnectorAddresses.extractFromConfig( config );
 
-        return new CoreAddresses( raftAddress, transactionSource, boltAddress );
+        return new CoreAddresses( raftAddress, transactionSource, clientConnectorAddresses );
     }
 }

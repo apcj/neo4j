@@ -23,21 +23,21 @@ import org.neo4j.helpers.AdvertisedSocketAddress;
 
 public class EdgeAddresses
 {
-    private final AdvertisedSocketAddress boltAddress;
+    private final ClientConnectorAddresses clientConnectorAddresses;
 
-    public EdgeAddresses( AdvertisedSocketAddress boltAddress )
+    public EdgeAddresses( ClientConnectorAddresses clientConnectorAddresses )
     {
-        this.boltAddress = boltAddress;
+        this.clientConnectorAddresses = clientConnectorAddresses;
     }
 
     public AdvertisedSocketAddress getBoltAddress()
     {
-        return boltAddress;
+        return clientConnectorAddresses.getBoltAddress();
     }
 
     @Override
     public String toString()
     {
-        return String.format( "EdgeAddresses{boltAddress=%s}", boltAddress );
+        return String.format( "EdgeAddresses{clientConnectorAddresses=%s}", clientConnectorAddresses );
     }
 }

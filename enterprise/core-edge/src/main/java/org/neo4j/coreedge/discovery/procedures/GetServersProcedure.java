@@ -92,7 +92,8 @@ public class GetServersProcedure extends CallableProcedure.BasicProcedure
         try
         {
             AdvertisedSocketAddress leaderAddress =
-                    discoveryService.coreServers().find( leaderLocator.getLeader() ).getBoltServer();
+                    discoveryService.coreServers().find( leaderLocator.getLeader() )
+                            .getClientConnectorAddresses().getBoltAddress();
             writeEndpoints = writeEndpoints( leaderAddress );
         }
         catch ( NoLeaderFoundException | NoKnownAddressesException e )
@@ -106,7 +107,8 @@ public class GetServersProcedure extends CallableProcedure.BasicProcedure
     private Set<ReadWriteRouteEndPoint> routeEndpoints()
     {
         Stream<AdvertisedSocketAddress> routers =
-                discoveryService.coreServers().addresses().stream().map( CoreAddresses::getBoltServer );
+                discoveryService.coreServers().addresses().stream()
+                        .map( server -> server.getClientConnectorAddresses().getBoltAddress() );
 
         return routers.map( ReadWriteRouteEndPoint::route ).collect( toSet() );
     }
@@ -121,7 +123,8 @@ public class GetServersProcedure extends CallableProcedure.BasicProcedure
         Stream<AdvertisedSocketAddress> readEdge =
                 discoveryService.edgeServers().members().stream().map( EdgeAddresses::getBoltAddress );
         Stream<AdvertisedSocketAddress> readCore =
-                discoveryService.coreServers().addresses().stream().map( CoreAddresses::getBoltServer );
+                discoveryService.coreServers().addresses().stream()
+                        .map( server -> server.getClientConnectorAddresses().getBoltAddress() );
 
         return concat( readEdge, readCore ).map( ReadWriteRouteEndPoint::read ).collect( toSet() );
     }

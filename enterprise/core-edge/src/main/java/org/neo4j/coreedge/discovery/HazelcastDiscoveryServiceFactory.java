@@ -22,7 +22,6 @@ package org.neo4j.coreedge.discovery;
 import org.neo4j.coreedge.core.CoreEdgeClusterSettings;
 import org.neo4j.coreedge.core.consensus.schedule.DelayedRenewableTimeoutService;
 import org.neo4j.coreedge.identity.MemberId;
-import org.neo4j.helpers.AdvertisedSocketAddress;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.logging.LogProvider;
 
@@ -42,8 +41,6 @@ public class HazelcastDiscoveryServiceFactory implements DiscoveryServiceFactory
                                                  long edgeTimeToLiveTimeout, long edgeRefreshRate )
     {
         configureHazelcast( config );
-
-        AdvertisedSocketAddress boltAddress = ConnectorAddresses.extractBoltAddress( config );
 
         return new HazelcastClient( new HazelcastClientConnector( config ), logProvider, config, timeoutService,
                 edgeTimeToLiveTimeout, edgeRefreshRate );

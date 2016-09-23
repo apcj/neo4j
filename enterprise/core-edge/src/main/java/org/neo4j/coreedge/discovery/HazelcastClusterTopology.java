@@ -44,6 +44,8 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.toSet;
 
+import static org.neo4j.helpers.SocketAddressFormat.socketAddress;
+
 class HazelcastClusterTopology
 {
     static final String EDGE_SERVER_BOLT_ADDRESS_MAP_NAME = "edge-servers"; // hz client uuid string -> boltAddress string
@@ -115,7 +117,8 @@ class HazelcastClusterTopology
 
         return edgeServerMap
                 .entrySet().stream()
-                .map( entry -> new EdgeAddresses( SocketAddressFormat.socketAddress( entry.getValue() /*boltAddress*/, AdvertisedSocketAddress::new ) ) )
+                .map( entry -> new EdgeAddresses( new ClientConnectorAddresses(
+                        socketAddress( entry.getValue() /*boltAddress*/, AdvertisedSocketAddress::new ) ) ) )
                 .collect( toSet() );
     }
 
@@ -161,7 +164,7 @@ class HazelcastClusterTopology
         AdvertisedSocketAddress raftAddress = config.get( CoreEdgeClusterSettings.raft_advertised_address );
         memberAttributeConfig.setStringAttribute( RAFT_SERVER, raftAddress.toString() );
 
-        AdvertisedSocketAddress boltAddress = ConnectorAddresses.extractBoltAddress( config );
+        AdvertisedSocketAddress boltAddress = ClientConnectorAddresses.extractFromConfig( config ).getBoltAddress();
         memberAttributeConfig.setStringAttribute( BOLT_SERVER, boltAddress.toString() );
         return memberAttributeConfig;
     }
@@ -171,9 +174,9 @@ class HazelcastClusterTopology
         MemberId memberId = new MemberId( UUID.fromString( member.getStringAttribute( MEMBER_UUID ) ) );
 
         return Pair.of( memberId, new CoreAddresses(
-                SocketAddressFormat.socketAddress( member.getStringAttribute( RAFT_SERVER ), AdvertisedSocketAddress::new ),
-                SocketAddressFormat.socketAddress( member.getStringAttribute( TRANSACTION_SERVER ), AdvertisedSocketAddress::new ),
-                SocketAddressFormat.socketAddress( member.getStringAttribute( BOLT_SERVER ), AdvertisedSocketAddress::new )
+                socketAddress( member.getStringAttribute( RAFT_SERVER ), AdvertisedSocketAddress::new ),
+                socketAddress( member.getStringAttribute( TRANSACTION_SERVER ), AdvertisedSocketAddress::new ),
+                new ClientConnectorAddresses( socketAddress( member.getStringAttribute( BOLT_SERVER ), AdvertisedSocketAddress::new ) )
         ) );
     }
 }
