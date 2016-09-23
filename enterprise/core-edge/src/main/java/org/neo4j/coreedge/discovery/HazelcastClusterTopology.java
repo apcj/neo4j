@@ -26,7 +26,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.neo4j.coreedge.core.CoreEdgeClusterSettings;
-import org.neo4j.coreedge.edge.EnterpriseEdgeEditionModule;
 import org.neo4j.coreedge.identity.ClusterId;
 import org.neo4j.coreedge.identity.MemberId;
 import org.neo4j.helpers.AdvertisedSocketAddress;
@@ -162,7 +161,7 @@ class HazelcastClusterTopology
         AdvertisedSocketAddress raftAddress = config.get( CoreEdgeClusterSettings.raft_advertised_address );
         memberAttributeConfig.setStringAttribute( RAFT_SERVER, raftAddress.toString() );
 
-        AdvertisedSocketAddress boltAddress = EnterpriseEdgeEditionModule.extractBoltAddress( config );
+        AdvertisedSocketAddress boltAddress = ConnectorAddresses.extractBoltAddress( config );
         memberAttributeConfig.setStringAttribute( BOLT_SERVER, boltAddress.toString() );
         return memberAttributeConfig;
     }

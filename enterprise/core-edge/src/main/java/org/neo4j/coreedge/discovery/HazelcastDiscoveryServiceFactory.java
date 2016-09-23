@@ -24,7 +24,6 @@ import org.neo4j.coreedge.core.consensus.schedule.DelayedRenewableTimeoutService
 import org.neo4j.coreedge.identity.MemberId;
 import org.neo4j.helpers.AdvertisedSocketAddress;
 import org.neo4j.kernel.configuration.Config;
-import org.neo4j.kernel.impl.logging.LogService;
 import org.neo4j.logging.LogProvider;
 
 public class HazelcastDiscoveryServiceFactory implements DiscoveryServiceFactory
@@ -38,12 +37,15 @@ public class HazelcastDiscoveryServiceFactory implements DiscoveryServiceFactory
     }
 
     @Override
-    public TopologyService edgeDiscoveryService( Config config, AdvertisedSocketAddress boltAddress,
+    public TopologyService edgeDiscoveryService( Config config,
                                                  LogProvider logProvider, DelayedRenewableTimeoutService timeoutService,
                                                  long edgeTimeToLiveTimeout, long edgeRefreshRate )
     {
         configureHazelcast( config );
-        return new HazelcastClient( new HazelcastClientConnector( config ), logProvider, boltAddress, timeoutService,
+
+        AdvertisedSocketAddress boltAddress = ConnectorAddresses.extractBoltAddress( config );
+
+        return new HazelcastClient( new HazelcastClientConnector( config ), logProvider, config, timeoutService,
                 edgeTimeToLiveTimeout, edgeRefreshRate );
     }
 

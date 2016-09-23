@@ -26,7 +26,6 @@ import org.neo4j.coreedge.identity.ClusterId;
 import org.neo4j.helpers.AdvertisedSocketAddress;
 import org.neo4j.coreedge.core.CoreEdgeClusterSettings;
 import org.neo4j.coreedge.identity.MemberId;
-import org.neo4j.coreedge.edge.EnterpriseEdgeEditionModule;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.logging.Log;
@@ -112,7 +111,7 @@ class SharedDiscoveryCoreClient extends LifecycleAdapter implements CoreTopology
     {
         AdvertisedSocketAddress raftAddress = config.get( CoreEdgeClusterSettings.raft_advertised_address );
         AdvertisedSocketAddress transactionSource = config.get( CoreEdgeClusterSettings.transaction_advertised_address );
-        AdvertisedSocketAddress boltAddress = EnterpriseEdgeEditionModule.extractBoltAddress( config );
+        AdvertisedSocketAddress boltAddress = ConnectorAddresses.extractBoltAddress( config );
 
         return new CoreAddresses( raftAddress, transactionSource, boltAddress );
     }
