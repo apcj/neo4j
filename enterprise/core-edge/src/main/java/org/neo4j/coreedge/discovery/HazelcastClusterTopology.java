@@ -29,7 +29,6 @@ import org.neo4j.coreedge.core.CoreEdgeClusterSettings;
 import org.neo4j.coreedge.identity.ClusterId;
 import org.neo4j.coreedge.identity.MemberId;
 import org.neo4j.helpers.AdvertisedSocketAddress;
-import org.neo4j.helpers.SocketAddressFormat;
 import org.neo4j.helpers.collection.Pair;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.logging.Log;
@@ -118,7 +117,8 @@ class HazelcastClusterTopology
         return edgeServerMap
                 .entrySet().stream()
                 .map( entry -> new EdgeAddresses( new ClientConnectorAddresses(
-                        socketAddress( entry.getValue() /*boltAddress*/, AdvertisedSocketAddress::new ) ) ) )
+                        socketAddress( entry.getValue() /*boltAddress*/, AdvertisedSocketAddress::new ), httpAddress,
+                        httpsAddress ) ) )
                 .collect( toSet() );
     }
 
@@ -176,7 +176,7 @@ class HazelcastClusterTopology
         return Pair.of( memberId, new CoreAddresses(
                 socketAddress( member.getStringAttribute( RAFT_SERVER ), AdvertisedSocketAddress::new ),
                 socketAddress( member.getStringAttribute( TRANSACTION_SERVER ), AdvertisedSocketAddress::new ),
-                new ClientConnectorAddresses( socketAddress( member.getStringAttribute( BOLT_SERVER ), AdvertisedSocketAddress::new ) )
+                new ClientConnectorAddresses( socketAddress( member.getStringAttribute( BOLT_SERVER ), AdvertisedSocketAddress::new ), httpAddress, httpsAddress )
         ) );
     }
 }

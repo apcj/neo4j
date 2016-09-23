@@ -405,12 +405,12 @@ public class GetServersProcedureTest
     {
         AdvertisedSocketAddress advertisedSocketAddress = new AdvertisedSocketAddress( "localhost", (3000 + id) );
         return new CoreAddresses( advertisedSocketAddress, advertisedSocketAddress,
-                new ClientConnectorAddresses( advertisedSocketAddress ) );
+                new ClientConnectorAddresses( advertisedSocketAddress, httpAddress, httpsAddress ) );
     }
 
     private static EdgeAddresses edgeAddresses( int id )
     {
         AdvertisedSocketAddress advertisedSocketAddress = new AdvertisedSocketAddress( "localhost", (3000 + id) );
-        return new EdgeAddresses( new ClientConnectorAddresses( advertisedSocketAddress ) );
+        return new EdgeAddresses( new ClientConnectorAddresses( advertisedSocketAddress, httpAddress, httpsAddress ) );
     }
 }
