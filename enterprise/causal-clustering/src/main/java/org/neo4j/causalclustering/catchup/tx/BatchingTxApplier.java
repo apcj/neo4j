@@ -49,7 +49,8 @@ public class BatchingTxApplier extends LifecycleAdapter implements Runnable
     private final Supplier<TransactionCommitProcess> commitProcessSupplier;
     private final Supplier<DatabaseHealth> healthSupplier;
 
-    private final PullRequestMonitor monitor;
+    private final PullRequestMonitor pullRequestMonitor;
+    private final TxApplicationMonitor txApplicationMonitor;
     private final Log log;
 
     private final ArrayBlockingQueue<CommittedTransactionRepresentation> txQueue;
@@ -70,7 +71,8 @@ public class BatchingTxApplier extends LifecycleAdapter implements Runnable
         this.commitProcessSupplier = commitProcessSupplier;
         this.healthSupplier = healthSupplier;
         this.log = logProvider.getLog( getClass() );
-        this.monitor = monitors.newMonitor( PullRequestMonitor.class );
+        this.pullRequestMonitor = monitors.newMonitor( PullRequestMonitor.class );
+        this.txApplicationMonitor = monitors.newMonitor( TxApplicationMonitor.class );
         this.txQueue = new ArrayBlockingQueue<>( maxBatchSize );
     }
 
@@ -118,7 +120,7 @@ public class BatchingTxApplier extends LifecycleAdapter implements Runnable
         if ( !stopped )
         {
             lastQueuedTxId = receivedTxId;
-            monitor.txPullResponse( receivedTxId );
+            pullRequestMonitor.txPullResponse( receivedTxId );
         }
     }
 
@@ -144,10 +146,12 @@ public class BatchingTxApplier extends LifecycleAdapter implements Runnable
                 {
                     txId = tx.getCommitEntry().getTxId();
                     txBatcher.queue( new TransactionToApply( tx.getTransactionRepresentation(), txId ) );
+                    txApplicationMonitor.onTransactionQueuedForApplication();
                 }
                 while ( (tx = txQueue.poll()) != null );
 
                 txBatcher.empty();
+                txApplicationMonitor.onBatchEmptied();
                 lastAppliedTxId = txId;
             }
             catch ( Exception e )

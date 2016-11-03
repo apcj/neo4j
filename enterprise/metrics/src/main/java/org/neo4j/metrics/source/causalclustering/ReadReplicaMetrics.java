@@ -44,10 +44,18 @@ public class ReadReplicaMetrics extends LifecycleAdapter
     public static final String PULL_UPDATE_HIGHEST_TX_ID_RECEIVED = name( CAUSAL_CLUSTERING_PREFIX,
             "pull_update_highest_tx_id_received" );
 
+    @Documented( "Number of transactions applied on a read replica" )
+    public static final String READ_REPLICA_TRANSACTIONS_QUEUED_FOR_APPLICATION = name( CAUSAL_CLUSTERING_PREFIX,
+            "read_replica_transactions_applied" );
+    @Documented( "Number of transactions applied on a read replica" )
+    public static final String READ_REPLICA_TRANSACTION_APPLICATION_BATCHES_EMPTIED = name( CAUSAL_CLUSTERING_PREFIX,
+            "read_replica_transaction_application_batches" );
+
     private Monitors monitors;
     private MetricRegistry registry;
 
     private final PullRequestMetric pullRequestMetric = new PullRequestMetric();
+    private final TxApplicationMetric txApplicationMetric = new TxApplicationMetric();
 
     public ReadReplicaMetrics( Monitors monitors, MetricRegistry registry )
     {
@@ -59,10 +67,13 @@ public class ReadReplicaMetrics extends LifecycleAdapter
     public void start() throws Throwable
     {
         monitors.addMonitorListener( pullRequestMetric );
+        monitors.addMonitorListener( txApplicationMetric );
 
         registry.register( PULL_UPDATES, (Gauge<Long>) pullRequestMetric::numberOfRequests );
         registry.register( PULL_UPDATE_HIGHEST_TX_ID_REQUESTED, (Gauge<Long>) pullRequestMetric::lastRequestedTxId );
         registry.register( PULL_UPDATE_HIGHEST_TX_ID_RECEIVED, (Gauge<Long>) pullRequestMetric::lastReceivedTxId );
+        registry.register( READ_REPLICA_TRANSACTIONS_QUEUED_FOR_APPLICATION, (Gauge<Long>) txApplicationMetric::transactionsQueuedForApplication );
+        registry.register( READ_REPLICA_TRANSACTION_APPLICATION_BATCHES_EMPTIED, (Gauge<Long>) txApplicationMetric::transactionApplicationBatchesEmptied );
     }
 
     @Override
@@ -71,7 +82,10 @@ public class ReadReplicaMetrics extends LifecycleAdapter
         registry.remove( PULL_UPDATES );
         registry.remove( PULL_UPDATE_HIGHEST_TX_ID_REQUESTED );
         registry.remove( PULL_UPDATE_HIGHEST_TX_ID_RECEIVED );
+        registry.remove( READ_REPLICA_TRANSACTIONS_QUEUED_FOR_APPLICATION );
+        registry.remove( READ_REPLICA_TRANSACTION_APPLICATION_BATCHES_EMPTIED );
 
         monitors.removeMonitorListener( pullRequestMetric );
+        monitors.removeMonitorListener( txApplicationMetric );
     }
 }

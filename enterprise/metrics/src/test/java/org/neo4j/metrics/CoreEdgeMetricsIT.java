@@ -55,6 +55,10 @@ import static org.neo4j.metrics.MetricsTestHelper.readLongValue;
 import static org.neo4j.metrics.source.causalclustering.ReadReplicaMetrics.PULL_UPDATES;
 import static org.neo4j.metrics.source.causalclustering.ReadReplicaMetrics.PULL_UPDATE_HIGHEST_TX_ID_RECEIVED;
 import static org.neo4j.metrics.source.causalclustering.ReadReplicaMetrics.PULL_UPDATE_HIGHEST_TX_ID_REQUESTED;
+import static org.neo4j.metrics.source.causalclustering.ReadReplicaMetrics
+        .READ_REPLICA_TRANSACTIONS_QUEUED_FOR_APPLICATION;
+import static org.neo4j.metrics.source.causalclustering.ReadReplicaMetrics
+        .READ_REPLICA_TRANSACTION_APPLICATION_BATCHES_EMPTIED;
 import static org.neo4j.test.assertion.Assert.assertEventually;
 
 public class CoreEdgeMetricsIT
@@ -158,6 +162,14 @@ public class CoreEdgeMetricsIT
 
         assertEventually( "pull update response received",
                 () -> readLongValue( metricsCsv( readReplicaMetricsDir, PULL_UPDATE_HIGHEST_TX_ID_RECEIVED ) ),
+                greaterThan( 0L ), TIMEOUT, TimeUnit.SECONDS );
+
+        assertEventually( "read replica transactions queued for application",
+                () -> readLongValue( metricsCsv( readReplicaMetricsDir, READ_REPLICA_TRANSACTIONS_QUEUED_FOR_APPLICATION) ),
+                greaterThan( 0L ), TIMEOUT, TimeUnit.SECONDS );
+
+        assertEventually( "read replica transaction application batches emptied",
+                () -> readLongValue( metricsCsv( readReplicaMetricsDir, READ_REPLICA_TRANSACTION_APPLICATION_BATCHES_EMPTIED) ),
                 greaterThan( 0L ), TIMEOUT, TimeUnit.SECONDS );
 
         assertEventually( "dropped messages eventually accurate",
